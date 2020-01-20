@@ -1,0 +1,1 @@
+pub const WORKSPACE_SIZE: f64 = 100000.;
