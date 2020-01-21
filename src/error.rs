@@ -1,7 +1,7 @@
 use std::fmt;
 use std::error;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Error {
     NotANumber,
     OutOfBounds,

@@ -5,7 +5,7 @@ use crate::error::Error;
 use crate::error::Result;
 use crate::limits;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct Vertex {
     // A vertex is a point in space. It wraps a Vec3 and gives stronger guarantees (non-NAN, in bounds, etc.)
     point: Vec3
