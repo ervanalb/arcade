@@ -1,1 +1,3 @@
-pub const WORKSPACE_SIZE: f64 = 100000.;
+pub const WORKSPACE_SIZE: f64 = 1e6;
+pub const MINIMUM_VERTEX_SEPARATION: f64 = 1e-6;
+pub const EPSILON_VERTEX_COINCIDENT: f64 = 1e-9;

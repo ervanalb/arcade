@@ -5,6 +5,7 @@ use std::error;
 pub enum Error {
     NotANumber,
     OutOfBounds,
+    VerticesTooClose,
 }
 
 impl fmt::Display for Error {
@@ -12,6 +13,7 @@ impl fmt::Display for Error {
         write!(f, "{}", match self {
             Error::NotANumber => "Not a number",
             Error::OutOfBounds => "Out of bounds",
+            Error::VerticesTooClose => "Vertices too close",
         })
     }
 }

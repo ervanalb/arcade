@@ -20,6 +20,10 @@ impl Vec3 {
     pub fn is_finite(&self) -> bool {
         self.x.is_finite() && self.y.is_finite() && self.z.is_finite()
     }
+
+    pub fn is_within(&self, epsilon: f64) -> bool {
+        self.x.abs() <= epsilon && self.y.abs() <= epsilon && self.z.abs() <= epsilon
+    }
 }
 
 impl fmt::Display for Vec3 {

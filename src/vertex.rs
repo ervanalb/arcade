@@ -18,6 +18,7 @@ impl Vertex {
             true => Ok(())
         }
     }
+
     fn check_bounds(a: Vec3) -> Result<()> {
         match a.x.abs() < limits::WORKSPACE_SIZE
            && a.y.abs() < limits::WORKSPACE_SIZE 
@@ -38,6 +39,10 @@ impl Vertex {
 
     pub fn point(&self) -> Vec3 {
         self.point
+    }
+
+    pub fn is_coincident(&self, other: Vertex) -> bool {
+        (self.point - other.point).is_within(limits::EPSILON_VERTEX_COINCIDENT)
     }
 }
 
