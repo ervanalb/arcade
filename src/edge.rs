@@ -17,15 +17,8 @@ pub struct Segment {
 }
 
 impl Segment {
-    fn check_segment_length(pt1: &Vertex, pt2: &Vertex) -> Result<()> {
-        match (pt2.point() - pt1.point()).is_within(limits::MINIMUM_VERTEX_SEPARATION) {
-            true => Err(Error::VerticesTooClose),
-            false => Ok(())
-        }
-    }
-
     pub fn new(pt1: Vertex, pt2: Vertex) -> Result<Segment> {
-        Segment::check_segment_length(&pt1, &pt2)?;
+        pt1.check_vertex_separation(&pt2)?;
 
         Ok(Segment {
             a: pt1.point(),
@@ -38,4 +31,20 @@ impl Edge for Segment {
     fn eval(&self, t: f64) -> Vec3 {
         self.a + t * self.b
     }
+}
+
+#[derive(Debug)]
+pub struct Arc {
+    // Implements a circular arc parameterized as C + A cos(theta) + B sin(theta)
+    // a and b are radii of the circle, and are perpendicular to each other. a points to the start.
+    // theta = t * angle
+    c: Vec3, // Center point
+    a: Vec3, // A radius of the circle pointing to the first point
+    b: Vec3, // A radius of the circle perpendicular to a
+    angle: f64, // How much of an arc to sweep out
+}
+
+impl Arc {
+    //pub fn from_three_points(pt1: Vertex, pt2: Vertex, pt3: Vertex) -> Result<Arc> {
+    //}
 }

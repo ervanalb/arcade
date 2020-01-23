@@ -44,6 +44,13 @@ impl Vertex {
     pub fn is_coincident(&self, other: Vertex) -> bool {
         (self.point - other.point).is_within(limits::EPSILON_VERTEX_COINCIDENT)
     }
+
+    pub fn check_vertex_separation(&self, other: &Vertex) -> Result<()> {
+        match (self.point - other.point).is_within(limits::MINIMUM_VERTEX_SEPARATION) {
+            true => Err(Error::VerticesTooClose),
+            false => Ok(())
+        }
+    }
 }
 
 impl fmt::Display for Vertex {

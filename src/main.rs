@@ -3,7 +3,6 @@ mod error;
 mod vertex;
 mod edge;
 mod limits;
-mod tests;
 
 use vec::Vec3;
 use vertex::Vertex;
