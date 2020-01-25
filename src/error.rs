@@ -6,6 +6,7 @@ pub enum Error {
     NotANumber,
     OutOfBounds,
     VerticesTooClose,
+    VerticesColinear,
     NotImplemented,
 }
 
@@ -16,6 +17,7 @@ impl fmt::Display for Error {
             Error::OutOfBounds => "Out of bounds",
             Error::VerticesTooClose => "Vertices too close",
             Error::NotImplemented => "Not implemented",
+            Error::VerticesColinear => "Vertices colinear",
         })
     }
 }

@@ -1,4 +1,5 @@
-use crate::vec::Vec3;
+use crate::vec::*;
+use std::f64::consts::*;
 use crate::vertex::Vertex;
 use crate::error::Error;
 use crate::error::Result;
@@ -45,31 +46,61 @@ pub struct Arc {
 }
 
 impl Arc {
-    pub fn from_three_points(pt1: Vertex, pt2: Vertex, pt3: Vertex) -> Result<Arc> {
-        pt1.check_vertex_separation(&pt2)?;
-        pt1.check_vertex_separation(&pt3)?;
-        pt2.check_vertex_separation(&pt3)?;
+    pub fn from_three_points(pt1: &Vertex, pt2: &Vertex, pt3: &Vertex) -> Result<Arc> {
+        pt1.check_colinear(pt2, pt3)?;
 
-        // Compute a new coordinate frame where the three points lie in the uv plane
+        // This from https://math.stackexchange.com/a/1743505
+
+        // Compute a new coordinate frame uvw where the three points lie in the uv plane.
+        // The first point is the origin of the coordinate frame
+        // and the second point lies on the Y axis.
         let u1 = pt2.point() - pt1.point();
-        let w1 = (pt3.point() - pt1.point()).cross(u1);
+        let o1 = pt3.point() - pt1.point();
+        let w1 = o1.cross(u1);
         let u = u1.normalized();
         let w = w1.normalized();
         let v = w.cross(u);
 
-        // Calculate center from the following equation of a circle
-        // (x - a)^2 + (y - b)^2 = r^2
-        // Substitute in pt1, pt2, pt3 for (x, y) and solve for (a, b)
-        // Subtracting the equations gets rid of r^2, a^2, and b^2 unknowns,
-        // leaving only a and b in the following equations:
-        // 2 * (X1 - X2) * a - 2 * (Y1 - Y2) * b = X1^2 - X2^2 + Y1^2 - Y2^2
-        // 2 * (X1 - X3) * a - 2 * (Y1 - Y3) * b = X1^2 - X3^2 + Y1^2 - Y3^2
-        // Solve this 2x2 linear system equations using matrices.
+        // Compute two vectors b and c that go from the origin of the new coordinate system (pt1)
+        // to pt2 (b) and pt3 (c)
+        let b = Vec2::new(u1.length(), 0.);
+        let c = Vec2::new(o1 * u, o1 * v);
 
-        //let x1 = pt1.point;
+        // The center of the circle lies on the line x = bx / 2
+        // and is equidistant from the origin and C,
+        // let us call this point (bx / 2, h)
+        // Solving for h gives us:
 
-        //let a = Mat2::new(2 * pt1.point().x);
-        Err(Error::NotImplemented)
+        let h = ((c.x - 0.5 * b.x).sq() + c.y.sq() - (0.5 * b.x).sq()) / (2. * c.y);
+        let center_2d = Vec2::new(0.5 * b.x, h);
+
+        // Get two radii in 2D, the first pointing from center to pt1
+        // and the second orthogonal to it in the direction that the arc goes.
+        let radius1 = -center_2d;
+        let radius2 = Vec2::new(-center_2d.y, center_2d.x);
+
+        // Use atan2 in this coordinate frame to get the angular sweep of the arc.
+        let angle = ((c - center_2d) * radius2).atan2((c - center_2d) * radius1);
+        let angle = angle + (2. * PI) * (angle < 0.) as i32 as f64;
+
+        // Reproject into 3D
+        let center_3d = pt1.point() + center_2d.x * u + center_2d.y * v;
+        let radius1_3d = pt1.point() + radius1.x * u + radius1.y * v;
+        let radius2_3d = pt1.point() + radius2.x * u + radius2.y * v;
+
+        Ok(Arc {
+            c: center_3d,
+            a: radius1_3d,
+            b: radius2_3d,
+            angle: angle
+        })
+    }
+}
+
+impl Edge for Arc {
+    fn eval(&self, t: f64) -> Vec3 {
+        let theta = t * self.angle;
+        self.c + self.a * theta.cos() + self.b * theta.sin()
     }
 }
 

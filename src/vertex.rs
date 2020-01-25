@@ -51,6 +51,20 @@ impl Vertex {
             false => Ok(())
         }
     }
+
+    // Also checks vertex separation
+    pub fn check_colinear(&self, other1: &Vertex, other2: &Vertex) -> Result<()> {
+        self.check_vertex_separation(other1)?;
+        self.check_vertex_separation(other2)?;
+        other1.check_vertex_separation(other2)?;
+
+        let v1 = self.point - other1.point;
+        let v2 = self.point - other2.point;
+        match v1.cross(v2).is_within(limits::MINIMUM_CROSS_PRODUCT_NON_COLINEAR * v1.length() * v2.length()) {
+            true => Err(Error::VerticesColinear),
+            false => Ok(())
+        }
+    }
 }
 
 impl fmt::Display for Vertex {
@@ -79,4 +93,3 @@ fn vertex_construction() {
     assert!(!Vertex::new(v).unwrap().is_coincident(
         Vertex::new(v + Vec3::new(1.3, -0.9, -1.7) * limits::EPSILON_VERTEX_COINCIDENT).unwrap()));
 }
-

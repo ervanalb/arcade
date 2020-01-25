@@ -26,7 +26,7 @@ impl Vec3 {
     }
 
     pub fn length(&self) -> f64 {
-        (self.x * self.x + self.y * self.y + self.z * self.z).sqrt()
+        (self.x.sq() + self.y.sq() + self.z.sq()).sqrt()
     }
 
     pub fn normalized(&self) -> Vec3 {
@@ -72,6 +72,18 @@ impl ops::Sub for Vec3 {
     }
 }
 
+impl ops::Neg for Vec3 {
+    type Output = Vec3;
+
+    fn neg(self) -> Vec3 {
+        Vec3 {
+            x: -self.x,
+            y: -self.y, 
+            z: -self.z, 
+        }
+    }
+}
+
 impl ops::Mul<f64> for Vec3 {
     type Output = Vec3;
 
@@ -93,6 +105,14 @@ impl ops::Mul<Vec3> for f64 {
             y: self * other.y, 
             z: self * other.z
         }
+    }
+}
+
+impl ops::Mul<Vec3> for Vec3 {
+    type Output = f64;
+
+    fn mul(self, other: Vec3) -> f64 {
+        self.x * other.x + self.y * other.y + self.z * other.z
     }
 }
 
@@ -183,6 +203,17 @@ impl ops::Sub for Vec2 {
     }
 }
 
+impl ops::Neg for Vec2 {
+    type Output = Vec2;
+
+    fn neg(self) -> Vec2 {
+        Vec2 {
+            x: -self.x,
+            y: -self.y, 
+        }
+    }
+}
+
 impl ops::Mul<f64> for Vec2 {
     type Output = Vec2;
 
@@ -202,6 +233,14 @@ impl ops::Mul<Vec2> for f64 {
             x: self * other.x,
             y: self * other.y, 
         }
+    }
+}
+
+impl ops::Mul<Vec2> for Vec2 {
+    type Output = f64;
+
+    fn mul(self, other: Vec2) -> f64 {
+        self.x * other.x + self.y * other.y
     }
 }
 
@@ -299,6 +338,19 @@ impl ops::Sub for Mat2 {
     }
 }
 
+impl ops::Neg for Mat2 {
+    type Output = Mat2;
+
+    fn neg(self) -> Mat2 {
+        Mat2 {
+            a: -self.a,
+            b: -self.b,
+            c: -self.c,
+            d: -self.d
+        }
+    }
+}
+
 impl ops::Mul<f64> for Mat2 {
     type Output = Mat2;
 
@@ -383,6 +435,17 @@ impl ops::Mul<Mat2> for Vec2 {
             x: self.x * other.a + self.y * other.c,
             y: self.x * other.b + self.y * other.d
         }
+    }
+}
+
+pub trait Sq {
+    fn sq(self) -> Self
+        where Self: std::marker::Sized;
+}
+
+impl Sq for f64 {
+    fn sq(self) -> f64 {
+        self * self
     }
 }
 
