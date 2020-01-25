@@ -6,6 +6,7 @@ pub enum Error {
     NotANumber,
     OutOfBounds,
     VerticesTooClose,
+    NotImplemented,
 }
 
 impl fmt::Display for Error {
@@ -14,6 +15,7 @@ impl fmt::Display for Error {
             Error::NotANumber => "Not a number",
             Error::OutOfBounds => "Out of bounds",
             Error::VerticesTooClose => "Vertices too close",
+            Error::NotImplemented => "Not implemented",
         })
     }
 }

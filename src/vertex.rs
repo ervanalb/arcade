@@ -58,3 +58,25 @@ impl fmt::Display for Vertex {
         self.point.fmt(f)
     }
 }
+
+// TESTS
+#[test]
+fn vertex_construction() {
+    assert!(
+        Vertex::new(limits::WORKSPACE_SIZE * Vec3::new(0.5, 0.9, -0.3))
+        .is_ok());
+    assert_eq!(
+        Vertex::new(limits::WORKSPACE_SIZE * Vec3::new(0.5, 0.9, -1.3)).unwrap_err(),
+        Error::OutOfBounds);
+    assert_eq!(
+        Vertex::new(Vec3::new(55., std::f64::NAN, -23.)).unwrap_err(),
+        Error::NotANumber);
+
+    let v = Vec3::new(0.5, 0.9, -0.3) * limits::WORKSPACE_SIZE;
+    assert!(Vertex::new(v).unwrap().is_coincident(
+        Vertex::new(v + Vec3::new(0.3, -0.9, -0.7) * limits::EPSILON_VERTEX_COINCIDENT).unwrap()));
+
+    assert!(!Vertex::new(v).unwrap().is_coincident(
+        Vertex::new(v + Vec3::new(1.3, -0.9, -1.7) * limits::EPSILON_VERTEX_COINCIDENT).unwrap()));
+}
+
