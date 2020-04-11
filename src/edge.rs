@@ -10,6 +10,7 @@ trait Edge {
     fn eval(&self, t: f64) -> Vec3;
 }
 
+/*
 #[derive(Debug)]
 pub struct Segment {
     // Implements a segment parameterized as A + B * t where t ranges from 0 to 1
@@ -119,3 +120,4 @@ fn segment_construction() {
                      Vertex::new(v + limits::MINIMUM_VERTEX_SEPARATION * Vec3::new(0.3, 0.5, -0.8)).unwrap()).unwrap_err(),
         Error::VerticesTooClose);
 }
+*/
