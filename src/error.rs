@@ -8,6 +8,8 @@ pub enum Error {
     VerticesTooClose,
     VerticesColinear,
     NotImplemented,
+    DegenerateCurve,
+    InvalidParameters,
 }
 
 impl fmt::Display for Error {
@@ -18,6 +20,8 @@ impl fmt::Display for Error {
             Error::VerticesTooClose => "Vertices too close",
             Error::NotImplemented => "Not implemented",
             Error::VerticesColinear => "Vertices colinear",
+            Error::DegenerateCurve => "Degenerate curve",
+            Error::InvalidParameters => "Invalid parameters",
         })
     }
 }

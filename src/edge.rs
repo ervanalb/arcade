@@ -4,13 +4,60 @@ use crate::vertex::Vertex;
 use crate::error::Error;
 use crate::error::Result;
 use crate::limits;
+use std::fmt;
 
 trait Edge {
+    // An Edge:
+    // * is parameterized by a value t which goes from 0 to 1
+    // * is C0 continuous
+    // * is Non-self-intersecting
+    // * is Non-zero length
+    // * can be open or closed
+    // * is trimmable and splittable
+    // * may be extensible (evaluable outside of the range [0, 1]
+
     // Evaluate the edge at the given parameter value
-    fn eval(&self, t: f64) -> Vec3;
+    fn d0(&self, t: f64) -> Vec3; // Point on edge at parameter value t
+    fn d1(&self, t: f64) -> Option<Vec3> { // First derivative with respect to parameter value t
+        assert!(self.parameter_within_bounds(t));
+        None
+    }
+    fn d2(&self, t: f64) -> Option<Vec3> { // Second derivative with respect to parameter value t
+        assert!(self.parameter_within_bounds(t));
+        None
+    }
+
+    // Returns true if the edge is closed
+    fn is_closed(&self) -> bool {
+        let v1 = Vertex::new(self.d0(0.)).unwrap();
+        let v2 = Vertex::new(self.d0(1.)).unwrap();
+        v1.is_coincident(v2)
+    }
+
+    // Returns an edge that corresponds to a subset of the current edge evaluated between t=start and t=end
+    fn trimmed(&self, start: f64, end: f64) -> Result<Box<dyn Edge>>;
+
+    // Returns the valid bounds for extending the given edge, or None for no bound (infinitely extensible in that direction)
+    fn parameter_bounds(&self) -> (Option<f64>, Option<f64>) {
+        (Some(0.), Some(1.))
+    }
+
+    fn parameter_within_bounds(&self, t: f64) -> bool {
+        let (lower_bound, upper_bound) = self.parameter_bounds();
+        let check_lower = match lower_bound {
+            Some(lower_bound_t) => (t >= lower_bound_t),
+            None => true
+        };
+
+        let check_upper = match upper_bound {
+            Some(upper_bound_t) => (t <= upper_bound_t),
+            None => true
+        };
+
+        check_lower && check_upper
+    }
 }
 
-/*
 #[derive(Debug)]
 pub struct Segment {
     // Implements a segment parameterized as A + B * t where t ranges from 0 to 1
@@ -19,22 +66,121 @@ pub struct Segment {
 }
 
 impl Segment {
-    pub fn new(pt1: Vertex, pt2: Vertex) -> Result<Segment> {
-        pt1.check_vertex_separation(&pt2)?;
+    fn check(&self) -> Result<()> {
+        let v1 = Vertex::new(self.a)?;
+        let v2 = Vertex::new(self.a + self.b)?;
+        v1.check_vertex_separation(&v2)?;
 
-        Ok(Segment {
+        Ok(())
+    }
+
+    pub fn new(pt1: Vertex, pt2: Vertex) -> Result<Segment> {
+        let result = Segment {
             a: pt1.point(),
             b: pt2.point() - pt1.point()
-        })
+        };
+
+        result.check()?;
+
+        Ok(result)
     }
 }
 
 impl Edge for Segment {
-    fn eval(&self, t: f64) -> Vec3 {
+    // Evaluate the edge at the given parameter value
+    fn d0(&self, t: f64) -> Vec3 {
+        assert!(self.parameter_within_bounds(t));
+
         self.a + t * self.b
+    }
+    fn d1(&self, t: f64) -> Option<Vec3> { // First derivative with respect to parameter value t
+        assert!(self.parameter_within_bounds(t));
+
+        Some(self.b)
+    }
+    fn d2(&self, t: f64) -> Option<Vec3> { // Second derivative with respect to parameter value t
+        assert!(self.parameter_within_bounds(t));
+
+        Some(Vec3::ZERO)
+    }
+    fn is_closed(&self) -> bool {
+        false
+    }
+    fn parameter_bounds(&self) -> (Option<f64>, Option<f64>) {
+        (None, None)
+    }
+    fn trimmed(&self, start: f64, end: f64) -> Result<Box<dyn Edge>> {
+        assert!(self.parameter_within_bounds(start));
+        assert!(self.parameter_within_bounds(end));
+
+        let v1 = Vertex::new(self.d0(start))?;
+        let v2 = Vertex::new(self.d0(end))?;
+        Ok(Box::new(Segment::new(v1, v2)?))
     }
 }
 
+#[derive(Debug)]
+pub struct CubicNURBSCurve {
+    points: Vec<Vec3>,
+    weights: Vec<f64>,
+    knots: Vec<f64>
+}
+
+impl CubicNURBSCurve {
+    fn check(&self) -> Result<()> {
+
+        // Check that there are at least two points
+        if self.points.len() < 2 {
+            return Err(Error::DegenerateCurve);
+        }
+
+        // Check that there are at least four knots
+        if self.knots.len() < 4 {
+            return Err(Error::DegenerateCurve);
+        }
+
+        // Check there is one weight per point 
+        if self.weights.len() != self.points.len() {
+            return Err(Error::InvalidParameters);
+        }
+
+        // Check that knots vector is non-decreasing
+        let mut knots_iter = self.knots.iter();
+        let prev = knots_iter.next().expect("Empty knots vector");
+        for knot in knots_iter {
+            if knot < prev {
+                return Err(Error::InvalidParameters);
+            }
+        }
+
+        // TODO: check for C0 discontinuities
+        // TODO: check for self-intersections
+
+        Ok(())
+    }
+
+    pub fn new(points: Vec<Vec3>, weights: Vec<f64>, knots: Vec<f64>) -> Result<CubicNURBSCurve> {
+        let result = CubicNURBSCurve {
+            points: points,
+            weights: weights,
+            knots: knots,
+        };
+
+        result.check()?;
+
+        // TODO: check endpoint separation
+        // TODO: check self-intersection and degeneracy
+        Ok(result)
+    }
+}
+
+impl std::fmt::Debug for Box<dyn Edge> {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> fmt::Result {
+        (*self).fmt(fmt)
+    }
+}
+
+/*
 #[derive(Debug)]
 pub struct Arc {
     // Implements a circular arc parameterized as C + A cos(theta) + B sin(theta)
@@ -104,6 +250,7 @@ impl Edge for Arc {
         self.c + self.a * theta.cos() + self.b * theta.sin()
     }
 }
+*/
 
 // TESTS
 #[test]
@@ -120,4 +267,12 @@ fn segment_construction() {
                      Vertex::new(v + limits::MINIMUM_VERTEX_SEPARATION * Vec3::new(0.3, 0.5, -0.8)).unwrap()).unwrap_err(),
         Error::VerticesTooClose);
 }
-*/
+
+#[test]
+fn segment_splitting() {
+    let base_segment = Segment::new(Vertex::new(Vec3::new(0.5, 0.9, -0.3)).unwrap(), Vertex::new(Vec3::new(0.3, 0.5, -0.8)).unwrap()).unwrap();
+
+    assert!(base_segment.trimmed(0., 0.5).is_ok());
+    assert!(base_segment.trimmed(0., 2.).is_ok());
+    assert_eq!(base_segment.trimmed(0., 0.).unwrap_err(), Error::VerticesTooClose);
+}
