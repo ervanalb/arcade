@@ -22,6 +22,13 @@ impl Edge {
             Edge::Generic(box_e) => box_e.as_ref()
         }
     }
+
+    fn unwrap_segment(&self) -> &Segment {
+        match self {
+            Edge::Segment(s) => s,
+            _ => panic!("Edge is not segment")
+        }
+    }
 }
 
 impl std::fmt::Debug for Edge {
@@ -301,10 +308,7 @@ fn segment_construction() {
 fn segment_splitting() {
     let base_segment = Segment::new(Vertex::new(Vec3::new(0.5, 0.9, -0.3)).unwrap(), Vertex::new(Vec3::new(0.3, 0.5, -0.8)).unwrap()).unwrap();
 
-    let seg = match base_segment.trimmed(0., 0.5).unwrap() {
-        Edge::Segment(s) => s,
-        _ => panic!("Result of splitting segment was not segment!")
-    };
+    let seg = base_segment.trimmed(0., 0.5).unwrap().unwrap_segment();
     assert!(base_segment.trimmed(0., 0.5).is_ok());
     assert!(base_segment.trimmed(0., 2.).is_ok());
     assert_eq!(base_segment.trimmed(0., 0.).unwrap_err(), Error::VerticesTooClose);
