@@ -6,7 +6,36 @@ use crate::error::Result;
 use crate::limits;
 use std::fmt;
 
-trait Edge {
+pub enum Edge {
+    Segment(Segment),
+    Arc(),
+    CubicNURBSCurve(CubicNURBSCurve),
+    Generic(Box<dyn GenericEdge>)
+}
+
+impl Edge {
+    fn as_generic(&self) -> &dyn GenericEdge {
+        match self {
+            Edge::Segment(e) => e,
+            Edge::Arc() => panic!("Arc not implemented yet"),
+            Edge::CubicNURBSCurve(e) => panic!("Cubic NURBS curve not implemented yet!"),
+            Edge::Generic(box_e) => box_e.as_ref()
+        }
+    }
+}
+
+impl std::fmt::Debug for Edge {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> fmt::Result {
+        match self {
+            Edge::Segment(e) => e.fmt(fmt),
+            Edge::Arc() => write!(fmt, "Arc()"),
+            Edge::CubicNURBSCurve(e) => e.fmt(fmt),
+            Edge::Generic(box_e) => box_e.fmt(fmt)
+        }
+    }
+}
+
+trait GenericEdge {
     // An Edge:
     // * is parameterized by a value t which goes from 0 to 1
     // * is C0 continuous
@@ -35,7 +64,7 @@ trait Edge {
     }
 
     // Returns an edge that corresponds to a subset of the current edge evaluated between t=start and t=end
-    fn trimmed(&self, start: f64, end: f64) -> Result<Box<dyn Edge>>;
+    fn trimmed(&self, start: f64, end: f64) -> Result<Edge>;
 
     // Returns the valid bounds for extending the given edge, or None for no bound (infinitely extensible in that direction)
     fn parameter_bounds(&self) -> (Option<f64>, Option<f64>) {
@@ -55,6 +84,12 @@ trait Edge {
         };
 
         check_lower && check_upper
+    }
+}
+
+impl std::fmt::Debug for dyn GenericEdge {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> fmt::Result {
+        write!(fmt, "GenericEdge()")
     }
 }
 
@@ -86,7 +121,7 @@ impl Segment {
     }
 }
 
-impl Edge for Segment {
+impl GenericEdge for Segment {
     // Evaluate the edge at the given parameter value
     fn d0(&self, t: f64) -> Vec3 {
         assert!(self.parameter_within_bounds(t));
@@ -109,13 +144,13 @@ impl Edge for Segment {
     fn parameter_bounds(&self) -> (Option<f64>, Option<f64>) {
         (None, None)
     }
-    fn trimmed(&self, start: f64, end: f64) -> Result<Box<dyn Edge>> {
+    fn trimmed(&self, start: f64, end: f64) -> Result<Edge> {
         assert!(self.parameter_within_bounds(start));
         assert!(self.parameter_within_bounds(end));
 
         let v1 = Vertex::new(self.d0(start))?;
         let v2 = Vertex::new(self.d0(end))?;
-        Ok(Box::new(Segment::new(v1, v2)?))
+        Ok(Edge::Segment(Segment::new(v1, v2)?))
     }
 }
 
@@ -171,12 +206,6 @@ impl CubicNURBSCurve {
         // TODO: check endpoint separation
         // TODO: check self-intersection and degeneracy
         Ok(result)
-    }
-}
-
-impl std::fmt::Debug for Box<dyn Edge> {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> fmt::Result {
-        (*self).fmt(fmt)
     }
 }
 
@@ -272,6 +301,10 @@ fn segment_construction() {
 fn segment_splitting() {
     let base_segment = Segment::new(Vertex::new(Vec3::new(0.5, 0.9, -0.3)).unwrap(), Vertex::new(Vec3::new(0.3, 0.5, -0.8)).unwrap()).unwrap();
 
+    let seg = match base_segment.trimmed(0., 0.5).unwrap() {
+        Edge::Segment(s) => s,
+        _ => panic!("Result of splitting segment was not segment!")
+    };
     assert!(base_segment.trimmed(0., 0.5).is_ok());
     assert!(base_segment.trimmed(0., 2.).is_ok());
     assert_eq!(base_segment.trimmed(0., 0.).unwrap_err(), Error::VerticesTooClose);
