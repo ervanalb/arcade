@@ -6,15 +6,15 @@ use crate::error::Result;
 use crate::limits;
 use std::fmt;
 
-pub enum Edge {
+pub enum Edge<'a> {
     Segment(Segment),
     Arc(),
-    CubicNURBSCurve(CubicNURBSCurve),
+    CubicNURBSCurve(CubicNURBSCurve<'a>),
     Generic(Box<dyn GenericEdge>)
 }
 
-impl Edge {
-    fn as_generic(&self) -> &dyn GenericEdge {
+impl Edge<'_> {
+    fn unwrap_generic(&self) -> &dyn GenericEdge {
         match self {
             Edge::Segment(e) => e,
             Edge::Arc() => panic!("Arc not implemented yet"),
@@ -31,7 +31,7 @@ impl Edge {
     }
 }
 
-impl std::fmt::Debug for Edge {
+impl std::fmt::Debug for Edge<'_> {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> fmt::Result {
         match self {
             Edge::Segment(e) => e.fmt(fmt),
@@ -135,22 +135,29 @@ impl GenericEdge for Segment {
 
         self.a + t * self.b
     }
-    fn d1(&self, t: f64) -> Option<Vec3> { // First derivative with respect to parameter value t
+
+    // First derivative with respect to parameter value t
+    fn d1(&self, t: f64) -> Option<Vec3> {
         assert!(self.parameter_within_bounds(t));
 
         Some(self.b)
     }
-    fn d2(&self, t: f64) -> Option<Vec3> { // Second derivative with respect to parameter value t
+
+    // Second derivative with respect to parameter value t
+    fn d2(&self, t: f64) -> Option<Vec3> {
         assert!(self.parameter_within_bounds(t));
 
         Some(Vec3::ZERO)
     }
+
     fn is_closed(&self) -> bool {
         false
     }
+
     fn parameter_bounds(&self) -> (Option<f64>, Option<f64>) {
         (None, None)
     }
+
     fn trimmed(&self, start: f64, end: f64) -> Result<Edge> {
         assert!(self.parameter_within_bounds(start));
         assert!(self.parameter_within_bounds(end));
@@ -162,13 +169,15 @@ impl GenericEdge for Segment {
 }
 
 #[derive(Debug)]
-pub struct CubicNURBSCurve {
-    points: Vec<Vec3>,
-    weights: Vec<f64>,
-    knots: Vec<f64>
+pub struct CubicNURBSCurve<'a> {
+    points: &'a Vec<Vec3>,
+    weights: &'a Vec<f64>,
+    knots: &'a Vec<f64>,
+    start: f64,
+    end: f64,
 }
 
-impl CubicNURBSCurve {
+impl CubicNURBSCurve<'_> {
     fn check(&self) -> Result<()> {
 
         // Check that there are at least two points
@@ -176,9 +185,9 @@ impl CubicNURBSCurve {
             return Err(Error::DegenerateCurve);
         }
 
-        // Check that there are at least four knots
-        if self.knots.len() < 4 {
-            return Err(Error::DegenerateCurve);
+        // Check that there are the right number of knots
+        if self.knots.len() != self.points.len() + 4 {
+            return Err(Error::InvalidParameters);
         }
 
         // Check there is one weight per point 
@@ -195,17 +204,29 @@ impl CubicNURBSCurve {
             }
         }
 
+        // Check that the knots vector has non-zero span
+        if self.knots.last().unwrap() - self.knots.first().unwrap() < limits::MINIMUM_PARAMETER_SEPARATION {
+            return Err(Error::DegenerateCurve);
+        }
+
+        // Check that the bounds are between 0 and 1 and non-zero span
+        if self.end - self.start < limits::MINIMUM_PARAMETER_SEPARATION || self.start < 0. || self.end > 1. {
+            return Err(Error::InvalidParameters);
+        }
+
         // TODO: check for C0 discontinuities
         // TODO: check for self-intersections
 
         Ok(())
     }
 
-    pub fn new(points: Vec<Vec3>, weights: Vec<f64>, knots: Vec<f64>) -> Result<CubicNURBSCurve> {
+    pub fn new<'a>(points: &'a Vec<Vec3>, weights: &'a Vec<f64>, knots: &'a Vec<f64>, start: f64, end: f64) -> Result<CubicNURBSCurve<'a>> {
         let result = CubicNURBSCurve {
             points: points,
             weights: weights,
             knots: knots,
+            start: start,
+            end: end,
         };
 
         result.check()?;
@@ -213,6 +234,47 @@ impl CubicNURBSCurve {
         // TODO: check endpoint separation
         // TODO: check self-intersection and degeneracy
         Ok(result)
+    }
+
+    fn t_to_u(&self, t: f64) -> f64 {
+        (t - self.start) / (self.end - self.start)
+    }
+}
+
+impl GenericEdge for CubicNURBSCurve<'_> {
+    // Evaluate the edge at the given parameter value
+    fn d0(&self, t: f64) -> Vec3 {
+        assert!(self.parameter_within_bounds(t));
+
+        Vec3::ZERO // XXX
+    }
+
+    // First derivative with respect to parameter value t
+    fn d1(&self, t: f64) -> Option<Vec3> {
+        assert!(self.parameter_within_bounds(t));
+
+        Some(Vec3::ZERO) // XXX
+    }
+
+    // Second derivative with respect to parameter value t
+    fn d2(&self, t: f64) -> Option<Vec3> {
+        assert!(self.parameter_within_bounds(t));
+
+        Some(Vec3::ZERO)
+    }
+
+    fn parameter_bounds(&self) -> (Option<f64>, Option<f64>) {
+        let width = self.end - self.start;
+        assert!(width >= limits::EPSILON_PARAMETER);
+        (Some(self.start / width), Some(1. - (1. - self.end) / width))
+    }
+
+    fn trimmed(&self, start: f64, end: f64) -> Result<Edge> {
+        assert!(self.parameter_within_bounds(start));
+        assert!(self.parameter_within_bounds(end));
+
+        let result = CubicNURBSCurve::new(self.points, self.weights, self.knots, self.t_to_u(start), self.t_to_u(end))?;
+        Ok(Edge::CubicNURBSCurve(result))
     }
 }
 

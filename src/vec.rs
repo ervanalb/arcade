@@ -2,6 +2,157 @@ use std::fmt;
 use std::ops;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
+pub struct Vec4 {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub w: f64,
+}
+
+impl Vec4 {
+    pub const ZERO: Vec4 = Vec4 {x: 0., y: 0., z: 0., w: 0.};
+
+    pub fn new(x: f64, y: f64, z: f64, w: f64) -> Vec4 {
+        Vec4 {
+            x: x,
+            y: y,
+            z: z,
+            w: w,
+        }
+    }
+
+    pub fn is_finite(&self) -> bool {
+        self.w.is_finite() && self.x.is_finite() && self.y.is_finite() && self.z.is_finite()
+    }
+
+    pub fn is_within(&self, epsilon: f64) -> bool {
+        self.w.abs() <= epsilon && self.x.abs() <= epsilon && self.y.abs() <= epsilon && self.z.abs() <= epsilon
+    }
+
+    pub fn length(&self) -> f64 {
+        (self.w.sq() + self.x.sq() + self.y.sq() + self.z.sq()).sqrt()
+    }
+
+    pub fn normalized(&self) -> Vec4 {
+       *self / self.length()
+    }
+
+    // Project from homogeneous coordinates to the w=1 hyperplane
+    pub fn project(&self) -> Vec3 {
+        Vec3 {
+            x: self.x / self.w,
+            y: self.y / self.w,
+            z: self.z / self.w,
+        }
+    }
+}
+
+impl fmt::Display for Vec4 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({}, {}, {}, {})", self.x, self.y, self.z, self.w)
+    }
+}
+
+impl ops::Add for Vec4 {
+    type Output = Vec4;
+
+    fn add(self, other: Vec4) -> Vec4 {
+        Vec4 {
+            x: self.x + other.x,
+            y: self.y + other.y, 
+            z: self.z + other.z,
+            w: self.w + other.w,
+        }
+    }
+}
+
+impl ops::Sub for Vec4 {
+    type Output = Vec4;
+
+    fn sub(self, other: Vec4) -> Vec4 {
+        Vec4 {
+            x: self.x - other.x,
+            y: self.y - other.y, 
+            z: self.z - other.z,
+            w: self.w - other.w,
+        }
+    }
+}
+
+impl ops::Neg for Vec4 {
+    type Output = Vec4;
+
+    fn neg(self) -> Vec4 {
+        Vec4 {
+            x: -self.x,
+            y: -self.y, 
+            z: -self.z, 
+            w: -self.w, 
+        }
+    }
+}
+
+impl ops::Mul<f64> for Vec4 {
+    type Output = Vec4;
+
+    fn mul(self, other: f64) -> Vec4 {
+        Vec4 {
+            x: self.x * other,
+            y: self.y * other, 
+            z: self.z * other,
+            w: self.w * other,
+        }
+    }
+}
+
+impl ops::Mul<Vec4> for f64 {
+    type Output = Vec4;
+
+    fn mul(self, other: Vec4) -> Vec4 {
+        Vec4 {
+            x: self * other.x,
+            y: self * other.y, 
+            z: self * other.z,
+            w: self * other.w,
+        }
+    }
+}
+
+impl ops::Mul<Vec4> for Vec4 {
+    type Output = f64;
+
+    fn mul(self, other: Vec4) -> f64 {
+        self.x * other.x + self.y * other.y + self.z * other.z + self.w * other.w
+    }
+}
+
+impl ops::Div<f64> for Vec4 {
+    type Output = Vec4;
+
+    fn div(self, other: f64) -> Vec4 {
+        Vec4 {
+            x: self.x / other,
+            y: self.y / other, 
+            z: self.z / other,
+            w: self.w / other,
+        }
+    }
+}
+
+impl ops::Div<Vec4> for f64 {
+    type Output = Vec4;
+
+    fn div(self, other: Vec4) -> Vec4 {
+        Vec4 {
+            x: self / other.x,
+            y: self / other.y, 
+            z: self / other.z,
+            w: self / other.w,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Vec3 {
     pub x: f64,
     pub y: f64,
@@ -456,6 +607,16 @@ impl Sq for f64 {
 #[test]
 fn vec_arithmetic() {
     // Basic arithmetic
+    assert_eq!(Vec4::new(2., 3., 4., 5.) + Vec4::new(9., -3., 0., 1.), Vec4::new(11., 0., 4., 6.));
+    assert_eq!(Vec4::new(2., 3., 4., 5.) - Vec4::new(9., -3., 0., 1.), Vec4::new(-7., 6., 4., 4.));
+    assert_eq!(Vec4::new(2., 3., 4., 5.) * 10., Vec4::new(20., 30., 40., 50.));
+    assert_eq!(-1. * Vec4::new(9., -3., 0., 1.), Vec4::new(-9., 3., 0., -1.));
+    assert_eq!(Vec4::new(9., -3., 0., 18.) / 3., Vec4::new(3., -1., 0., 6.));
+    assert_eq!(27. / Vec4::new(9., -3., 1., -1.), Vec4::new(3., -9., 27., -27.));
+    assert_eq!(Vec4::new(3., 4., 12., 84.).length(), 85.);
+    assert_eq!(Vec4::new(0., 0., 0., 2.).normalized(), Vec4::new(0., 0., 0., 1.));
+    assert_eq!(Vec4::new(8., 4., -2., 2.).project(), Vec3::new(4., 2., -1.));
+
     assert_eq!(Vec3::new(2., 3., 4.) + Vec3::new(9., -3., 0.), Vec3::new(11., 0., 4.));
     assert_eq!(Vec3::new(2., 3., 4.) - Vec3::new(9., -3., 0.), Vec3::new(-7., 6., 4.));
     assert_eq!(Vec3::new(2., 3., 4.) * 10., Vec3::new(20., 30., 40.));
@@ -475,6 +636,9 @@ fn vec_arithmetic() {
     assert_eq!(Vec2::new(0., 2.).normalized(), Vec2::new(0., 1.));
 
     // is_nan
+    assert!(Vec4::new(5., 6., 7., 8.).is_finite());
+    assert!(!Vec4::new(5., 6., 7., std::f64::NAN).is_finite());
+    assert!(!Vec4::new(0., 0., 0., 0.).normalized().is_finite());
     assert!(Vec3::new(5., 6., 7.).is_finite());
     assert!(!Vec3::new(5., 6., std::f64::NAN).is_finite());
     assert!(!Vec3::new(0., 0., 0.).normalized().is_finite());
@@ -483,6 +647,8 @@ fn vec_arithmetic() {
     assert!(!Vec2::new(0., 0.).normalized().is_finite());
 
     // is_within
+    assert!(!Vec4::new(-1., 2., -3., -2.).is_within(2.5));
+    assert!(Vec4::new(-1., 2., -3., -2.).is_within(3.5));
     assert!(!Vec3::new(-1., 2., -3.).is_within(2.5));
     assert!(Vec3::new(-1., 2., -3.).is_within(3.5));
     assert!(!Vec2::new(-1., -3.).is_within(2.5));
