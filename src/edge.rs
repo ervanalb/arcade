@@ -236,12 +236,63 @@ impl CubicNURBSCurve<'_> {
         (t - self.start) / (self.end - self.start)
     }
 
+    // Returns the knot span that the given parameter lies within
+    // parameter value u lies falls within [span, span+1)
     fn find_span(&self, u: f64) -> usize {
-        0 // XXX
+        // See "The NURBS Book", page 68, algorithm A2.1
+
+        let mut low = 3;
+        let mut high = self.knots.len() - 4;
+
+        if (u >= self.knots[high]) {
+            return high - 1;
+        }
+
+        if (u <= self.knots[low]) {
+            return low;
+        }
+
+        // Binary search
+        let mut mid = (low + high) / 2;
+
+        while u < self.knots[mid] || u >= self.knots[mid + 1] {
+            if u < self.knots[mid] {
+                high = mid;
+            } else {
+                low = mid;
+            }
+            mid = (low + high) / 2;
+        }
+        mid
     }
 
+    // Returns the values of the four basis functions evaluated at point u
     fn calc_basis_functions(&self, span: usize, u: f64) -> [f64; 4] {
-        [0., 0., 0., 0.] // XXX
+
+        // See "The NURBS Book", page 70, algorithm A2.2
+        let mut result = [1., 0., 0., 0.];
+        let mut left = [0., 0., 0.];
+        let mut right = [0., 0., 0.];
+
+        for i in 1..4 {
+            left[i - 1] = u - self.knots[span + 1 - i];
+            right[i - 1] = self.knots[span + i] - u;
+
+            let mut saved = 0.;
+
+            for r in 0..i {
+                let rv = right[r];
+                let lv = left[i - 1 - r];
+                assert!((rv + lv).abs() >= limits::EPSILON_PARAMETER);
+                let temp = result[r] / (rv + lv);
+                result[r] = saved + rv * temp;
+                saved = lv * temp;
+             }
+
+             result[i] = saved;
+         }
+
+         return result;
     }
 }
 
