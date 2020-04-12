@@ -45,6 +45,14 @@ impl Vec4 {
             z: self.z / self.w,
         }
     }
+
+    pub fn xyz(&self) -> Vec3 {
+        Vec3 {
+            x: self.x,
+            y: self.y,
+            z: self.z,
+        }
+    }
 }
 
 impl fmt::Display for Vec4 {

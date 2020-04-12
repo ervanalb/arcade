@@ -170,8 +170,7 @@ impl GenericEdge for Segment {
 
 #[derive(Debug)]
 pub struct CubicNURBSCurve<'a> {
-    points: &'a Vec<Vec3>,
-    weights: &'a Vec<f64>,
+    points: &'a Vec<Vec4>,
     knots: &'a Vec<f64>,
     start: f64,
     end: f64,
@@ -187,11 +186,6 @@ impl CubicNURBSCurve<'_> {
 
         // Check that there are the right number of knots
         if self.knots.len() != self.points.len() + 4 {
-            return Err(Error::InvalidParameters);
-        }
-
-        // Check there is one weight per point 
-        if self.weights.len() != self.points.len() {
             return Err(Error::InvalidParameters);
         }
 
@@ -220,10 +214,9 @@ impl CubicNURBSCurve<'_> {
         Ok(())
     }
 
-    pub fn new<'a>(points: &'a Vec<Vec3>, weights: &'a Vec<f64>, knots: &'a Vec<f64>, start: f64, end: f64) -> Result<CubicNURBSCurve<'a>> {
+    pub fn new<'a>(points: &'a Vec<Vec4>, knots: &'a Vec<f64>, start: f64, end: f64) -> Result<CubicNURBSCurve<'a>> {
         let result = CubicNURBSCurve {
             points: points,
-            weights: weights,
             knots: knots,
             start: start,
             end: end,
@@ -237,7 +230,18 @@ impl CubicNURBSCurve<'_> {
     }
 
     fn t_to_u(&self, t: f64) -> f64 {
+        // t is the normalized parameter passed in to the Edge
+        // u is the spline parameter
+        // for t in [0, 1] u will be in [start, end]
         (t - self.start) / (self.end - self.start)
+    }
+
+    fn find_span(&self, u: f64) -> usize {
+        0 // XXX
+    }
+
+    fn calc_basis_functions(&self, span: usize, u: f64) -> [f64; 4] {
+        [0., 0., 0., 0.] // XXX
     }
 }
 
@@ -246,7 +250,20 @@ impl GenericEdge for CubicNURBSCurve<'_> {
     fn d0(&self, t: f64) -> Vec3 {
         assert!(self.parameter_within_bounds(t));
 
-        Vec3::ZERO // XXX
+        // See "The NURBS Book", page 82, algorithm A3.1
+        let u = self.t_to_u(t);
+        let span = self.find_span(u);
+        let basis_functions = self.calc_basis_functions(span, u);
+
+        let mut result = Vec3::ZERO;
+
+        for i in 0..4 {
+            let point = self.points[span - 3 + i];
+            let basis_function = basis_functions[i];
+            result = result + point.xyz() * basis_function * point.w;
+        }
+
+        result
     }
 
     // First derivative with respect to parameter value t
@@ -273,7 +290,7 @@ impl GenericEdge for CubicNURBSCurve<'_> {
         assert!(self.parameter_within_bounds(start));
         assert!(self.parameter_within_bounds(end));
 
-        let result = CubicNURBSCurve::new(self.points, self.weights, self.knots, self.t_to_u(start), self.t_to_u(end))?;
+        let result = CubicNURBSCurve::new(self.points, self.knots, self.t_to_u(start), self.t_to_u(end))?;
         Ok(Edge::CubicNURBSCurve(result))
     }
 }
