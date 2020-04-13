@@ -1,5 +1,4 @@
 use crate::vec::*;
-use std::f64::consts::*;
 use crate::vertex::Vertex;
 use crate::error::Error;
 use crate::error::Result;
@@ -14,16 +13,16 @@ pub enum Edge<'a> {
 }
 
 impl Edge<'_> {
-    fn unwrap_generic(&self) -> &dyn GenericEdge {
+    pub fn unwrap_generic(&self) -> &dyn GenericEdge {
         match self {
             Edge::Segment(e) => e,
             Edge::Arc() => panic!("Arc not implemented yet"),
-            Edge::CubicNURBSCurve(e) => panic!("Cubic NURBS curve not implemented yet!"),
+            Edge::CubicNURBSCurve(e) => e,
             Edge::Generic(box_e) => box_e.as_ref()
         }
     }
 
-    fn unwrap_segment(&self) -> &Segment {
+    pub fn unwrap_segment(&self) -> &Segment {
         match self {
             Edge::Segment(s) => s,
             _ => panic!("Edge is not segment")
@@ -42,7 +41,7 @@ impl std::fmt::Debug for Edge<'_> {
     }
 }
 
-trait GenericEdge {
+pub trait GenericEdge {
     // An Edge:
     // * is parameterized by a value t which goes from 0 to 1
     // * is C0 continuous
@@ -244,11 +243,11 @@ impl CubicNURBSCurve<'_> {
         let mut low = 3;
         let mut high = self.knots.len() - 4;
 
-        if (u >= self.knots[high]) {
+        if u >= self.knots[high] {
             return high - 1;
         }
 
-        if (u <= self.knots[low]) {
+        if u <= self.knots[low] {
             return low;
         }
 
