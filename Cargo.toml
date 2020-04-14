@@ -16,6 +16,6 @@ path = "src/demo.rs"
 
 [dev-dependencies]
 kiss3d = "0.23"
-nalgebra = "0.20"
 
 [dependencies]
+nalgebra = "0.20"

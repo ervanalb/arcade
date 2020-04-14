@@ -1,9 +1,9 @@
-use crate::vec::*;
 use crate::vertex::Vertex;
 use crate::error::Error;
 use crate::error::Result;
 use crate::limits;
 use std::fmt;
+use nalgebra::{Vector3, Vector4};
 
 pub enum Edge<'a> {
     Segment(Segment),
@@ -52,12 +52,12 @@ pub trait GenericEdge {
     // * may be extensible (evaluable outside of the range [0, 1]
 
     // Evaluate the edge at the given parameter value
-    fn d0(&self, t: f64) -> Vec3; // Point on edge at parameter value t
-    fn d1(&self, t: f64) -> Option<Vec3> { // First derivative with respect to parameter value t
+    fn d0(&self, t: f64) -> Vector3<f64>; // Point on edge at parameter value t
+    fn d1(&self, t: f64) -> Option<Vector3<f64>> { // First derivative with respect to parameter value t
         assert!(self.parameter_within_bounds(t));
         None
     }
-    fn d2(&self, t: f64) -> Option<Vec3> { // Second derivative with respect to parameter value t
+    fn d2(&self, t: f64) -> Option<Vector3<f64>> { // Second derivative with respect to parameter value t
         assert!(self.parameter_within_bounds(t));
         None
     }
@@ -102,8 +102,8 @@ impl std::fmt::Debug for dyn GenericEdge {
 #[derive(Debug)]
 pub struct Segment {
     // Implements a segment parameterized as A + B * t where t ranges from 0 to 1
-    a: Vec3, // First point
-    b: Vec3, // Second point - First point
+    a: Vector3<f64>, // First point
+    b: Vector3<f64>, // Second point - First point
 }
 
 impl Segment {
@@ -129,24 +129,24 @@ impl Segment {
 
 impl GenericEdge for Segment {
     // Evaluate the edge at the given parameter value
-    fn d0(&self, t: f64) -> Vec3 {
+    fn d0(&self, t: f64) -> Vector3<f64> {
         assert!(self.parameter_within_bounds(t));
 
         self.a + t * self.b
     }
 
     // First derivative with respect to parameter value t
-    fn d1(&self, t: f64) -> Option<Vec3> {
+    fn d1(&self, t: f64) -> Option<Vector3<f64>> {
         assert!(self.parameter_within_bounds(t));
 
         Some(self.b)
     }
 
     // Second derivative with respect to parameter value t
-    fn d2(&self, t: f64) -> Option<Vec3> {
+    fn d2(&self, t: f64) -> Option<Vector3<f64>> {
         assert!(self.parameter_within_bounds(t));
 
-        Some(Vec3::ZERO)
+        Some(Vector3::zeros())
     }
 
     fn is_closed(&self) -> bool {
@@ -169,7 +169,7 @@ impl GenericEdge for Segment {
 
 #[derive(Debug)]
 pub struct CubicNURBSCurve<'a> {
-    points: &'a Vec<Vec4>,
+    points: &'a Vec<Vector4<f64>>,
     knots: &'a Vec<f64>,
     start: f64,
     end: f64,
@@ -213,7 +213,7 @@ impl CubicNURBSCurve<'_> {
         Ok(())
     }
 
-    pub fn new<'a>(points: &'a Vec<Vec4>, knots: &'a Vec<f64>, start: f64, end: f64) -> Result<CubicNURBSCurve<'a>> {
+    pub fn new<'a>(points: &'a Vec<Vector4<f64>>, knots: &'a Vec<f64>, start: f64, end: f64) -> Result<CubicNURBSCurve<'a>> {
         let result = CubicNURBSCurve {
             points: points,
             knots: knots,
@@ -297,7 +297,7 @@ impl CubicNURBSCurve<'_> {
 
 impl GenericEdge for CubicNURBSCurve<'_> {
     // Evaluate the edge at the given parameter value
-    fn d0(&self, t: f64) -> Vec3 {
+    fn d0(&self, t: f64) -> Vector3<f64> {
         assert!(self.parameter_within_bounds(t));
 
         // See "The NURBS Book", page 82, algorithm A3.1
@@ -305,7 +305,7 @@ impl GenericEdge for CubicNURBSCurve<'_> {
         let span = self.find_span(u);
         let basis_functions = self.calc_basis_functions(span, u);
 
-        let mut result = Vec3::ZERO;
+        let mut result = Vector3::zeros();
 
         for i in 0..4 {
             let point = self.points[span - 3 + i];
@@ -317,17 +317,17 @@ impl GenericEdge for CubicNURBSCurve<'_> {
     }
 
     // First derivative with respect to parameter value t
-    fn d1(&self, t: f64) -> Option<Vec3> {
+    fn d1(&self, t: f64) -> Option<Vector3<f64>> {
         assert!(self.parameter_within_bounds(t));
 
-        Some(Vec3::ZERO) // XXX
+        Some(Vector3::zeros()) // XXX
     }
 
     // Second derivative with respect to parameter value t
-    fn d2(&self, t: f64) -> Option<Vec3> {
+    fn d2(&self, t: f64) -> Option<Vector3<f64>> {
         assert!(self.parameter_within_bounds(t));
 
-        Some(Vec3::ZERO)
+        Some(Vector3::zeros())
     }
 
     fn parameter_bounds(&self) -> (Option<f64>, Option<f64>) {
@@ -351,9 +351,9 @@ pub struct Arc {
     // Implements a circular arc parameterized as C + A cos(theta) + B sin(theta)
     // a and b are radii of the circle, and are perpendicular to each other. a points to the start.
     // theta = t * angle
-    c: Vec3, // Center point
-    a: Vec3, // A radius of the circle pointing to the first point
-    b: Vec3, // A radius of the circle perpendicular to a
+    c: Vector3, // Center point
+    a: Vector3, // A radius of the circle pointing to the first point
+    b: Vector3, // A radius of the circle perpendicular to a
     angle: f64, // How much of an arc to sweep out
 }
 
@@ -410,7 +410,7 @@ impl Arc {
 }
 
 impl Edge for Arc {
-    fn eval(&self, t: f64) -> Vec3 {
+    fn eval(&self, t: f64) -> Vector3 {
         let theta = t * self.angle;
         self.c + self.a * theta.cos() + self.b * theta.sin()
     }
@@ -420,24 +420,23 @@ impl Edge for Arc {
 // TESTS
 #[test]
 fn segment_construction() {
-    let v = limits::WORKSPACE_SIZE * Vec3::new(0.5, 0.9, -0.3);
+    let v = limits::WORKSPACE_SIZE * Vector3::new(0.5, 0.9, -0.3);
 
     assert!(
         Segment::new(&Vertex::new(v).unwrap(),
-                     &Vertex::new(v + limits::MINIMUM_VERTEX_SEPARATION * Vec3::new(1.5, 0.5, -2.)).unwrap())
+                     &Vertex::new(v + limits::MINIMUM_VERTEX_SEPARATION * Vector3::new(1.5, 0.5, -2.)).unwrap())
         .is_ok());
 
     assert_eq!(
         Segment::new(&Vertex::new(v).unwrap(),
-                     &Vertex::new(v + limits::MINIMUM_VERTEX_SEPARATION * Vec3::new(0.3, 0.5, -0.8)).unwrap()).unwrap_err(),
+                     &Vertex::new(v + limits::MINIMUM_VERTEX_SEPARATION * Vector3::new(0.3, 0.5, -0.8)).unwrap()).unwrap_err(),
         Error::VerticesTooClose);
 }
 
 #[test]
 fn segment_splitting() {
-    let base_segment = Segment::new(Vertex::new(Vec3::new(0.5, 0.9, -0.3)).unwrap(), Vertex::new(Vec3::new(0.3, 0.5, -0.8)).unwrap()).unwrap();
+    let base_segment = Segment::new(&Vertex::new(Vector3::new(0.5, 0.9, -0.3)).unwrap(), &Vertex::new(Vector3::new(0.3, 0.5, -0.8)).unwrap()).unwrap();
 
-    let seg = base_segment.trimmed(0., 0.5).unwrap().unwrap_segment();
     assert!(base_segment.trimmed(0., 0.5).is_ok());
     assert!(base_segment.trimmed(0., 2.).is_ok());
     assert_eq!(base_segment.trimmed(0., 0.).unwrap_err(), Error::VerticesTooClose);

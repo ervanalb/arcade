@@ -1,4 +1,3 @@
-use arcade::vec::Vec3;
 use arcade::vertex::Vertex;
 use arcade::edge::Segment;
 use arcade::edge::GenericEdge;
@@ -39,9 +38,9 @@ fn main() {
     let mut arc_ball = ArcBall::new(Point3::new(3., -10., 3.), Point3::origin());
     arc_ball.set_up_axis(Vector3::new(0., 0., 1.));
 
-    let v1 = Vertex::new(Vec3::new(0., 0., 0.)).unwrap();
-    let v2 = Vertex::new(Vec3::new(1., 1., 0.2)).unwrap();
-    let v3 = Vertex::new(Vec3::new(-0.3, 2., 0.)).unwrap();
+    let v1 = Vertex::new(Vector3::new(0., 0., 0.)).unwrap();
+    let v2 = Vertex::new(Vector3::new(1., 1., 0.2)).unwrap();
+    let v3 = Vertex::new(Vector3::new(-0.3, 2., 0.)).unwrap();
 
     let s1 = Segment::new(&v1, &v2).unwrap();
     let s2 = Segment::new(&v2, &v3).unwrap();
