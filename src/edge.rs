@@ -115,7 +115,7 @@ impl Segment {
         Ok(())
     }
 
-    pub fn new(pt1: Vertex, pt2: Vertex) -> Result<Segment> {
+    pub fn new(pt1: &Vertex, pt2: &Vertex) -> Result<Segment> {
         let result = Segment {
             a: pt1.point(),
             b: pt2.point() - pt1.point()
@@ -163,7 +163,7 @@ impl GenericEdge for Segment {
 
         let v1 = Vertex::new(self.d0(start))?;
         let v2 = Vertex::new(self.d0(end))?;
-        Ok(Edge::Segment(Segment::new(v1, v2)?))
+        Ok(Edge::Segment(Segment::new(&v1, &v2)?))
     }
 }
 
@@ -423,13 +423,13 @@ fn segment_construction() {
     let v = limits::WORKSPACE_SIZE * Vec3::new(0.5, 0.9, -0.3);
 
     assert!(
-        Segment::new(Vertex::new(v).unwrap(),
-                     Vertex::new(v + limits::MINIMUM_VERTEX_SEPARATION * Vec3::new(1.5, 0.5, -2.)).unwrap())
+        Segment::new(&Vertex::new(v).unwrap(),
+                     &Vertex::new(v + limits::MINIMUM_VERTEX_SEPARATION * Vec3::new(1.5, 0.5, -2.)).unwrap())
         .is_ok());
 
     assert_eq!(
-        Segment::new(Vertex::new(v).unwrap(),
-                     Vertex::new(v + limits::MINIMUM_VERTEX_SEPARATION * Vec3::new(0.3, 0.5, -0.8)).unwrap()).unwrap_err(),
+        Segment::new(&Vertex::new(v).unwrap(),
+                     &Vertex::new(v + limits::MINIMUM_VERTEX_SEPARATION * Vec3::new(0.3, 0.5, -0.8)).unwrap()).unwrap_err(),
         Error::VerticesTooClose);
 }
 
