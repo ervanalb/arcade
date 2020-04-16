@@ -3,54 +3,6 @@ use crate::error::Error;
 use crate::error::Result;
 use crate::types::{Vec3, Vec4, VecN, Mat4xN};
 use crate::limits;
-//use std::fmt;
-//use std::marker::Sized;
-
-/*
-pub enum Edge<'a> {
-    Segment(Segment),
-    Arc(),
-    CubicNURBSCurve(CubicNURBSCurve<'a>),
-    Generic(Box<dyn GenericEdge>)
-}
-
-impl Edge<'_> {
-    pub fn unwrap_generic(&self) -> &dyn GenericEdge {
-        match self {
-            Edge::Segment(e) => e,
-            Edge::Arc() => panic!("Arc not implemented yet"),
-            Edge::CubicNURBSCurve(e) => e,
-            Edge::Generic(box_e) => box_e.as_ref()
-        }
-    }
-
-    pub fn unwrap_segment(&self) -> &Segment {
-        match self {
-            Edge::Segment(s) => s,
-            _ => panic!("Edge is not segment")
-        }
-    }
-
-    pub fn unwrap_cubic_nurbs_curve(&self) -> &CubicNURBSCurve {
-        match self {
-            Edge::CubicNURBSCurve(s) => s,
-            _ => panic!("Edge is not a cubic NURBS curve")
-        }
-    }
-}
-
-impl std::fmt::Debug for Edge<'_> {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> fmt::Result {
-        match self {
-            Edge::Segment(e) => e.fmt(fmt),
-            Edge::Arc() => write!(fmt, "Arc()"),
-            Edge::CubicNURBSCurve(e) => e.fmt(fmt),
-            Edge::Generic(box_e) => box_e.fmt(fmt)
-        }
-    }
-}
-
-*/
 
 pub trait Edge {
     // An Edge:
@@ -105,13 +57,6 @@ pub trait Edge {
         check_lower && check_upper
     }
 }
-/*
-impl std::fmt::Debug for dyn Edge {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> fmt::Result {
-        write!(fmt, "Edge()")
-    }
-}
-*/
 
 #[derive(Debug)]
 pub struct Segment {
