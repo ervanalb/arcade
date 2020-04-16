@@ -1,6 +1,8 @@
 use arcade::vertex::Vertex;
 use arcade::edge::Segment;
 use arcade::edge::GenericEdge;
+use arcade::interpolate::interpolate_edge_fixed;
+use arcade::types::Vec3;
 
 extern crate kiss3d;
 extern crate nalgebra as na;
@@ -8,7 +10,11 @@ extern crate nalgebra as na;
 use kiss3d::light::Light;
 use kiss3d::window::Window;
 use kiss3d::camera::ArcBall;
-use na::{Point3, Vector3};
+use na::{Point3, Vector3, MatrixSlice3x1};
+
+fn vec_to_point(pt: &MatrixSlice3x1<f64>) -> Point3<f32> {
+    Point3::new(pt[0] as f32, pt[1] as f32, pt[2] as f32)
+}
 
 fn draw_axes(window: &mut Window) {
     window.draw_line(&Point3::origin(), &Point3::new(1., 0., 0.), &Point3::new(1., 0., 0.));
@@ -22,12 +28,26 @@ fn draw_vertex(window: &mut Window, v: &Vertex) {
     window.draw_point(&p, &Point3::new(1., 1., 1.));
 }
 
+/*
 fn draw_segment(window: &mut Window, s: &Segment) {
     let v1 = s.d0(0.);
     let v2 = s.d0(1.);
     let p1 = Point3::new(v1.x as f32, v1.y as f32, v1.z as f32);
     let p2 = Point3::new(v2.x as f32, v2.y as f32, v2.z as f32);
     window.draw_line(&p1, &p2, &Point3::new(1., 1., 1.));
+}
+*/
+
+fn draw_edge(window: &mut Window, e: &dyn GenericEdge) {
+    let pts = interpolate_edge_fixed(e, 50);
+
+    let mut pts_iter = pts.column_iter();
+    let mut prev = vec_to_point(&pts_iter.next().unwrap());
+    for col in pts_iter {
+        let pt = vec_to_point(&col);
+        window.draw_line(&prev, &pt, &Point3::new(1., 1., 1.));
+        prev = pt;
+    }
 }
 
 fn main() {
@@ -51,9 +71,9 @@ fn main() {
         draw_vertex(&mut window, &v1);
         draw_vertex(&mut window, &v2);
         draw_vertex(&mut window, &v3);
-        draw_segment(&mut window, &s1);
-        draw_segment(&mut window, &s2);
-        draw_segment(&mut window, &s3);
+        draw_edge(&mut window, &s1);
+        draw_edge(&mut window, &s2);
+        draw_edge(&mut window, &s3);
     }
 
     //let pt1 = Vertex::new(Vec3::new(2., 3., 4.)).unwrap();
