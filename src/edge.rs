@@ -202,8 +202,8 @@ impl CubicNURBSCurve<'_> {
             return Err(Error::DegenerateCurve);
         }
 
-        // Check that the bounds are between 0 and 1 and non-zero span
-        if self.end - self.start < limits::MINIMUM_PARAMETER_SEPARATION || self.start < 0. || self.end > 1. {
+        // Check that the bounds are between the knots and are non-zero span
+        if self.end - self.start < limits::MINIMUM_PARAMETER_SEPARATION || self.start < self.knots[0] || self.end > self.knots[self.knots.len() - 1] {
             return Err(Error::InvalidParameters);
         }
 
@@ -232,7 +232,8 @@ impl CubicNURBSCurve<'_> {
         // t is the normalized parameter passed in to the Edge
         // u is the spline parameter
         // for t in [0, 1] u will be in [start, end]
-        (t - self.start) / (self.end - self.start)
+
+        t * (self.end - self.start) + self.start
     }
 
     // Returns the knot span that the given parameter lies within
@@ -308,7 +309,7 @@ impl GenericEdge for CubicNURBSCurve<'_> {
         let mut result = Vec3::zeros();
 
         for i in 0..4 {
-            let point = self.points.column(span - 3 + i);
+            let point = self.points.column(span + i - 3);
             let basis_function = basis_functions[i];
             result = result + point.xyz() * basis_function * point.w;
         }
