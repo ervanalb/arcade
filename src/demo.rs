@@ -2,7 +2,7 @@ use arcade::vertex::Vertex;
 use arcade::edge::{Segment, CubicNURBSCurve};
 use arcade::edge::GenericEdge;
 use arcade::interpolate::interpolate_edge_fixed;
-use arcade::types::{Vec3, VecN, Mat4xN};
+use arcade::types::{VecN, Mat4xN};
 
 extern crate kiss3d;
 extern crate nalgebra as na;
@@ -70,7 +70,7 @@ fn main() {
         0., 1.,  0., 1.,
         0., 0.,  1., 1.,
         0., 0.,  1., 1.,
-        1., 1.,  1., 1.,
+        1., 1.,  3., 3.,
     ]);
 
     let nurbs_knots = VecN::from_row_slice(&[0., 0., 0., 0., 2., 2., 2., 2.]);

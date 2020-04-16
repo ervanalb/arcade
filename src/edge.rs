@@ -1,7 +1,7 @@
 use crate::vertex::Vertex;
 use crate::error::Error;
 use crate::error::Result;
-use crate::types::{Vec3, VecN, Mat4xN};
+use crate::types::{Vec3, Vec4, VecN, Mat4xN};
 use crate::limits;
 use std::fmt;
 
@@ -306,15 +306,16 @@ impl GenericEdge for CubicNURBSCurve<'_> {
         let span = self.find_span(u);
         let basis_functions = self.calc_basis_functions(span, u);
 
-        let mut result = Vec3::zeros();
+        let mut result = Vec4::zeros();
 
         for i in 0..4 {
             let point = self.points.column(span + i - 3);
+            let homogeneous_point = point.component_mul(&Vec4::new(point[3], point[3], point[3], 1.));
             let basis_function = basis_functions[i];
-            result = result + point.xyz() * basis_function * point.w;
+            result = result + homogeneous_point * basis_function;
         }
 
-        result
+        result.xyz() / result[3]
     }
 
     // First derivative with respect to parameter value t
