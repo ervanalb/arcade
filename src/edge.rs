@@ -14,7 +14,7 @@ pub trait Edge {
     // * is trimmable and splittable
     // * may be extensible (evaluable outside of the range [0, 1]
 
-    type TrimmedEdge;
+    type TrimmedEdge: Edge;
 
     // Evaluate the edge at the given parameter value
     fn d0(&self, t: f64) -> Vec3; // Point on edge at parameter value t
