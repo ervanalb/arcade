@@ -383,22 +383,22 @@ impl Edge for Arc {
 // TESTS
 #[test]
 fn segment_construction() {
-    let v = limits::WORKSPACE_SIZE * Vector3::new(0.5, 0.9, -0.3);
+    let v = limits::WORKSPACE_SIZE * Vec3::new(0.5, 0.9, -0.3);
 
     assert!(
         Segment::new(&Vertex::new(v).unwrap(),
-                     &Vertex::new(v + limits::MINIMUM_VERTEX_SEPARATION * Vector3::new(1.5, 0.5, -2.)).unwrap())
+                     &Vertex::new(v + limits::MINIMUM_VERTEX_SEPARATION * Vec3::new(1.5, 0.5, -2.)).unwrap())
         .is_ok());
 
     assert_eq!(
         Segment::new(&Vertex::new(v).unwrap(),
-                     &Vertex::new(v + limits::MINIMUM_VERTEX_SEPARATION * Vector3::new(0.3, 0.5, -0.8)).unwrap()).unwrap_err(),
+                     &Vertex::new(v + limits::MINIMUM_VERTEX_SEPARATION * Vec3::new(0.3, 0.5, -0.8)).unwrap()).unwrap_err(),
         Error::VerticesTooClose);
 }
 
 #[test]
 fn segment_splitting() {
-    let base_segment = Segment::new(&Vertex::new(Vector3::new(0.5, 0.9, -0.3)).unwrap(), &Vertex::new(Vector3::new(0.3, 0.5, -0.8)).unwrap()).unwrap();
+    let base_segment = Segment::new(&Vertex::new(Vec3::new(0.5, 0.9, -0.3)).unwrap(), &Vertex::new(Vec3::new(0.3, 0.5, -0.8)).unwrap()).unwrap();
 
     assert!(base_segment.trimmed(0., 0.5).is_ok());
     assert!(base_segment.trimmed(0., 2.).is_ok());
