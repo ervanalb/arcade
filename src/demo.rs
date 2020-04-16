@@ -1,6 +1,6 @@
 use arcade::vertex::Vertex;
 use arcade::edge::{Segment, CubicNURBSCurve};
-use arcade::edge::GenericEdge;
+use arcade::edge::Edge;
 use arcade::interpolate::interpolate_edge_fixed;
 use arcade::types::{VecN, Mat4xN};
 
@@ -38,7 +38,7 @@ fn draw_segment(window: &mut Window, s: &Segment) {
 }
 */
 
-fn draw_edge(window: &mut Window, e: &dyn GenericEdge) {
+fn draw_edge<T: Edge>(window: &mut Window, e: &T) {
     let pts = interpolate_edge_fixed(e, 50);
 
     let mut pts_iter = pts.column_iter();
@@ -75,6 +75,7 @@ fn main() {
 
     let nurbs_knots = VecN::from_row_slice(&[0., 0., 0., 0., 2., 2., 2., 2.]);
     let nurbs1 = CubicNURBSCurve::new(&nurbs_points, &nurbs_knots, 0., 2.).unwrap();
+    let nurbs2 = nurbs1.trimmed(0., 0.75).unwrap();
 
     while window.render_with_camera(&mut arc_ball) {
         draw_axes(&mut window);
@@ -84,7 +85,7 @@ fn main() {
         draw_edge(&mut window, &s1);
         draw_edge(&mut window, &s2);
         draw_edge(&mut window, &s3);
-        draw_edge(&mut window, &nurbs1);
+        draw_edge(&mut window, &nurbs2);
     }
 
     //let pt1 = Vertex::new(Vec3::new(2., 3., 4.)).unwrap();

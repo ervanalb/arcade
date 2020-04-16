@@ -1,7 +1,7 @@
-use crate::edge::GenericEdge;
+use crate::edge::Edge;
 use crate::types::Mat3xN;
 
-pub fn interpolate_edge_fixed(edge: &dyn GenericEdge, n: usize) -> Mat3xN {
+pub fn interpolate_edge_fixed<T: Edge>(edge: &T, n: usize) -> Mat3xN {
     // Interpolates n points on an edge evenly spaced in the parameter t.
     // The first and last points always occur at t=0 and t=1.
     // The result is a 3 x n matrix of the interpolated points.

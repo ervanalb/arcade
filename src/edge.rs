@@ -3,8 +3,10 @@ use crate::error::Error;
 use crate::error::Result;
 use crate::types::{Vec3, Vec4, VecN, Mat4xN};
 use crate::limits;
-use std::fmt;
+//use std::fmt;
+//use std::marker::Sized;
 
+/*
 pub enum Edge<'a> {
     Segment(Segment),
     Arc(),
@@ -28,6 +30,13 @@ impl Edge<'_> {
             _ => panic!("Edge is not segment")
         }
     }
+
+    pub fn unwrap_cubic_nurbs_curve(&self) -> &CubicNURBSCurve {
+        match self {
+            Edge::CubicNURBSCurve(s) => s,
+            _ => panic!("Edge is not a cubic NURBS curve")
+        }
+    }
 }
 
 impl std::fmt::Debug for Edge<'_> {
@@ -41,7 +50,9 @@ impl std::fmt::Debug for Edge<'_> {
     }
 }
 
-pub trait GenericEdge {
+*/
+
+pub trait Edge {
     // An Edge:
     // * is parameterized by a value t which goes from 0 to 1
     // * is C0 continuous
@@ -50,6 +61,8 @@ pub trait GenericEdge {
     // * can be open or closed
     // * is trimmable and splittable
     // * may be extensible (evaluable outside of the range [0, 1]
+
+    type TrimmedEdge;
 
     // Evaluate the edge at the given parameter value
     fn d0(&self, t: f64) -> Vec3; // Point on edge at parameter value t
@@ -70,7 +83,7 @@ pub trait GenericEdge {
     }
 
     // Returns an edge that corresponds to a subset of the current edge evaluated between t=start and t=end
-    fn trimmed(&self, start: f64, end: f64) -> Result<Edge>;
+    fn trimmed(&self, start: f64, end: f64) -> Result<Self::TrimmedEdge>;
 
     // Returns the valid bounds for extending the given edge, or None for no bound (infinitely extensible in that direction)
     fn parameter_bounds(&self) -> (Option<f64>, Option<f64>) {
@@ -92,12 +105,13 @@ pub trait GenericEdge {
         check_lower && check_upper
     }
 }
-
-impl std::fmt::Debug for dyn GenericEdge {
+/*
+impl std::fmt::Debug for dyn Edge {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> fmt::Result {
-        write!(fmt, "GenericEdge()")
+        write!(fmt, "Edge()")
     }
 }
+*/
 
 #[derive(Debug)]
 pub struct Segment {
@@ -127,7 +141,9 @@ impl Segment {
     }
 }
 
-impl GenericEdge for Segment {
+impl Edge for Segment {
+    type TrimmedEdge = Segment;
+
     // Evaluate the edge at the given parameter value
     fn d0(&self, t: f64) -> Vec3 {
         assert!(self.parameter_within_bounds(t));
@@ -157,13 +173,13 @@ impl GenericEdge for Segment {
         (None, None)
     }
 
-    fn trimmed(&self, start: f64, end: f64) -> Result<Edge> {
+    fn trimmed(&self, start: f64, end: f64) -> Result<Segment> {
         assert!(self.parameter_within_bounds(start));
         assert!(self.parameter_within_bounds(end));
 
         let v1 = Vertex::new(self.d0(start))?;
         let v2 = Vertex::new(self.d0(end))?;
-        Ok(Edge::Segment(Segment::new(&v1, &v2)?))
+        Segment::new(&v1, &v2)
     }
 }
 
@@ -177,7 +193,6 @@ pub struct CubicNURBSCurve<'a> {
 
 impl CubicNURBSCurve<'_> {
     fn check(&self) -> Result<()> {
-
         // Check that there are at least two points
         if self.points.ncols() < 2 {
             return Err(Error::DegenerateCurve);
@@ -296,7 +311,9 @@ impl CubicNURBSCurve<'_> {
     }
 }
 
-impl GenericEdge for CubicNURBSCurve<'_> {
+impl<'a> Edge for CubicNURBSCurve<'a> {
+    type TrimmedEdge = CubicNURBSCurve<'a>;
+
     // Evaluate the edge at the given parameter value
     fn d0(&self, t: f64) -> Vec3 {
         assert!(self.parameter_within_bounds(t));
@@ -338,12 +355,11 @@ impl GenericEdge for CubicNURBSCurve<'_> {
         (Some(self.start / width), Some(1. - (1. - self.end) / width))
     }
 
-    fn trimmed(&self, start: f64, end: f64) -> Result<Edge> {
+    fn trimmed(&self, start: f64, end: f64) -> Result<CubicNURBSCurve<'a>> {
         assert!(self.parameter_within_bounds(start));
         assert!(self.parameter_within_bounds(end));
 
-        let result = CubicNURBSCurve::new(self.points, self.knots, self.t_to_u(start), self.t_to_u(end))?;
-        Ok(Edge::CubicNURBSCurve(result))
+        CubicNURBSCurve::new(self.points, self.knots, self.t_to_u(start), self.t_to_u(end))
     }
 }
 
