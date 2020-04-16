@@ -1,9 +1,9 @@
 use crate::vertex::Vertex;
 use crate::error::Error;
 use crate::error::Result;
+use crate::types::{Vec3, VecN, Mat4xN};
 use crate::limits;
 use std::fmt;
-use nalgebra::{Vector3, Vector4};
 
 pub enum Edge<'a> {
     Segment(Segment),
@@ -52,12 +52,12 @@ pub trait GenericEdge {
     // * may be extensible (evaluable outside of the range [0, 1]
 
     // Evaluate the edge at the given parameter value
-    fn d0(&self, t: f64) -> Vector3<f64>; // Point on edge at parameter value t
-    fn d1(&self, t: f64) -> Option<Vector3<f64>> { // First derivative with respect to parameter value t
+    fn d0(&self, t: f64) -> Vec3; // Point on edge at parameter value t
+    fn d1(&self, t: f64) -> Option<Vec3> { // First derivative with respect to parameter value t
         assert!(self.parameter_within_bounds(t));
         None
     }
-    fn d2(&self, t: f64) -> Option<Vector3<f64>> { // Second derivative with respect to parameter value t
+    fn d2(&self, t: f64) -> Option<Vec3> { // Second derivative with respect to parameter value t
         assert!(self.parameter_within_bounds(t));
         None
     }
@@ -102,8 +102,8 @@ impl std::fmt::Debug for dyn GenericEdge {
 #[derive(Debug)]
 pub struct Segment {
     // Implements a segment parameterized as A + B * t where t ranges from 0 to 1
-    a: Vector3<f64>, // First point
-    b: Vector3<f64>, // Second point - First point
+    a: Vec3, // First point
+    b: Vec3, // Second point - First point
 }
 
 impl Segment {
@@ -129,24 +129,24 @@ impl Segment {
 
 impl GenericEdge for Segment {
     // Evaluate the edge at the given parameter value
-    fn d0(&self, t: f64) -> Vector3<f64> {
+    fn d0(&self, t: f64) -> Vec3 {
         assert!(self.parameter_within_bounds(t));
 
         self.a + t * self.b
     }
 
     // First derivative with respect to parameter value t
-    fn d1(&self, t: f64) -> Option<Vector3<f64>> {
+    fn d1(&self, t: f64) -> Option<Vec3> {
         assert!(self.parameter_within_bounds(t));
 
         Some(self.b)
     }
 
     // Second derivative with respect to parameter value t
-    fn d2(&self, t: f64) -> Option<Vector3<f64>> {
+    fn d2(&self, t: f64) -> Option<Vec3> {
         assert!(self.parameter_within_bounds(t));
 
-        Some(Vector3::zeros())
+        Some(Vec3::zeros())
     }
 
     fn is_closed(&self) -> bool {
@@ -169,8 +169,8 @@ impl GenericEdge for Segment {
 
 #[derive(Debug)]
 pub struct CubicNURBSCurve<'a> {
-    points: &'a Vec<Vector4<f64>>,
-    knots: &'a Vec<f64>,
+    points: &'a Mat4xN,
+    knots: &'a VecN,
     start: f64,
     end: f64,
 }
@@ -179,12 +179,12 @@ impl CubicNURBSCurve<'_> {
     fn check(&self) -> Result<()> {
 
         // Check that there are at least two points
-        if self.points.len() < 2 {
+        if self.points.ncols() < 2 {
             return Err(Error::DegenerateCurve);
         }
 
         // Check that there are the right number of knots
-        if self.knots.len() != self.points.len() + 4 {
+        if self.knots.len() != self.points.ncols() + 4 {
             return Err(Error::InvalidParameters);
         }
 
@@ -198,7 +198,7 @@ impl CubicNURBSCurve<'_> {
         }
 
         // Check that the knots vector has non-zero span
-        if self.knots.last().unwrap() - self.knots.first().unwrap() < limits::MINIMUM_PARAMETER_SEPARATION {
+        if self.knots[self.knots.len() - 1] - self.knots[0] < limits::MINIMUM_PARAMETER_SEPARATION {
             return Err(Error::DegenerateCurve);
         }
 
@@ -213,7 +213,7 @@ impl CubicNURBSCurve<'_> {
         Ok(())
     }
 
-    pub fn new<'a>(points: &'a Vec<Vector4<f64>>, knots: &'a Vec<f64>, start: f64, end: f64) -> Result<CubicNURBSCurve<'a>> {
+    pub fn new<'a>(points: &'a Mat4xN, knots: &'a VecN, start: f64, end: f64) -> Result<CubicNURBSCurve<'a>> {
         let result = CubicNURBSCurve {
             points: points,
             knots: knots,
@@ -297,7 +297,7 @@ impl CubicNURBSCurve<'_> {
 
 impl GenericEdge for CubicNURBSCurve<'_> {
     // Evaluate the edge at the given parameter value
-    fn d0(&self, t: f64) -> Vector3<f64> {
+    fn d0(&self, t: f64) -> Vec3 {
         assert!(self.parameter_within_bounds(t));
 
         // See "The NURBS Book", page 82, algorithm A3.1
@@ -305,10 +305,10 @@ impl GenericEdge for CubicNURBSCurve<'_> {
         let span = self.find_span(u);
         let basis_functions = self.calc_basis_functions(span, u);
 
-        let mut result = Vector3::zeros();
+        let mut result = Vec3::zeros();
 
         for i in 0..4 {
-            let point = self.points[span - 3 + i];
+            let point = self.points.column(span - 3 + i);
             let basis_function = basis_functions[i];
             result = result + point.xyz() * basis_function * point.w;
         }
@@ -317,17 +317,17 @@ impl GenericEdge for CubicNURBSCurve<'_> {
     }
 
     // First derivative with respect to parameter value t
-    fn d1(&self, t: f64) -> Option<Vector3<f64>> {
+    fn d1(&self, t: f64) -> Option<Vec3> {
         assert!(self.parameter_within_bounds(t));
 
-        Some(Vector3::zeros()) // XXX
+        Some(Vec3::zeros()) // XXX
     }
 
     // Second derivative with respect to parameter value t
-    fn d2(&self, t: f64) -> Option<Vector3<f64>> {
+    fn d2(&self, t: f64) -> Option<Vec3> {
         assert!(self.parameter_within_bounds(t));
 
-        Some(Vector3::zeros())
+        Some(Vec3::zeros())
     }
 
     fn parameter_bounds(&self) -> (Option<f64>, Option<f64>) {
