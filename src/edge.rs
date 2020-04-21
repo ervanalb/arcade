@@ -1,8 +1,9 @@
 use crate::vertex::Vertex;
 use crate::error::Error;
 use crate::error::Result;
-use crate::types::{Vec3, Vec4, VecN, Mat4xN};
+use crate::types::{Vec3, Vec4, VecN, Mat4xN, Mat3xN};
 use crate::limits;
+use nalgebra::U3;
 
 pub trait Edge {
     // An Edge:
@@ -129,73 +130,13 @@ impl Edge for Segment {
 }
 
 #[derive(Debug)]
-pub struct CubicNURBSCurve<'a> {
-    points: &'a Mat4xN,
-    knots: &'a VecN,
-    start: f64,
-    end: f64,
+#[derive(Clone)]
+struct BaseCubicNURBSCurve {
+    points: Mat4xN,
+    knots: VecN,
 }
 
-impl CubicNURBSCurve<'_> {
-    fn check(&self) -> Result<()> {
-        // Check that there are at least two points
-        if self.points.ncols() < 2 {
-            return Err(Error::DegenerateCurve);
-        }
-
-        // Check that there are the right number of knots
-        if self.knots.len() != self.points.ncols() + 4 {
-            return Err(Error::InvalidParameters);
-        }
-
-        // Check that knots vector is non-decreasing
-        let mut knots_iter = self.knots.iter();
-        let prev = knots_iter.next().expect("Empty knots vector");
-        for knot in knots_iter {
-            if knot < prev {
-                return Err(Error::InvalidParameters);
-            }
-        }
-
-        // Check that the knots vector has non-zero span
-        if self.knots[self.knots.len() - 1] - self.knots[0] < limits::MINIMUM_PARAMETER_SEPARATION {
-            return Err(Error::DegenerateCurve);
-        }
-
-        // Check that the bounds are between the knots and are non-zero span
-        if self.end - self.start < limits::MINIMUM_PARAMETER_SEPARATION || self.start < self.knots[0] || self.end > self.knots[self.knots.len() - 1] {
-            return Err(Error::InvalidParameters);
-        }
-
-        // TODO: check for C0 discontinuities
-        // TODO: check for self-intersections
-
-        Ok(())
-    }
-
-    pub fn new<'a>(points: &'a Mat4xN, knots: &'a VecN, start: f64, end: f64) -> Result<CubicNURBSCurve<'a>> {
-        let result = CubicNURBSCurve {
-            points: points,
-            knots: knots,
-            start: start,
-            end: end,
-        };
-
-        result.check()?;
-
-        // TODO: check endpoint separation
-        // TODO: check self-intersection and degeneracy
-        Ok(result)
-    }
-
-    fn t_to_u(&self, t: f64) -> f64 {
-        // t is the normalized parameter passed in to the Edge
-        // u is the spline parameter
-        // for t in [0, 1] u will be in [start, end]
-
-        t * (self.end - self.start) + self.start
-    }
-
+impl BaseCubicNURBSCurve {
     // Returns the knot span that the given parameter lies within
     // parameter value u lies falls within [span, span+1)
     fn find_span(&self, u: f64) -> usize {
@@ -254,17 +195,10 @@ impl CubicNURBSCurve<'_> {
 
          return result;
     }
-}
 
-impl<'a> Edge for CubicNURBSCurve<'a> {
-    type TrimmedEdge = CubicNURBSCurve<'a>;
-
-    // Evaluate the edge at the given parameter value
-    fn d0(&self, t: f64) -> Vec3 {
-        assert!(self.parameter_within_bounds(t));
-
+    // Returns a point on the curve at parameter u
+    fn curve_point(&self, u: f64) -> Vec3 {
         // See "The NURBS Book", page 82, algorithm A3.1
-        let u = self.t_to_u(t);
         let span = self.find_span(u);
         let basis_functions = self.calc_basis_functions(span, u);
 
@@ -272,12 +206,137 @@ impl<'a> Edge for CubicNURBSCurve<'a> {
 
         for i in 0..4 {
             let point = self.points.column(span + i - 3);
-            let homogeneous_point = point.component_mul(&Vec4::new(point[3], point[3], point[3], 1.));
             let basis_function = basis_functions[i];
-            result = result + homogeneous_point * basis_function;
+            result = result + point * basis_function;
         }
 
         result.xyz() / result[3]
+    }
+
+    // Returns a set of points, the convex hull of which bounds the given curve
+    fn bounding_points(&self) -> Mat3xN {
+        self.points.fixed_rows::<U3>(0).into()
+    }
+
+    // Returns a new curve on the interval u_start to u_end
+    // with only the necessary knots and control points
+    fn trimmed(&self, u_start: f64, u_end: f64) -> BaseCubicNURBSCurve {
+
+        // See "The NURBS Book", page 151, algorithm A5.1
+
+        let start_span = self.find_span(u_start);
+        let end_span = self.find_span(u_end);
+        let new_n_points = end_span - start_span;
+
+        panic!("Not implemented");
+        let points = Mat4xN::zeros(10);
+        let knots = VecN::zeros(10);
+        BaseCubicNURBSCurve {
+            points: points,
+            knots: knots
+        }
+    }
+
+    fn min_u(&self) -> f64 {
+        self.knots[3]
+    }
+
+    fn max_u(&self) -> f64 {
+        self.knots[self.knots.len() - 4]
+    }
+
+}
+
+#[derive(Debug)]
+pub struct CubicNURBSCurve {
+    curve: BaseCubicNURBSCurve,
+    start: f64,
+    end: f64,
+}
+
+impl CubicNURBSCurve {
+    fn check(&self) -> Result<()> {
+        // Check that there are at least two curve.points
+        if self.curve.points.ncols() < 2 {
+            return Err(Error::DegenerateCurve);
+        }
+
+        // Check that there are the right number of curve.knots
+        if self.curve.knots.len() != self.curve.points.ncols() + 4 {
+            return Err(Error::InvalidParameters);
+        }
+
+        // Check that curve.knots vector is non-decreasing
+        let mut knots_iter = self.curve.knots.iter();
+        let prev = knots_iter.next().expect("Empty curve.knots vector");
+        for knot in knots_iter {
+            if knot < prev {
+                return Err(Error::InvalidParameters);
+            }
+        }
+
+        // Check that the knots vector has non-zero span
+        if self.curve.knots[self.curve.knots.len() - 4] - self.curve.knots[3] < limits::MINIMUM_PARAMETER_SEPARATION {
+            return Err(Error::DegenerateCurve);
+        }
+
+        // Check that the bounds are between the curve.knots and are non-zero span
+        if self.end - self.start < limits::MINIMUM_PARAMETER_SEPARATION || self.start < self.curve.knots[0] || self.end > self.curve.knots[self.curve.knots.len() - 1] {
+            return Err(Error::InvalidParameters);
+        }
+
+        // TODO: check for C0 discontinuities
+        // TODO: check for self-intersections
+        // TODO: check endpoint separation
+
+        Ok(())
+    }
+
+    fn weights_to_homo(points: &Mat4xN) -> Mat4xN {
+        let mut homo_points = points.clone();
+        for mut col in homo_points.column_iter_mut() {
+            col.component_mul_assign(&Vec4::new(col[3], col[3], col[3], 1.));
+        }
+        homo_points
+    }
+
+    pub fn new(points: &Mat4xN, knots: &VecN) -> Result<CubicNURBSCurve> {
+        // Do the conversion to homogeneous coordinates right away
+        let curve = BaseCubicNURBSCurve {
+            points: Self::weights_to_homo(points),
+            knots: knots.clone(),
+        };
+        let result = CubicNURBSCurve {
+            start: curve.min_u(),
+            end: curve.max_u(),
+            curve: curve,
+        };
+
+        result.check()?;
+
+        Ok(result)
+    }
+
+    fn t_to_u(&self, t: f64) -> f64 {
+        // t is the normalized parameter passed in to the Edge
+        // u is the spline parameter
+        // for t in [0, 1] u will be in [start, end]
+
+        t * (self.end - self.start) + self.start
+    }
+
+}
+
+impl Edge for CubicNURBSCurve {
+    type TrimmedEdge = CubicNURBSCurve;
+
+    // Evaluate the edge at the given parameter value
+    fn d0(&self, t: f64) -> Vec3 {
+        assert!(self.parameter_within_bounds(t));
+
+        // See "The NURBS Book", page 82, algorithm A3.1
+        let u = self.t_to_u(t);
+        self.curve.curve_point(u)
     }
 
     // First derivative with respect to parameter value t
@@ -291,20 +350,27 @@ impl<'a> Edge for CubicNURBSCurve<'a> {
     fn d2(&self, t: f64) -> Option<Vec3> {
         assert!(self.parameter_within_bounds(t));
 
-        Some(Vec3::zeros())
+        Some(Vec3::zeros()) // XXX
     }
 
     fn parameter_bounds(&self) -> (Option<f64>, Option<f64>) {
         let width = self.end - self.start;
         assert!(width >= limits::EPSILON_PARAMETER);
-        (Some(self.start / width), Some(1. - (1. - self.end) / width))
+        (Some((self.curve.min_u() - self.start) / width), Some(1. - (self.curve.max_u() - self.end) / width))
     }
 
-    fn trimmed(&self, start: f64, end: f64) -> Result<CubicNURBSCurve<'a>> {
+    fn trimmed(&self, start: f64, end: f64) -> Result<CubicNURBSCurve> {
         assert!(self.parameter_within_bounds(start));
         assert!(self.parameter_within_bounds(end));
 
-        CubicNURBSCurve::new(self.points, self.knots, self.t_to_u(start), self.t_to_u(end))
+        // Bypass the ::new() constructor so that we don't have to convert from/to homogeneous coordinates unnecessarily
+        let result = CubicNURBSCurve {
+            curve: self.curve.clone(),
+            start: self.t_to_u(start),
+            end: self.t_to_u(end)
+        };
+        result.check()?;
+        Ok(result)
     }
 }
 
