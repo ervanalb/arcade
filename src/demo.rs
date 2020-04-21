@@ -75,6 +75,7 @@ fn main() {
 
     let nurbs_knots = VecN::from_row_slice(&[0., 0., 0., 0., 1., 2., 3., 4., 5., 5., 5., 5.]);
     let nurbs1 = CubicNURBSCurve::new(&nurbs_points, &nurbs_knots).unwrap();
+    let nurbs2 = nurbs1.insert_knot(0.5, 3).unwrap();
 
     while window.render_with_camera(&mut arc_ball) {
         draw_axes(&mut window);
@@ -85,6 +86,7 @@ fn main() {
         draw_edge(&mut window, &s2);
         draw_edge(&mut window, &s3);
         draw_edge(&mut window, &nurbs1);
+        draw_edge(&mut window, &nurbs2);
     }
 
     //let pt1 = Vertex::new(Vec3::new(2., 3., 4.)).unwrap();

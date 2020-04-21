@@ -233,11 +233,50 @@ impl BaseCubicNURBSCurve {
         }
     }
 
+    fn insert_knot(&self, u: f64, repeat: usize) -> BaseCubicNURBSCurve {
+        // See "The NURBS Book", page 151, algorithm A5.1
+
+        assert!(repeat > 0);
+
+        let mut new_points = Mat4xN::zeros(self.points.ncols() + repeat);
+        let mut new_knots = VecN::zeros(self.knots.len() + repeat);
+        let span = self.find_span(u);
+        // Load new knot vector
+        new_knots.rows_mut(0, span + 1).copy_from(&self.knots.rows(0, span + 1));
+        new_knots.rows_mut(span + 1, repeat).copy_from(&VecN::repeat(repeat, u));
+        new_knots.rows_mut(span + 1 + repeat, new_knots.len() - (span + 1 + repeat)).copy_from(&self.knots.rows(span + 1, self.knots.len() - (span + 1)));
+
+        // Save unaltered control points
+        new_points.columns_mut(0, span - 2).copy_from(&self.points.columns(0, span - 2));
+        new_points.columns_mut(span + repeat, new_points.ncols() - (span + repeat)).copy_from(&self.points.columns(span, self.points.ncols() - span));
+
+        // Create temporary Rw vector
+        let mut temp_points: Mat4xN = self.points.columns(span - 3, 4).into();
+
+        for j in 0..repeat {
+            let l = span - 2 + j;
+            for i in 0..(3 - j) {
+                let alpha = (u - self.knots[l + i]) / (self.knots[i + span + 1] - self.knots[l + i]);
+                let new_pt = alpha * temp_points.column(i + 1) + (1. - alpha) * temp_points.column(i);
+                temp_points.column_mut(i).copy_from(&new_pt);
+            }
+            new_points.column_mut(l).copy_from(&temp_points.column(0));
+            new_points.column_mut(span + repeat - j - 1).copy_from(&temp_points.column(2 - j));
+        }
+        let l = span + repeat - 3;
+        if span > l + 1 {
+            new_points.columns_mut(l + 1, span - l - 1).copy_from(&temp_points.columns(1, span - l - 1));
+        }
+
+        BaseCubicNURBSCurve {
+            points: new_points,
+            knots: new_knots,
+        }
+    }
+
     // Returns a new curve on the interval u_start to u_end
     // with only the necessary knots and control points
     fn trimmed(&self, u_start: f64, u_end: f64) -> BaseCubicNURBSCurve {
-
-        // See "The NURBS Book", page 151, algorithm A5.1
 
         let start_span = self.find_span(u_start);
         let end_span = self.find_span(u_end);
@@ -326,6 +365,18 @@ impl CubicNURBSCurve {
 
         result.check()?;
 
+        Ok(result)
+    }
+
+    pub fn insert_knot(&self, t: f64, repeat: usize) -> Result<CubicNURBSCurve> {
+        assert!(self.parameter_within_bounds(t));
+
+        let result = CubicNURBSCurve {
+            curve: self.curve.insert_knot(self.t_to_u(t), repeat),
+            start: self.start,
+            end: self.end,
+        };
+        result.check()?;
         Ok(result)
     }
 
