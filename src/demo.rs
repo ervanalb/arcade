@@ -67,13 +67,13 @@ fn main() {
     let s3 = Segment::new(&v3, &v1).unwrap();
 
     let nurbs_points = Mat4xN::from_row_slice(&[
-        0., 1.,  0., 1.,
-        0., 0.,  1., 1.,
-        0., 0.,  1., 1.,
-        1., 1.,  3., 3.,
+        0., 1.,  0., 1., 1., 2., 0., 2.,
+        0., 0.,  1., 1., 1., 1., 2., 2.,
+        0., 0.,  1., 1., 1., 1., 2., 2.,
+        1., 1.,  3., 3., 1., 1., 3., 3.,
     ]);
 
-    let nurbs_knots = VecN::from_row_slice(&[0., 0., 0., 0., 1., 1., 1., 1.]);
+    let nurbs_knots = VecN::from_row_slice(&[0., 0., 0., 0., 1., 2., 3., 4., 5., 5., 5., 5.]);
     let nurbs1 = CubicNURBSCurve::new(&nurbs_points, &nurbs_knots).unwrap();
 
     while window.render_with_camera(&mut arc_ball) {

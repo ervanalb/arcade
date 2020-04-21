@@ -139,6 +139,7 @@ struct BaseCubicNURBSCurve {
 impl BaseCubicNURBSCurve {
     // Returns the knot span that the given parameter lies within
     // parameter value u lies falls within [span, span+1)
+    // with the exception of the top span, which is closed on top: [span, span+1]
     fn find_span(&self, u: f64) -> usize {
         // See "The NURBS Book", page 68, algorithm A2.1
 
@@ -218,6 +219,20 @@ impl BaseCubicNURBSCurve {
         self.points.fixed_rows::<U3>(0).into()
     }
 
+    // This function returns a curve that matches the given one on the given range,
+    // but uses only the necessary knots and control points.
+    fn coarse_trimmed(&self, start_span: usize, end_span: usize) -> BaseCubicNURBSCurve {
+        let first_knot = start_span - 3;
+        let last_knot = end_span + 5; // This is actually one after the last knot, so that the knot range is first_cp..last_cp
+        let first_cp = start_span - 3;
+        let last_cp = end_span + 1; // this is actually one after the last cp, so that the cp range is first_cp..last_cp
+
+        BaseCubicNURBSCurve {
+            points: self.points.columns(first_cp, last_cp - first_cp).into(),
+            knots: self.knots.rows(first_knot, last_knot - first_knot).into(),
+        }
+    }
+
     // Returns a new curve on the interval u_start to u_end
     // with only the necessary knots and control points
     fn trimmed(&self, u_start: f64, u_end: f64) -> BaseCubicNURBSCurve {
@@ -226,21 +241,17 @@ impl BaseCubicNURBSCurve {
 
         let start_span = self.find_span(u_start);
         let end_span = self.find_span(u_end);
-        let new_n_points = end_span - start_span;
+        let temp_curve = self.coarse_trimmed(start_span, end_span);
 
-        panic!("Not implemented");
-        let points = Mat4xN::zeros(10);
-        let knots = VecN::zeros(10);
-        BaseCubicNURBSCurve {
-            points: points,
-            knots: knots
-        }
+        temp_curve
     }
 
+    // The smallest valid parameter value, according to the knot vector
     fn min_u(&self) -> f64 {
         self.knots[3]
     }
 
+    // The largest valid parameter value, according to the knot vector
     fn max_u(&self) -> f64 {
         self.knots[self.knots.len() - 4]
     }
@@ -268,15 +279,16 @@ impl CubicNURBSCurve {
 
         // Check that curve.knots vector is non-decreasing
         let mut knots_iter = self.curve.knots.iter();
-        let prev = knots_iter.next().expect("Empty curve.knots vector");
+        let mut prev = knots_iter.next().expect("Empty curve.knots vector");
         for knot in knots_iter {
             if knot < prev {
                 return Err(Error::InvalidParameters);
             }
+            prev = knot;
         }
 
         // Check that the knots vector has non-zero span
-        if self.curve.knots[self.curve.knots.len() - 4] - self.curve.knots[3] < limits::MINIMUM_PARAMETER_SEPARATION {
+        if self.curve.max_u() - self.curve.min_u() < limits::MINIMUM_PARAMETER_SEPARATION {
             return Err(Error::DegenerateCurve);
         }
 
