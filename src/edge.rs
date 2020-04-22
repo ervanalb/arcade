@@ -197,8 +197,8 @@ impl BaseCubicNURBSCurve {
          return result;
     }
 
-    // Returns a point on the curve at parameter u
-    fn curve_point(&self, u: f64) -> Vec3 {
+    // Returns a point on the curve at parameter u in homogeneous coordinates
+    fn curve_point_homo(&self, u: f64) -> Vec4 {
         // See "The NURBS Book", page 82, algorithm A3.1
         let span = self.find_span(u);
         let basis_functions = self.calc_basis_functions(span, u);
@@ -211,7 +211,13 @@ impl BaseCubicNURBSCurve {
             result = result + point * basis_function;
         }
 
-        result.xyz() / result[3]
+        result
+    }
+
+    // Returns a point on the curve at parameter u in 3D
+    fn curve_point(&self, u: f64) -> Vec3 {
+        let homo = self.curve_point_homo(u);
+        homo.xyz() / homo[3]
     }
 
     // Returns a set of points, the convex hull of which bounds the given curve
@@ -281,8 +287,27 @@ impl BaseCubicNURBSCurve {
         let start_span = self.find_span(u_start);
         let end_span = self.find_span(u_end);
         let temp_curve = self.coarse_trimmed(start_span, end_span);
+        let temp_curve = temp_curve.insert_knot(u_start, 3);
+        let temp_curve = temp_curve.insert_knot(u_end, 3);
+        let start_span = self.find_span(u_start);
+        let end_span = self.find_span(u_end);
+        let first_knot = start_span + 1;
+        let last_knot = end_span + 7; // is actually one past the last knot
+        let first_cp = start_span;
+        let last_cp = end_span + 4; // is actually one past the last cp
 
-        temp_curve
+        let mut new_points = Mat4xN::zeros(last_cp - first_cp);
+        let mut new_knots = VecN::zeros(last_knot - first_knot + 2);
+
+        new_knots.rows_mut(1, last_knot - first_knot).copy_from(&temp_curve.knots.rows(first_knot, last_knot - first_knot));
+        new_knots[0] = u_start;
+        new_knots[last_knot - first_knot + 1] = u_end;
+        new_points.copy_from(&temp_curve.points.columns(first_cp, last_cp - first_cp));
+
+        BaseCubicNURBSCurve {
+            points: new_points,
+            knots: new_knots,
+        }
     }
 
     // The smallest valid parameter value, according to the knot vector
@@ -357,6 +382,7 @@ impl CubicNURBSCurve {
             points: Self::weights_to_homo(points),
             knots: knots.clone(),
         };
+
         let result = CubicNURBSCurve {
             start: curve.min_u(),
             end: curve.max_u(),
