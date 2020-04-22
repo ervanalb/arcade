@@ -222,7 +222,7 @@ impl BaseCubicNURBSCurve {
 
     // Returns a set of points, the convex hull of which bounds the given curve
     fn bounding_points(&self) -> Mat3xN {
-        self.points.fixed_rows::<U3>(0).into()
+        BaseCubicNURBSCurve::homo_to_weights(&self.points).fixed_rows::<U3>(0).into()
     }
 
     // This function returns a curve that matches the given one on the given range,
@@ -320,6 +320,22 @@ impl BaseCubicNURBSCurve {
         self.knots[self.knots.len() - 4]
     }
 
+    fn weights_to_homo(points: &Mat4xN) -> Mat4xN {
+        let mut homo_points = points.clone();
+        for mut col in homo_points.column_iter_mut() {
+            col.component_mul_assign(&Vec4::new(col[3], col[3], col[3], 1.));
+        }
+        homo_points
+    }
+
+    fn homo_to_weights(points: &Mat4xN) -> Mat4xN {
+        let mut weighted_points = points.clone();
+        for mut col in weighted_points.column_iter_mut() {
+            let inv_w = 1. / col[3];
+            col.component_mul_assign(&Vec4::new(inv_w, inv_w, inv_w, 1.));
+        }
+        weighted_points
+    }
 }
 
 #[derive(Debug)]
@@ -368,18 +384,10 @@ impl CubicNURBSCurve {
         Ok(())
     }
 
-    fn weights_to_homo(points: &Mat4xN) -> Mat4xN {
-        let mut homo_points = points.clone();
-        for mut col in homo_points.column_iter_mut() {
-            col.component_mul_assign(&Vec4::new(col[3], col[3], col[3], 1.));
-        }
-        homo_points
-    }
-
     pub fn new(points: &Mat4xN, knots: &VecN) -> Result<CubicNURBSCurve> {
         // Do the conversion to homogeneous coordinates right away
         let curve = BaseCubicNURBSCurve {
-            points: Self::weights_to_homo(points),
+            points: BaseCubicNURBSCurve::weights_to_homo(points),
             knots: knots.clone(),
         };
 
