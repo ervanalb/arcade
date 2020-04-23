@@ -5,3 +5,4 @@ pub const MINIMUM_CROSS_PRODUCT_NON_COLINEAR: f64 = 1e-6; // Non-collinear lines
 pub const EPSILON_CROSS_PRODUCT: f64 = 1e-0; // Collinear lines must have a cross product less than this value
 pub const MINIMUM_PARAMETER_SEPARATION: f64 = 1e-6; // The smallest useful parameter sweep
 pub const EPSILON_PARAMETER: f64 = 1e-9; // Two parameter values are considered equal if they are within this value
+pub const MAX_SUBDIVISION: usize = 24; // The most number of times we should split a curve or surface in half attempting to subdivide it

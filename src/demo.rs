@@ -1,7 +1,7 @@
 use arcade::vertex::Vertex;
 use arcade::edge::{Segment, CubicNURBSCurve};
 use arcade::edge::Edge;
-use arcade::interpolate::interpolate_edge_fixed;
+use arcade::interpolate::interpolate_edge_adaptive;
 use arcade::types::{VecN, Mat4xN};
 
 extern crate kiss3d;
@@ -39,7 +39,7 @@ fn draw_segment(window: &mut Window, s: &Segment) {
 */
 
 fn draw_edge<T: Edge>(window: &mut Window, e: &T) {
-    let pts = interpolate_edge_fixed(e, 50);
+    let pts = interpolate_edge_adaptive(e, 0.01);
 
     let mut pts_iter = pts.column_iter();
     let mut prev = vec_to_point(&pts_iter.next().unwrap());

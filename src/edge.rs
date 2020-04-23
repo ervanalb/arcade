@@ -1,9 +1,9 @@
 use crate::vertex::Vertex;
 use crate::error::Error;
 use crate::error::Result;
-use crate::types::{Vec3, Vec4, VecN, Mat4xN, Mat3xN};
+use crate::types::{Vec3, VecN, Mat4xN, Mat3xN};
+use crate::geometry::{BaseSegment, BaseCubicNURBSCurve, weights_to_homo};
 use crate::limits;
-use nalgebra::U3;
 
 pub trait Edge {
     // An Edge:
@@ -57,19 +57,22 @@ pub trait Edge {
 
         check_lower && check_upper
     }
+
+    // Returns a set of points, the convex hull of which contains the portion of the Edge between start_t and end_t
+    // In the limit as start_t approaches end_t, this set must converge on a single point.
+    fn spatial_bounding_points(&self, start: f64, end: f64) -> Mat3xN;
 }
 
 #[derive(Debug)]
 pub struct Segment {
     // Implements a segment parameterized as A + B * t where t ranges from 0 to 1
-    a: Vec3, // First point
-    b: Vec3, // Second point - First point
+    g: BaseSegment,
 }
 
 impl Segment {
     fn check(&self) -> Result<()> {
-        let v1 = Vertex::new(self.a)?;
-        let v2 = Vertex::new(self.a + self.b)?;
+        let v1 = Vertex::new(self.g.a)?;
+        let v2 = Vertex::new(self.g.a + self.g.b)?;
         v1.check_vertex_separation(&v2)?;
 
         Ok(())
@@ -77,8 +80,10 @@ impl Segment {
 
     pub fn new(pt1: &Vertex, pt2: &Vertex) -> Result<Segment> {
         let result = Segment {
-            a: pt1.point(),
-            b: pt2.point() - pt1.point()
+            g: BaseSegment {
+                a: pt1.point(),
+                b: pt2.point() - pt1.point()
+            }
         };
 
         result.check()?;
@@ -94,14 +99,14 @@ impl Edge for Segment {
     fn d0(&self, t: f64) -> Vec3 {
         assert!(self.parameter_within_bounds(t));
 
-        self.a + t * self.b
+        self.g.curve_point(t)
     }
 
     // First derivative with respect to parameter value t
     fn d1(&self, t: f64) -> Option<Vec3> {
         assert!(self.parameter_within_bounds(t));
 
-        Some(self.b)
+        Some(self.g.b)
     }
 
     // Second derivative with respect to parameter value t
@@ -127,239 +132,38 @@ impl Edge for Segment {
         let v2 = Vertex::new(self.d0(end))?;
         Segment::new(&v1, &v2)
     }
-}
 
-#[derive(Debug)]
-#[derive(Clone)]
-struct BaseCubicNURBSCurve {
-    points: Mat4xN,
-    knots: VecN,
-}
+    fn spatial_bounding_points(&self, start: f64, end: f64) -> Mat3xN {
+        assert!(end > start);
+        assert!(self.parameter_within_bounds(start));
+        assert!(self.parameter_within_bounds(end));
 
-impl BaseCubicNURBSCurve {
-    // Returns the knot span that the given parameter lies within
-    // parameter value u lies falls within [span, span+1)
-    // with the exception of the top span, which is closed on top: [span, span+1]
-    fn find_span(&self, u: f64) -> usize {
-        // See "The NURBS Book", page 68, algorithm A2.1
-
-        let mut low = 3;
-        let mut high = self.knots.len() - 4;
-
-        if u >= self.knots[high] {
-            return high - 1;
-        }
-
-        if u <= self.knots[low] {
-            return low;
-        }
-
-        // Binary search
-        let mut mid = (low + high) / 2;
-
-        while u < self.knots[mid] || u >= self.knots[mid + 1] {
-            if u < self.knots[mid] {
-                high = mid;
-            } else {
-                low = mid;
-            }
-            mid = (low + high) / 2;
-        }
-        mid
-    }
-
-    // Returns the values of the four basis functions evaluated at point u
-    fn calc_basis_functions(&self, span: usize, u: f64) -> [f64; 4] {
-
-        // See "The NURBS Book", page 70, algorithm A2.2
-        let mut result = [1., 0., 0., 0.];
-        let mut left = [0., 0., 0.];
-        let mut right = [0., 0., 0.];
-
-        for i in 1..4 {
-            left[i - 1] = u - self.knots[span + 1 - i];
-            right[i - 1] = self.knots[span + i] - u;
-
-            let mut saved = 0.;
-
-            for r in 0..i {
-                let rv = right[r];
-                let lv = left[i - 1 - r];
-                assert!((rv + lv).abs() >= limits::EPSILON_PARAMETER);
-                let temp = result[r] / (rv + lv);
-                result[r] = saved + rv * temp;
-                saved = lv * temp;
-             }
-
-             result[i] = saved;
-         }
-
-         return result;
-    }
-
-    // Returns a point on the curve at parameter u in homogeneous coordinates
-    fn curve_point_homo(&self, u: f64) -> Vec4 {
-        // See "The NURBS Book", page 82, algorithm A3.1
-        let span = self.find_span(u);
-        let basis_functions = self.calc_basis_functions(span, u);
-
-        let mut result = Vec4::zeros();
-
-        for i in 0..4 {
-            let point = self.points.column(span + i - 3);
-            let basis_function = basis_functions[i];
-            result = result + point * basis_function;
-        }
-
-        result
-    }
-
-    // Returns a point on the curve at parameter u in 3D
-    fn curve_point(&self, u: f64) -> Vec3 {
-        let homo = self.curve_point_homo(u);
-        homo.xyz() / homo[3]
-    }
-
-    // Returns a set of points, the convex hull of which bounds the given curve
-    fn bounding_points(&self) -> Mat3xN {
-        BaseCubicNURBSCurve::homo_to_weights(&self.points).fixed_rows::<U3>(0).into()
-    }
-
-    // This function returns a curve that matches the given one on the given range,
-    // but uses only the necessary knots and control points.
-    fn coarse_trimmed(&self, start_span: usize, end_span: usize) -> BaseCubicNURBSCurve {
-        let first_knot = start_span - 3;
-        let last_knot = end_span + 5; // This is actually one after the last knot, so that the knot range is first_cp..last_cp
-        let first_cp = start_span - 3;
-        let last_cp = end_span + 1; // this is actually one after the last cp, so that the cp range is first_cp..last_cp
-
-        BaseCubicNURBSCurve {
-            points: self.points.columns(first_cp, last_cp - first_cp).into(),
-            knots: self.knots.rows(first_knot, last_knot - first_knot).into(),
-        }
-    }
-
-    fn insert_knot(&self, u: f64, repeat: usize) -> BaseCubicNURBSCurve {
-        // See "The NURBS Book", page 151, algorithm A5.1
-
-        assert!(repeat > 0);
-
-        let mut new_points = Mat4xN::zeros(self.points.ncols() + repeat);
-        let mut new_knots = VecN::zeros(self.knots.len() + repeat);
-        let span = self.find_span(u);
-        // Load new knot vector
-        new_knots.rows_mut(0, span + 1).copy_from(&self.knots.rows(0, span + 1));
-        new_knots.rows_mut(span + 1, repeat).copy_from(&VecN::repeat(repeat, u));
-        new_knots.rows_mut(span + 1 + repeat, new_knots.len() - (span + 1 + repeat)).copy_from(&self.knots.rows(span + 1, self.knots.len() - (span + 1)));
-
-        // Save unaltered control points
-        new_points.columns_mut(0, span - 2).copy_from(&self.points.columns(0, span - 2));
-        new_points.columns_mut(span + repeat, new_points.ncols() - (span + repeat)).copy_from(&self.points.columns(span, self.points.ncols() - span));
-
-        // Create temporary Rw vector
-        let mut temp_points: Mat4xN = self.points.columns(span - 3, 4).into();
-
-        for j in 0..repeat {
-            let l = span - 2 + j;
-            for i in 0..(3 - j) {
-                let alpha = (u - self.knots[l + i]) / (self.knots[i + span + 1] - self.knots[l + i]);
-                let new_pt = alpha * temp_points.column(i + 1) + (1. - alpha) * temp_points.column(i);
-                temp_points.column_mut(i).copy_from(&new_pt);
-            }
-            new_points.column_mut(l).copy_from(&temp_points.column(0));
-            new_points.column_mut(span + repeat - j - 1).copy_from(&temp_points.column(2 - j));
-        }
-        let l = span + repeat - 3;
-        if span > l + 1 {
-            new_points.columns_mut(l + 1, span - l - 1).copy_from(&temp_points.columns(1, span - l - 1));
-        }
-
-        BaseCubicNURBSCurve {
-            points: new_points,
-            knots: new_knots,
-        }
-    }
-
-    // Returns a new curve on the interval u_start to u_end
-    // with only the necessary knots and control points
-    fn trimmed(&self, u_start: f64, u_end: f64) -> BaseCubicNURBSCurve {
-
-        let start_span = self.find_span(u_start);
-        let end_span = self.find_span(u_end);
-        let temp_curve = self.coarse_trimmed(start_span, end_span);
-        let temp_curve = temp_curve.insert_knot(u_start, 3);
-        let temp_curve = temp_curve.insert_knot(u_end, 3);
-        let start_span = self.find_span(u_start);
-        let end_span = self.find_span(u_end);
-        let first_knot = start_span + 1;
-        let last_knot = end_span + 7; // is actually one past the last knot
-        let first_cp = start_span;
-        let last_cp = end_span + 4; // is actually one past the last cp
-
-        let mut new_points = Mat4xN::zeros(last_cp - first_cp);
-        let mut new_knots = VecN::zeros(last_knot - first_knot + 2);
-
-        new_knots.rows_mut(1, last_knot - first_knot).copy_from(&temp_curve.knots.rows(first_knot, last_knot - first_knot));
-        new_knots[0] = u_start;
-        new_knots[last_knot - first_knot + 1] = u_end;
-        new_points.copy_from(&temp_curve.points.columns(first_cp, last_cp - first_cp));
-
-        BaseCubicNURBSCurve {
-            points: new_points,
-            knots: new_knots,
-        }
-    }
-
-    // The smallest valid parameter value, according to the knot vector
-    fn min_u(&self) -> f64 {
-        self.knots[3]
-    }
-
-    // The largest valid parameter value, according to the knot vector
-    fn max_u(&self) -> f64 {
-        self.knots[self.knots.len() - 4]
-    }
-
-    fn weights_to_homo(points: &Mat4xN) -> Mat4xN {
-        let mut homo_points = points.clone();
-        for mut col in homo_points.column_iter_mut() {
-            col.component_mul_assign(&Vec4::new(col[3], col[3], col[3], 1.));
-        }
-        homo_points
-    }
-
-    fn homo_to_weights(points: &Mat4xN) -> Mat4xN {
-        let mut weighted_points = points.clone();
-        for mut col in weighted_points.column_iter_mut() {
-            let inv_w = 1. / col[3];
-            col.component_mul_assign(&Vec4::new(inv_w, inv_w, inv_w, 1.));
-        }
-        weighted_points
+        return Mat3xN::from_columns(&[self.g.curve_point(start), self.g.curve_point(end)]);
     }
 }
 
 #[derive(Debug)]
 pub struct CubicNURBSCurve {
-    curve: BaseCubicNURBSCurve,
+    g: BaseCubicNURBSCurve,
     start: f64,
     end: f64,
 }
 
 impl CubicNURBSCurve {
     fn check(&self) -> Result<()> {
-        // Check that there are at least two curve.points
-        if self.curve.points.ncols() < 2 {
+        // Check that there are at least two g.points
+        if self.g.points.ncols() < 2 {
             return Err(Error::DegenerateCurve);
         }
 
-        // Check that there are the right number of curve.knots
-        if self.curve.knots.len() != self.curve.points.ncols() + 4 {
+        // Check that there are the right number of g.knots
+        if self.g.knots.len() != self.g.points.ncols() + 4 {
             return Err(Error::InvalidParameters);
         }
 
-        // Check that curve.knots vector is non-decreasing
-        let mut knots_iter = self.curve.knots.iter();
-        let mut prev = knots_iter.next().expect("Empty curve.knots vector");
+        // Check that g.knots vector is non-decreasing
+        let mut knots_iter = self.g.knots.iter();
+        let mut prev = knots_iter.next().expect("Empty g.knots vector");
         for knot in knots_iter {
             if knot < prev {
                 return Err(Error::InvalidParameters);
@@ -368,12 +172,12 @@ impl CubicNURBSCurve {
         }
 
         // Check that the knots vector has non-zero span
-        if self.curve.max_u() - self.curve.min_u() < limits::MINIMUM_PARAMETER_SEPARATION {
+        if self.g.max_u() - self.g.min_u() < limits::MINIMUM_PARAMETER_SEPARATION {
             return Err(Error::DegenerateCurve);
         }
 
-        // Check that the bounds are between the curve.knots and are non-zero span
-        if self.end - self.start < limits::MINIMUM_PARAMETER_SEPARATION || self.start < self.curve.knots[0] || self.end > self.curve.knots[self.curve.knots.len() - 1] {
+        // Check that the bounds are between the g.knots and are non-zero span
+        if self.end - self.start < limits::MINIMUM_PARAMETER_SEPARATION || self.start < self.g.knots[0] || self.end > self.g.knots[self.g.knots.len() - 1] {
             return Err(Error::InvalidParameters);
         }
 
@@ -386,15 +190,15 @@ impl CubicNURBSCurve {
 
     pub fn new(points: &Mat4xN, knots: &VecN) -> Result<CubicNURBSCurve> {
         // Do the conversion to homogeneous coordinates right away
-        let curve = BaseCubicNURBSCurve {
-            points: BaseCubicNURBSCurve::weights_to_homo(points),
+        let g = BaseCubicNURBSCurve {
+            points: weights_to_homo(points),
             knots: knots.clone(),
         };
 
         let result = CubicNURBSCurve {
-            start: curve.min_u(),
-            end: curve.max_u(),
-            curve: curve,
+            start: g.min_u(),
+            end: g.max_u(),
+            g: g,
         };
 
         result.check()?;
@@ -406,7 +210,7 @@ impl CubicNURBSCurve {
         assert!(self.parameter_within_bounds(t));
 
         let result = CubicNURBSCurve {
-            curve: self.curve.insert_knot(self.t_to_u(t), repeat),
+            g: self.g.insert_knot(self.t_to_u(t), repeat),
             start: self.start,
             end: self.end,
         };
@@ -433,7 +237,7 @@ impl Edge for CubicNURBSCurve {
 
         // See "The NURBS Book", page 82, algorithm A3.1
         let u = self.t_to_u(t);
-        self.curve.curve_point(u)
+        self.g.curve_point(u)
     }
 
     // First derivative with respect to parameter value t
@@ -453,7 +257,7 @@ impl Edge for CubicNURBSCurve {
     fn parameter_bounds(&self) -> (Option<f64>, Option<f64>) {
         let width = self.end - self.start;
         assert!(width >= limits::EPSILON_PARAMETER);
-        (Some((self.curve.min_u() - self.start) / width), Some(1. - (self.curve.max_u() - self.end) / width))
+        (Some((self.g.min_u() - self.start) / width), Some(1. - (self.g.max_u() - self.end) / width))
     }
 
     fn trimmed(&self, start: f64, end: f64) -> Result<CubicNURBSCurve> {
@@ -462,12 +266,20 @@ impl Edge for CubicNURBSCurve {
 
         // Bypass the ::new() constructor so that we don't have to convert from/to homogeneous coordinates unnecessarily
         let result = CubicNURBSCurve {
-            curve: self.curve.clone(),
+            g: self.g.clone(),
             start: self.t_to_u(start),
             end: self.t_to_u(end)
         };
         result.check()?;
         Ok(result)
+    }
+
+    fn spatial_bounding_points(&self, start: f64, end: f64) -> Mat3xN {
+        assert!(self.parameter_within_bounds(start));
+        assert!(self.parameter_within_bounds(end));
+        assert!(end > start);
+
+        self.g.trimmed(self.t_to_u(start), self.t_to_u(end)).bounding_points()
     }
 }
 
