@@ -25,17 +25,12 @@ pub fn interpolate_edge_fixed<T: Edge>(edge: &T, n: usize) -> Mat3xN {
 fn interpolate_adaptive_recursively<T: Edge>(edge: &T, max_error: f64, result: &mut Vec<Vec3>, t_start: f64, pt_start: Vec3, t_end: f64, pt_end: Vec3, level: usize) {
     assert!(level <= limits::MAX_SUBDIVISION);
 
-    println!("Interpolate section: {} to {}", t_start, t_end);
-
     let seg = BaseSegment {
         a: pt_start,
         b: pt_end - pt_start,
     };
 
-    println!("{} to {}", pt_start, pt_end);
-
     let bounding_points = edge.spatial_bounding_points(t_start, t_end);
-    println!("Bounding points: {}", bounding_points);
     let mut bounding_points_iter = bounding_points.column_iter();
     let mut max_dist = seg.point_dist_to_segment(&bounding_points_iter.next().unwrap().into());
     for pt in bounding_points_iter {
@@ -44,7 +39,6 @@ fn interpolate_adaptive_recursively<T: Edge>(edge: &T, max_error: f64, result: &
             max_dist = dist;
         }
     }
-    println!("Max dist is: {}", max_dist);
     if max_dist <= max_error {
         result.push(pt_end);
     } else {
@@ -67,8 +61,6 @@ pub fn interpolate_edge_adaptive<T: Edge>(edge: &T, max_error: f64) -> Mat3xN {
     let mut result = Vec::<Vec3>::new();
     result.push(pt0);
     interpolate_adaptive_recursively(edge, max_error, &mut result, 0., pt0, 1., edge.d0(1.), 0);
-
-    println!("Interpolated curve into {} points", result.len());
 
     Mat3xN::from_columns(&result)
 }

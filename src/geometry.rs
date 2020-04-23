@@ -49,17 +49,10 @@ impl BaseSegment {
     pub fn point_dist_to_segment(&self, point: &Vec3) -> f64 {
         // Returns the distance from a point to this segment.
         // (the closest distance may be to one of the endpoints)
+
         let c = point - self.a;
-        let t = self.b.dot(&c);
-        if t <= 0. {
-            // Closest to A
-            return c.norm();
-        } else if t >= 1. {
-            // Closest to A + B
-            return (self.b + c).norm();
-        }
-        // Closest to middle of segment
-        (c - self.b * t).norm()
+        let t = self.b.dot(&c); // Find closest point t
+        (c - self.b * t.min(1.).max(0.)).norm()
     }
 }
 
@@ -223,12 +216,12 @@ impl BaseCubicNURBSCurve {
         let temp_curve = self.coarse_trimmed(start_span, end_span);
         let temp_curve = temp_curve.insert_knot(u_start, 3);
         let temp_curve = temp_curve.insert_knot(u_end, 3);
-        let start_span = self.find_span(u_start);
-        let end_span = self.find_span(u_end);
-        let first_knot = start_span + 1;
-        let last_knot = end_span + 7; // is actually one past the last knot
-        let first_cp = start_span;
-        let last_cp = end_span + 4; // is actually one past the last cp
+        let start_span = temp_curve.find_span(u_start);
+        let end_span = temp_curve.find_span(u_end);
+        let first_knot = start_span - 2;
+        let last_knot = end_span + 1; // is actually one past the last knot
+        let first_cp = start_span - 3;
+        let last_cp = end_span - 2; // is actually one past the last cp
 
         let mut new_points = Mat4xN::zeros(last_cp - first_cp);
         let mut new_knots = VecN::zeros(last_knot - first_knot + 2);

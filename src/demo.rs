@@ -2,7 +2,7 @@ use arcade::vertex::Vertex;
 use arcade::edge::{Segment, CubicNURBSCurve};
 use arcade::edge::Edge;
 use arcade::interpolate::interpolate_edge_adaptive;
-use arcade::types::{VecN, Mat4xN};
+use arcade::types::{VecN, Mat4xN, Mat3xN};
 
 extern crate kiss3d;
 extern crate nalgebra as na;
@@ -38,9 +38,15 @@ fn draw_segment(window: &mut Window, s: &Segment) {
 }
 */
 
-fn draw_edge<T: Edge>(window: &mut Window, e: &T) {
-    let pts = interpolate_edge_adaptive(e, 0.01);
+fn draw_pts(window: &mut Window, pts: &Mat3xN) {
+    for col in pts.column_iter() {
+        let pt = vec_to_point(&col);
+        window.set_point_size(6.);
+        window.draw_point(&pt, &Point3::new(1., 1., 1.));
+    }
+}
 
+fn draw(window: &mut Window, pts: &Mat3xN) {
     let mut pts_iter = pts.column_iter();
     let mut prev = vec_to_point(&pts_iter.next().unwrap());
     for col in pts_iter {
@@ -48,6 +54,11 @@ fn draw_edge<T: Edge>(window: &mut Window, e: &T) {
         window.draw_line(&prev, &pt, &Point3::new(1., 1., 1.));
         prev = pt;
     }
+}
+
+fn draw_edge<T: Edge>(window: &mut Window, e: &T) {
+    let pts = interpolate_edge_adaptive(e, 0.01);
+    draw(window, &pts);
 }
 
 fn main() {
@@ -75,7 +86,8 @@ fn main() {
 
     let nurbs_knots = VecN::from_row_slice(&[0., 0., 0., 0., 1., 2., 3., 4., 5., 5., 5., 5.]);
     let nurbs1 = CubicNURBSCurve::new(&nurbs_points, &nurbs_knots).unwrap();
-    let nurbs2 = nurbs1.insert_knot(0.5, 3).unwrap();
+
+    let nurbs1_rendered = interpolate_edge_adaptive(&nurbs1, 0.01);
 
     while window.render_with_camera(&mut arc_ball) {
         draw_axes(&mut window);
@@ -85,8 +97,7 @@ fn main() {
         draw_edge(&mut window, &s1);
         draw_edge(&mut window, &s2);
         draw_edge(&mut window, &s3);
-        draw_edge(&mut window, &nurbs1);
-        draw_edge(&mut window, &nurbs2);
+        draw(&mut window, &nurbs1_rendered);
     }
 
     //let pt1 = Vertex::new(Vec3::new(2., 3., 4.)).unwrap();
