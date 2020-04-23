@@ -8,7 +8,7 @@
 - [X] Segment
 - [X] Cubic NURBS curve
 - [X] Fixed stride interpolation
-- [ ] Adaptive interpolation
+- [X] Adaptive interpolation
 - [ ] Edge - point intersection
 - [ ] Edge - edge intersection
 - [ ] Closed NURBS curves
