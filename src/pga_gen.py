@@ -111,6 +111,11 @@ def norm(a):
 def inorm(a):
     return norm(dual(a))
 
+def select_object(obj):
+    def _select(a):
+        return elem_mul(objects[obj], a)
+    return _select
+
 unary_operations = {
     "neg": neg,
     "dual": dual,
@@ -118,7 +123,11 @@ unary_operations = {
     "reverse": reverse,
     "norm": norm,
     "inorm": inorm,
-    "to_full_multivector": lambda x: x,
+    "scalar": select_object("Float"),
+    "vector": select_object("Vector"),
+    "bivector": select_object("Bivector"),
+    "trivector": select_object("Trivector"),
+    "full_multivector": lambda x: x,
 }
 
 binary_operations = {
@@ -156,7 +165,7 @@ def indent(s, tabs=1):
     for every "tab" specified in arguments.
     """
 
-    return "\n".join("    " * tabs + line for line in s.split("\n"))
+    return "\n".join("    " * tabs + line if line else "" for line in s.split("\n"))
 
 def fix_float(s):
     """ Replaces bare "0" with "0." for rust. """
@@ -244,7 +253,7 @@ def gen_result_code(result_type, result, *args, **kwargs):
 {indent(result_elems)}
 }}"""
 
-def gen_unary_operator(obj_name, op_name, impl=None, full_result=False):
+def gen_unary_operator(obj_name, op_name, impl=None, result_type=None):
     """ Generates code for a unary operator.
     obj_name: which struct to implement this operator on (type of "self")
     op_name: what to name the function, and an index into unary_operations
@@ -256,7 +265,9 @@ def gen_unary_operator(obj_name, op_name, impl=None, full_result=False):
     b = unary_operations[op_name](a)
     if b is None:
         return
-    result_type = "FullMultivector" if full_result else get_object(b)
+    if result_type == None:
+        result_type = get_object(b)
+
     result_code = gen_result_code(
         result_type, b, sub_a="self",
         a_is_scalar=obj_name == "Float",
@@ -327,12 +338,21 @@ pub struct {obj_name} {{
 def gen_mv_ops(obj_name):
     """ Generates the "Multivector" trait implementation for the given type. """
 
-    mv_ops = ["reverse", "dual", "conjugate", "norm", "inorm", "to_full_multivector"]
+    mv_ops = ["reverse", "dual", "conjugate", "norm", "inorm",
+        "scalar", "vector", "bivector", "trivector", "full_multivector"]
+
+    force_type = {
+        "scalar": "Float",
+        "vector": "Vector",
+        "bivector": "Bivector",
+        "trivector": "Trivector",
+        "full_multivector": "FullMultivector",
+    }
 
     dual_type = get_object(dual(get_multivector("a", objects[obj_name])))
 
     rust_code = [
-        gen_unary_operator(obj_name, op, full_result=op == "to_full_multivector")
+        gen_unary_operator(obj_name, op, result_type=force_type.get(op))
         for op in mv_ops
     ]
 
@@ -456,13 +476,21 @@ pub trait Multivector: fmt::Debug + Clone + Copy + PartialEq
 
     type Dual: Multivector;
 
+    // Unary operations
     fn reverse(self) -> Self;
     fn dual(self) -> Self::Dual;
     fn conjugate(self) -> Self;
     fn norm(self) -> Float;
     fn inorm(self) -> Float;
-    fn to_full_multivector(self) -> FullMultivector;
 
+    // Select elements of given grade:
+    fn scalar(self) -> Float;
+    fn vector(self) -> Vector;
+    fn bivector(self) -> Bivector;
+    fn trivector(self) -> Trivector;
+    fn full_multivector(self) -> FullMultivector;
+
+    // Return a normalized copy
     fn hat(self) -> Self {{
         self * (1.0 / self.norm())
     }}

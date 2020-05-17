@@ -36,13 +36,21 @@ pub trait Multivector: fmt::Debug + Clone + Copy + PartialEq
 
     type Dual: Multivector;
 
+    // Unary operations
     fn reverse(self) -> Self;
     fn dual(self) -> Self::Dual;
     fn conjugate(self) -> Self;
     fn norm(self) -> Float;
     fn inorm(self) -> Float;
-    fn to_full_multivector(self) -> FullMultivector;
 
+    // Select elements of given grade:
+    fn scalar(self) -> Float;
+    fn vector(self) -> Vector;
+    fn bivector(self) -> Bivector;
+    fn trivector(self) -> Trivector;
+    fn full_multivector(self) -> FullMultivector;
+
+    // Return a normalized copy
     fn hat(self) -> Self {
         self * (1.0 / self.norm())
     }
@@ -58,7 +66,7 @@ impl Multivector for Float {
     fn reverse(self) -> Float {
         self
     }
-    
+
     fn dual(self) -> FullMultivector {
         FullMultivector {
             a0: 0.,
@@ -79,20 +87,53 @@ impl Multivector for Float {
             a15: self,
         }
     }
-    
+
     fn conjugate(self) -> Float {
         self
     }
-    
+
     fn norm(self) -> Float {
         self.abs()
     }
-    
+
     fn inorm(self) -> Float {
         0.
     }
-    
-    fn to_full_multivector(self) -> FullMultivector {
+
+    fn scalar(self) -> Float {
+        self
+    }
+
+    fn vector(self) -> Vector {
+        Vector {
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+        }
+    }
+
+    fn bivector(self) -> Bivector {
+        Bivector {
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+        }
+    }
+
+    fn trivector(self) -> Trivector {
+        Trivector {
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+        }
+    }
+
+    fn full_multivector(self) -> FullMultivector {
         FullMultivector {
             a0: self,
             a1: 0.,
@@ -568,7 +609,7 @@ impl Multivector for Vector {
             a4: self.a4,
         }
     }
-    
+
     fn dual(self) -> Trivector {
         Trivector {
             a11: self.a4,
@@ -577,7 +618,7 @@ impl Multivector for Vector {
             a14: self.a1,
         }
     }
-    
+
     fn conjugate(self) -> Vector {
         Vector {
             a1: -self.a1,
@@ -586,16 +627,49 @@ impl Multivector for Vector {
             a4: -self.a4,
         }
     }
-    
+
     fn norm(self) -> Float {
         (self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2)).sqrt()
     }
-    
+
     fn inorm(self) -> Float {
         self.a1.abs()
     }
-    
-    fn to_full_multivector(self) -> FullMultivector {
+
+    fn scalar(self) -> Float {
+        0.
+    }
+
+    fn vector(self) -> Vector {
+        Vector {
+            a1: self.a1,
+            a2: self.a2,
+            a3: self.a3,
+            a4: self.a4,
+        }
+    }
+
+    fn bivector(self) -> Bivector {
+        Bivector {
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+        }
+    }
+
+    fn trivector(self) -> Trivector {
+        Trivector {
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+        }
+    }
+
+    fn full_multivector(self) -> FullMultivector {
         FullMultivector {
             a0: 0.,
             a1: self.a1,
@@ -1219,7 +1293,7 @@ impl Multivector for Bivector {
             a10: -self.a10,
         }
     }
-    
+
     fn dual(self) -> Bivector {
         Bivector {
             a5: self.a10,
@@ -1230,7 +1304,7 @@ impl Multivector for Bivector {
             a10: self.a5,
         }
     }
-    
+
     fn conjugate(self) -> Bivector {
         Bivector {
             a5: -self.a5,
@@ -1241,16 +1315,49 @@ impl Multivector for Bivector {
             a10: -self.a10,
         }
     }
-    
+
     fn norm(self) -> Float {
         (self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2)).sqrt()
     }
-    
+
     fn inorm(self) -> Float {
         (self.a5.powi(2) + self.a6.powi(2) + self.a7.powi(2)).sqrt()
     }
-    
-    fn to_full_multivector(self) -> FullMultivector {
+
+    fn scalar(self) -> Float {
+        0.
+    }
+
+    fn vector(self) -> Vector {
+        Vector {
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+        }
+    }
+
+    fn bivector(self) -> Bivector {
+        Bivector {
+            a5: self.a5,
+            a6: self.a6,
+            a7: self.a7,
+            a8: self.a8,
+            a9: self.a9,
+            a10: self.a10,
+        }
+    }
+
+    fn trivector(self) -> Trivector {
+        Trivector {
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+        }
+    }
+
+    fn full_multivector(self) -> FullMultivector {
         FullMultivector {
             a0: 0.,
             a1: 0.,
@@ -1878,7 +1985,7 @@ impl Multivector for Trivector {
             a14: -self.a14,
         }
     }
-    
+
     fn dual(self) -> Vector {
         Vector {
             a1: self.a14,
@@ -1887,7 +1994,7 @@ impl Multivector for Trivector {
             a4: self.a11,
         }
     }
-    
+
     fn conjugate(self) -> Trivector {
         Trivector {
             a11: self.a11,
@@ -1896,16 +2003,49 @@ impl Multivector for Trivector {
             a14: self.a14,
         }
     }
-    
+
     fn norm(self) -> Float {
         self.a14.abs()
     }
-    
+
     fn inorm(self) -> Float {
         (self.a11.powi(2) + self.a12.powi(2) + self.a13.powi(2)).sqrt()
     }
-    
-    fn to_full_multivector(self) -> FullMultivector {
+
+    fn scalar(self) -> Float {
+        0.
+    }
+
+    fn vector(self) -> Vector {
+        Vector {
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+        }
+    }
+
+    fn bivector(self) -> Bivector {
+        Bivector {
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+        }
+    }
+
+    fn trivector(self) -> Trivector {
+        Trivector {
+            a11: self.a11,
+            a12: self.a12,
+            a13: self.a13,
+            a14: self.a14,
+        }
+    }
+
+    fn full_multivector(self) -> FullMultivector {
         FullMultivector {
             a0: 0.,
             a1: 0.,
@@ -2549,7 +2689,7 @@ impl Multivector for FullMultivector {
             a15: self.a15,
         }
     }
-    
+
     fn dual(self) -> FullMultivector {
         FullMultivector {
             a0: self.a15,
@@ -2570,7 +2710,7 @@ impl Multivector for FullMultivector {
             a15: self.a0,
         }
     }
-    
+
     fn conjugate(self) -> FullMultivector {
         FullMultivector {
             a0: self.a0,
@@ -2591,16 +2731,49 @@ impl Multivector for FullMultivector {
             a15: self.a15,
         }
     }
-    
+
     fn norm(self) -> Float {
         (self.a0.powi(2) + self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2) + self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2) + self.a14.powi(2)).sqrt()
     }
-    
+
     fn inorm(self) -> Float {
         (self.a1.powi(2) + self.a5.powi(2) + self.a6.powi(2) + self.a7.powi(2) + self.a11.powi(2) + self.a12.powi(2) + self.a13.powi(2) + self.a15.powi(2)).sqrt()
     }
-    
-    fn to_full_multivector(self) -> FullMultivector {
+
+    fn scalar(self) -> Float {
+        self.a0
+    }
+
+    fn vector(self) -> Vector {
+        Vector {
+            a1: self.a1,
+            a2: self.a2,
+            a3: self.a3,
+            a4: self.a4,
+        }
+    }
+
+    fn bivector(self) -> Bivector {
+        Bivector {
+            a5: self.a5,
+            a6: self.a6,
+            a7: self.a7,
+            a8: self.a8,
+            a9: self.a9,
+            a10: self.a10,
+        }
+    }
+
+    fn trivector(self) -> Trivector {
+        Trivector {
+            a11: self.a11,
+            a12: self.a12,
+            a13: self.a13,
+            a14: self.a14,
+        }
+    }
+
+    fn full_multivector(self) -> FullMultivector {
         FullMultivector {
             a0: self.a0,
             a1: self.a1,
