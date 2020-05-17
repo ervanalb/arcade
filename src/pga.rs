@@ -18,16 +18,13 @@
 // This file heavily inspired by https://bivector.net/tools.html and their generated rust code.
 // Hopefully the conventions here are the same as ganja.js and company,
 // so there is good interoperability.
+// One exception is that using ! to take the dual has been removed (use .dual())
 
 use crate::global::Float;
 use std::fmt;
-use std::ops::{Index, IndexMut, Neg, Mul};
+use std::ops::{Index, IndexMut, Neg, Mul, BitXor, BitAnd, BitOr};
 
 const BASIS_COUNT: usize = 16;
-
-trait PartialMultivector: Multivector {
-    fn to_full_multivector(self) -> FullMultivector;
-}
 
 pub trait Multivector: fmt::Debug + Clone + Copy + PartialEq
     + Neg {
@@ -37,9 +34,14 @@ pub trait Multivector: fmt::Debug + Clone + Copy + PartialEq
     fn reverse(self) -> Self;
     fn dual(self) -> Self::Dual;
     fn conjugate(self) -> Self;
+    fn to_full_multivector(self) -> FullMultivector;
 }
 
-// Scalars are just elements of Float_t
+// ===========================================================================
+// Scalars
+// ===========================================================================
+
+// Unary operations
 
 impl Multivector for Float {
     type Dual = FullMultivector;
@@ -57,16 +59,15 @@ impl Multivector for Float {
     fn conjugate(self) -> Float {
         self
     }
+
+    fn to_full_multivector(self) -> FullMultivector {
+        FullMultivector {a: [
+            self, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0. 
+        ]}
+    }
 }
 
-// This gives an error:
-
-//impl Not for Float {
-//    type Output = FullMultivector;
-//    fn not(self) -> FullMultivector {
-//        self.dual()
-//    }
-//}
+// Geometric Product Routines for LHS = Float
 
 impl Mul<Vector> for Float {
     type Output = Vector;
@@ -120,15 +121,47 @@ impl Mul<FullMultivector> for Float {
     }
 }
 
-impl PartialMultivector for Float {
-    fn to_full_multivector(self) -> FullMultivector {
-        FullMultivector {a: [
-            self, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0. 
-        ]}
+// Wedge Product Routines for LHS = Float
+
+impl BitXor<Vector> for Float {
+    type Output = FullMultivector;
+
+    fn bitxor(self, b: Vector) -> FullMultivector {
+        // Placeholder routine
+        self.to_full_multivector() ^ b.to_full_multivector()
     }
 }
 
-// Vectors represent planes
+impl BitXor<Bivector> for Float {
+    type Output = FullMultivector;
+
+    fn bitxor(self, b: Bivector) -> FullMultivector {
+        // Placeholder routine
+        self.to_full_multivector() ^ b.to_full_multivector()
+    }
+}
+
+impl BitXor<Trivector> for Float {
+    type Output = FullMultivector;
+
+    fn bitxor(self, b: Trivector) -> FullMultivector {
+        // Placeholder routine
+        self.to_full_multivector() ^ b.to_full_multivector()
+    }
+}
+
+impl BitXor<FullMultivector> for Float {
+    type Output = FullMultivector;
+
+    fn bitxor(self, b: FullMultivector) -> FullMultivector {
+        // Placeholder routine
+        self.to_full_multivector() ^ b
+    }
+}
+
+// ===========================================================================
+// Vectors
+// ===========================================================================
 
 #[derive(Default,Debug,Clone,Copy,PartialEq)]
 pub struct Vector {
@@ -137,6 +170,8 @@ pub struct Vector {
     a3: Float,
     a4: Float,
 }
+
+// Unary operations
 
 impl Multivector for Vector {
     type Dual = Trivector;
@@ -157,6 +192,12 @@ impl Multivector for Vector {
     fn conjugate(self) -> Vector {
         -self
     }
+
+    fn to_full_multivector(self) -> FullMultivector {
+        FullMultivector {a: [
+            0., self.a1, self.a2, self.a3, self.a4, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0. 
+        ]}
+    }
 }
 
 impl Neg for Vector {
@@ -172,22 +213,9 @@ impl Neg for Vector {
     }
 }
 
-//impl Not for Vector {
-//    type Output = Trivector;
-//    fn not(self) -> Trivector {
-//        self.dual()
-//    }
-//}
-
-impl PartialMultivector for Vector {
-    fn to_full_multivector(self) -> FullMultivector {
-        FullMultivector {a: [
-            0., self.a1, self.a2, self.a3, self.a4, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0. 
-        ]}
-    }
-}
-
-// Bivectors represent lines
+// ===========================================================================
+// Bivectors
+// ===========================================================================
 
 #[derive(Default,Debug,Clone,Copy,PartialEq)]
 pub struct Bivector {
@@ -198,6 +226,8 @@ pub struct Bivector {
     a9: Float, // e05
     a10: Float, // e06
 }
+
+// Unary operations
 
 impl Multivector for Bivector {
     type Dual = Bivector;
@@ -220,6 +250,12 @@ impl Multivector for Bivector {
     fn conjugate(self) -> Bivector {
         -self
     }
+
+    fn to_full_multivector(self) -> FullMultivector {
+        FullMultivector {a: [
+            0., 0., 0., 0., 0., self.a5, self.a6, self.a7, self.a8, self.a9, self.a10, 0., 0., 0., 0., 0. 
+        ]}
+    }
 }
 
 impl Neg for Bivector {
@@ -237,22 +273,9 @@ impl Neg for Bivector {
     }
 }
 
-//impl Not for Bivector {
-//    type Output = Bivector;
-//    fn not(self) -> Bivector {
-//        self.dual()
-//    }
-//}
-
-impl PartialMultivector for Bivector {
-    fn to_full_multivector(self) -> FullMultivector {
-        FullMultivector {a: [
-            0., 0., 0., 0., 0., self.a5, self.a6, self.a7, self.a8, self.a9, self.a10, 0., 0., 0., 0., 0. 
-        ]}
-    }
-}
-
-// Trivectors represent points
+// ===========================================================================
+// Trivectors
+// ===========================================================================
 
 #[derive(Default,Debug,Clone,Copy,PartialEq)]
 pub struct Trivector {
@@ -261,6 +284,8 @@ pub struct Trivector {
     a13: Float, // e032
     a14: Float, // e123
 }
+
+// Unary operations
 
 impl Multivector for Trivector {
     type Dual = Vector;
@@ -281,6 +306,12 @@ impl Multivector for Trivector {
     fn conjugate(self) -> Trivector {
         self
     }
+
+    fn to_full_multivector(self) -> FullMultivector {
+        FullMultivector {a: [
+            0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., self.a11, self.a12, self.a13, self.a14, 0. 
+        ]}
+    }
 }
 
 impl Neg for Trivector {
@@ -296,25 +327,12 @@ impl Neg for Trivector {
     }
 }
 
-//impl Not for Trivector {
-//    type Output = Vector;
-//    fn not(self) -> Vector {
-//        self.dual()
-//    }
-//}
-
-impl PartialMultivector for Trivector {
-    fn to_full_multivector(self) -> FullMultivector {
-        FullMultivector {a: [
-            0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., self.a11, self.a12, self.a13, self.a14, 0. 
-        ]}
-    }
-}
+// ===========================================================================
+// Full multivectors
+// ===========================================================================
 
 // Pseudoscalars are not particularly useful so we don't specify them
 // (they can still be represented through FullMultivectors)
-
-// Full multivector
 
 #[derive(Default,Debug,Clone,Copy,PartialEq)]
 pub struct FullMultivector {
@@ -334,6 +352,8 @@ impl IndexMut<usize> for FullMultivector {
         &mut self.a[index]
     }
 }
+
+// Unary operations
 
 impl Multivector for FullMultivector {
     type Dual = FullMultivector;
@@ -400,6 +420,10 @@ impl Multivector for FullMultivector {
             self[15],
         ]}
     }
+
+    fn to_full_multivector(self) -> FullMultivector {
+        self
+    }
 }
 
 impl Neg for FullMultivector {
@@ -427,12 +451,7 @@ impl Neg for FullMultivector {
     }
 }
 
-//impl Not for FullMultivector {
-//    type Output = FullMultivector;
-//    fn not(self) -> FullMultivector {
-//        self.dual()
-//    }
-//}
+// Geometric Product Routines for LHS = FullMultivector
 
 impl Mul for FullMultivector {
     type Output = FullMultivector;
@@ -457,6 +476,93 @@ impl Mul for FullMultivector {
             b[13]*a[0]-b[10]*a[1]+b[15]*a[2]+b[7]*a[3]-b[6]*a[4]-b[14]*a[5]-b[4]*a[6]+b[3]*a[7]+b[12]*a[8]-b[11]*a[9]-b[1]*a[10]+b[9]*a[11]-b[8]*a[12]+b[0]*a[13]+b[5]*a[14]-b[2]*a[15],
             b[14]*a[0]+b[10]*a[2]+b[9]*a[3]+b[8]*a[4]+b[4]*a[8]+b[3]*a[9]+b[2]*a[10]+b[0]*a[14],
             b[15]*a[0]+b[14]*a[1]+b[13]*a[2]+b[12]*a[3]+b[11]*a[4]+b[10]*a[5]+b[9]*a[6]+b[8]*a[7]+b[7]*a[8]+b[6]*a[9]+b[5]*a[10]-b[4]*a[11]-b[3]*a[12]-b[2]*a[13]-b[1]*a[14]+b[0]*a[15],
+        ]}
+    }
+}
+
+// Wedge Product Routines for LHS = FullMultivector
+
+impl BitXor<FullMultivector> for FullMultivector {
+    type Output = FullMultivector;
+
+    // These taken straight from enki's generated code:
+    fn bitxor(self, b: FullMultivector) -> FullMultivector {
+        let a = &self;
+        FullMultivector {a: [
+            b[0]*a[0],
+            b[1]*a[0]+b[0]*a[1],
+            b[2]*a[0]+b[0]*a[2],
+            b[3]*a[0]+b[0]*a[3],
+            b[4]*a[0]+b[0]*a[4],
+            b[5]*a[0]+b[2]*a[1]-b[1]*a[2]+b[0]*a[5],
+            b[6]*a[0]+b[3]*a[1]-b[1]*a[3]+b[0]*a[6],
+            b[7]*a[0]+b[4]*a[1]-b[1]*a[4]+b[0]*a[7],
+            b[8]*a[0]+b[3]*a[2]-b[2]*a[3]+b[0]*a[8],
+            b[9]*a[0]-b[4]*a[2]+b[2]*a[4]+b[0]*a[9],
+            b[10]*a[0]+b[4]*a[3]-b[3]*a[4]+b[0]*a[10],
+            b[11]*a[0]-b[8]*a[1]+b[6]*a[2]-b[5]*a[3]-b[3]*a[5]+b[2]*a[6]-b[1]*a[8]+b[0]*a[11],
+            b[12]*a[0]-b[9]*a[1]-b[7]*a[2]+b[5]*a[4]+b[4]*a[5]-b[2]*a[7]-b[1]*a[9]+b[0]*a[12],
+            b[13]*a[0]-b[10]*a[1]+b[7]*a[3]-b[6]*a[4]-b[4]*a[6]+b[3]*a[7]-b[1]*a[10]+b[0]*a[13],
+            b[14]*a[0]+b[10]*a[2]+b[9]*a[3]+b[8]*a[4]+b[4]*a[8]+b[3]*a[9]+b[2]*a[10]+b[0]*a[14],
+            b[15]*a[0]+b[14]*a[1]+b[13]*a[2]+b[12]*a[3]+b[11]*a[4]+b[10]*a[5]+b[9]*a[6]+b[8]*a[7]+b[7]*a[8]+b[6]*a[9]+b[5]*a[10]-b[4]*a[11]-b[3]*a[12]-b[2]*a[13]-b[1]*a[14]+b[0]*a[15],
+        ]}
+    }
+}
+
+// Vee Product Routines for LHS = FullMultivector
+
+impl BitAnd<FullMultivector> for FullMultivector {
+    type Output = FullMultivector;
+
+    // These taken straight from enki's generated code:
+    fn bitand(self, b: FullMultivector) -> FullMultivector {
+        let a = &self;
+        FullMultivector {a: [
+            b[0]*a[15]+b[1]*a[14]+b[2]*a[13]+b[3]*a[12]+b[4]*a[11]+b[5]*a[10]+b[6]*a[9]+b[7]*a[8]+b[8]*a[7]+b[9]*a[6]+b[10]*a[5]-b[11]*a[4]-b[12]*a[3]-b[13]*a[2]-b[14]*a[1]+b[15]*a[0],
+            b[1]*a[15]+b[5]*a[13]+b[6]*a[12]+b[7]*a[11]+b[11]*a[7]+b[12]*a[6]+b[13]*a[5]+b[15]*a[1],
+            b[2]*a[15]-b[5]*a[14]+b[8]*a[12]-b[9]*a[11]-b[11]*a[9]+b[12]*a[8]-b[14]*a[5]+b[15]*a[2],
+            b[3]*a[15]-b[6]*a[14]-b[8]*a[13]+b[10]*a[11]+b[11]*a[10]-b[13]*a[8]-b[14]*a[6]+b[15]*a[3],
+            b[4]*a[15]-b[7]*a[14]+b[9]*a[13]-b[10]*a[12]-b[12]*a[10]+b[13]*a[9]-b[14]*a[7]+b[15]*a[4],
+            b[5]*a[15]+b[11]*a[12]-b[12]*a[11]+b[15]*a[5],
+            b[6]*a[15]-b[11]*a[13]+b[13]*a[11]+b[15]*a[6],
+            b[7]*a[15]+b[12]*a[13]-b[13]*a[12]+b[15]*a[7],
+            b[8]*a[15]+b[11]*a[14]-b[14]*a[11]+b[15]*a[8],
+            b[9]*a[15]+b[12]*a[14]-b[14]*a[12]+b[15]*a[9],
+            b[10]*a[15]+b[13]*a[14]-b[14]*a[13]+b[15]*a[10],
+            b[11]*a[15]+b[15]*a[11],
+            b[12]*a[15]+b[15]*a[12],
+            b[13]*a[15]+b[15]*a[13],
+            b[14]*a[15]+b[15]*a[14],
+            b[15]*a[15],
+        ]}
+    }
+}
+
+// Dot Product Routines for LHS = FullMultivector
+
+impl BitOr<FullMultivector> for FullMultivector {
+    type Output = FullMultivector;
+
+    // These taken straight from enki's generated code:
+    fn bitor(self, b: FullMultivector) -> FullMultivector {
+        let a = &self;
+        FullMultivector {a: [
+            b[0]*a[0]+b[2]*a[2]+b[3]*a[3]+b[4]*a[4]-b[8]*a[8]-b[9]*a[9]-b[10]*a[10]-b[14]*a[14],
+            b[1]*a[0]+b[0]*a[1]-b[5]*a[2]-b[6]*a[3]-b[7]*a[4]+b[2]*a[5]+b[3]*a[6]+b[4]*a[7]+b[11]*a[8]+b[12]*a[9]+b[13]*a[10]+b[8]*a[11]+b[9]*a[12]+b[10]*a[13]+b[15]*a[14]-b[14]*a[15],
+            b[2]*a[0]+b[0]*a[2]-b[8]*a[3]+b[9]*a[4]+b[3]*a[8]-b[4]*a[9]-b[14]*a[10]-b[10]*a[14],
+            b[3]*a[0]+b[8]*a[2]+b[0]*a[3]-b[10]*a[4]-b[2]*a[8]-b[14]*a[9]+b[4]*a[10]-b[9]*a[14],
+            b[4]*a[0]-b[9]*a[2]+b[10]*a[3]+b[0]*a[4]-b[14]*a[8]+b[2]*a[9]-b[3]*a[10]-b[8]*a[14],
+            b[5]*a[0]-b[11]*a[3]+b[12]*a[4]+b[0]*a[5]-b[15]*a[10]-b[3]*a[11]+b[4]*a[12]-b[10]*a[15],
+            b[6]*a[0]+b[11]*a[2]-b[13]*a[4]+b[0]*a[6]-b[15]*a[9]+b[2]*a[11]-b[4]*a[13]-b[9]*a[15],
+            b[7]*a[0]-b[12]*a[2]+b[13]*a[3]+b[0]*a[7]-b[15]*a[8]-b[2]*a[12]+b[3]*a[13]-b[8]*a[15],
+            b[8]*a[0]+b[14]*a[4]+b[0]*a[8]+b[4]*a[14],
+            b[9]*a[0]+b[14]*a[3]+b[0]*a[9]+b[3]*a[14],
+            b[10]*a[0]+b[14]*a[2]+b[0]*a[10]+b[2]*a[14],
+            b[11]*a[0]+b[15]*a[4]+b[0]*a[11]-b[4]*a[15],
+            b[12]*a[0]+b[15]*a[3]+b[0]*a[12]-b[3]*a[15],
+            b[13]*a[0]+b[15]*a[2]+b[0]*a[13]-b[2]*a[15],
+            b[14]*a[0]+b[0]*a[14],
+            b[15]*a[0]+b[0]*a[15],
         ]}
     }
 }
