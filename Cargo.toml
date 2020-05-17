@@ -10,9 +10,10 @@ edition = "2018"
 name = "arcade"
 path = "src/lib.rs"
 
-#[[example]]
-#name = "demo"
-#path = "src/demo.rs"
+[[example]]
+name = "demo"
+path = "src/demo.rs"
 
-#[dev-dependencies]
-#kiss3d = "0.23"
+[dev-dependencies]
+kiss3d = "0.23"
+nalgebra = "0.20"

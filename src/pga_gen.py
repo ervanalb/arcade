@@ -468,7 +468,7 @@ use crate::global::Float;
 use std::fmt;
 use std::ops::{{Add, Sub, Mul, Neg, BitXor, BitAnd, BitOr}};
 
-pub trait Multivector: fmt::Debug + Clone + Copy + PartialEq
+pub trait Multivector: fmt::Debug + Clone + Copy + PartialEq + Default
     + Neg<Output=Self>
     + Mul<Float, Output=Self>
     + Add<Self, Output=Self>
@@ -490,6 +490,11 @@ pub trait Multivector: fmt::Debug + Clone + Copy + PartialEq
     fn trivector(self) -> Trivector;
     fn full_multivector(self) -> FullMultivector;
 
+    // Construct a multivector representing zero
+    fn zero() -> Self {{
+        Default::default()
+    }}
+
     // Return a normalized copy
     fn hat(self) -> Self {{
         self * (1.0 / self.norm())
@@ -497,6 +502,26 @@ pub trait Multivector: fmt::Debug + Clone + Copy + PartialEq
 }}
 
 {generated_code}
+
+pub type Point = Trivector;
+pub type Line = Bivector;
+pub type Plane = Vector;
+
+impl Point {{
+    pub fn from_xyz(x: Float, y: Float, z: Float) -> Point {{
+        Point {{
+            a13: x,
+            a12: y,
+            a11: z,
+            a14: 1.,
+        }}
+    }}
+
+    pub fn to_xyz(self) -> (Float, Float, Float) {{
+        let inv_w = 1. / self.a14;
+        (inv_w * self.a13, inv_w * self.a12, inv_w * self.a11)
+    }}
+}}
 """
 
     print(rust_template)
