@@ -1,30 +1,30 @@
 # Arcade roadmap
 
-## Basics
-- [X] Vector math library (nalgebra)
-- [X] Vertices (creation, checking bounds, checking coincidence)
+## 3D PGA
+- [X] Projective Geometric Algebra module
 
-## Edges
-- [X] Segment
-- [X] Cubic NURBS curve
+## Cubic NURBS Engine
+- [X] Curve
 - [X] Fixed stride interpolation
-- [X] Adaptive interpolation
-- [ ] Edge - point intersection
-- [ ] Edge - edge intersection
-- [ ] Closed NURBS curves
-- [ ] Transform (scale, mirror, project, affine)
-
-## Wires
-- [ ] Wires
-
-## Faces
-- [ ] Planar surfaces
-- [ ] Curve - surface intersection
-- [ ] Point-in-wire determination
-- [ ] Planar interpolation
-- [ ] Cubic NURBS surface
-- [ ] Fixed stride interpolation
+- [ ] Surface
+- [ ] Surface-surface intersection
 - [ ] Adaptive interpolation
+- [ ] Closed NURBS curves
+- [ ] Closed NURBS surfaces
+- [ ] Curve-curve intersection points
+- [ ] Surface-curve intersection points
 
-## Intersection curves
-- [ ] Intersection curves
+## CAD Kernel primitives
+- [ ] Vertices
+- [ ] Edges
+- [ ] Wires
+- [ ] Faces
+- [ ] Shells
+- [ ] Solids
+
+## CAD Operations
+- [ ] Transform (reflect, translate, rotate)
+- [ ] Extrude
+- [ ] Revolve
+- [ ] Boolean (union, intersection, subtract, invert?)
+- TBD!
