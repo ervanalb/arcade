@@ -104,11 +104,20 @@ def dot_product(a, b):
 def vee_product(a, b):
     return dual(wedge_product(dual(a), dual(b)))
 
+def norm(a):
+    r = geometric_product(a, reverse(a))
+    return [sympy.sqrt(r[0])] + [0 for _ in range(BASIS_COUNT - 1)]
+
+def inorm(a):
+    return norm(dual(a))
+
 unary_operations = {
     "neg": neg,
     "dual": dual,
     "conjugate": conjugate,
     "reverse": reverse,
+    "norm": norm,
+    "inorm": inorm,
     "to_full_multivector": lambda x: x,
 }
 
@@ -128,7 +137,7 @@ def get_multivector(letter, components=None):
     components can be 0 or 1 to specify which terms to include.
     """
 
-    mv = sympy.symbols(" ".join("{}{:02d}".format(letter, i) for i in range(BASIS_COUNT)))
+    mv = sympy.symbols(" ".join("{}{:02d}".format(letter, i) for i in range(BASIS_COUNT)), real=True)
     if components is None:
         return mv
     return [x * y for (x, y) in zip(mv, components)] 
@@ -149,10 +158,30 @@ def indent(s, tabs=1):
 
     return "\n".join("    " * tabs + line for line in s.split("\n"))
 
-def fix_float_zero(s):
+def fix_float(s):
     """ Replaces bare "0" with "0." for rust. """
 
-    return "0." if s == "0" else s
+    def fix(term):
+        import sys
+        out = ""
+        i = 0
+        needs_dot = False
+        while i < len(term) and term[i] in "(0123456789.-":
+            if term[i] in "0123456789":
+                needs_dot = True
+            if term[i] in ".":
+                needs_dot = False
+                break
+
+            out += term[i]
+            i += 1
+        if needs_dot:
+            out += "." + term[i:]
+        else:
+            out = term
+        return out
+
+    return " ".join(fix(term) for term in s.split(" "))
 
 def gen_code_for_mv(mv, components=None, sub_a="a", sub_b="b", a_is_scalar=False, b_is_scalar=False, result_is_scalar=False):
     """ Generates code for the inner part of a multivector return value.
@@ -168,10 +197,10 @@ def gen_code_for_mv(mv, components=None, sub_a="a", sub_b="b", a_is_scalar=False
     """
 
     subs = [
-        ("a0", "a"),
-        ("b0", "b"),
-        ("a", sub_a + ".a"),
-        ("b", sub_b + ".a"),
+        ("sym_a0", "sym_a"),
+        ("sym_b0", "sym_b"),
+        ("sym_a", sub_a + ".a"),
+        ("sym_b", sub_b + ".a"),
     ]
 
     if a_is_scalar:
@@ -181,7 +210,7 @@ def gen_code_for_mv(mv, components=None, sub_a="a", sub_b="b", a_is_scalar=False
 
     if result_is_scalar:
         # Special-case scalars
-        code = fix_float_zero(sympy.rust_code(mv[0]))
+        code = fix_float(sympy.rust_code(mv[0]))
         for find, replace in subs:
             code = code.replace(find, replace)
         #code = code.replace(".a0", "")
@@ -192,7 +221,7 @@ def gen_code_for_mv(mv, components=None, sub_a="a", sub_b="b", a_is_scalar=False
             if components is not None and components[i] == 0:
                 assert x == 0, "Tried to set an element not present in type!"
                 continue
-            code = fix_float_zero(sympy.rust_code(x))
+            code = fix_float(sympy.rust_code(x))
             for find, replace in subs:
                 code = code.replace(find, replace)
             result.append(f"a{i}: {code},")
@@ -223,8 +252,10 @@ def gen_unary_operator(obj_name, op_name, impl=None, full_result=False):
     full_result: whether the result should be a FullMultivector or a smaller type if available
     """
 
-    a = get_multivector("a", objects[obj_name])
+    a = get_multivector("sym_a", objects[obj_name])
     b = unary_operations[op_name](a)
+    if b is None:
+        return
     result_type = "FullMultivector" if full_result else get_object(b)
     result_code = gen_result_code(
         result_type, b, sub_a="self",
@@ -235,7 +266,7 @@ def gen_unary_operator(obj_name, op_name, impl=None, full_result=False):
 {indent(result_code)}
 }}"""
     if impl is not None:
-        rust_code = wrap_impl(rust_code, impl, obj_name, types=[("Output", result_type)])
+        rust_code = wrap_impl(rust_code, obj_name, impl, types=[("Output", result_type)])
 
     return rust_code
 
@@ -247,8 +278,8 @@ def gen_binary_operator(obj_name, rhs_obj_name, op_name, impl=None):
     impl: what trait this operator is implementing (optional)
     """
 
-    a = get_multivector("a", objects[obj_name])
-    b = get_multivector("b", objects[rhs_obj_name])
+    a = get_multivector("sym_a", objects[obj_name])
+    b = get_multivector("sym_b", objects[rhs_obj_name])
     c = binary_operations[op_name](a, b)
     result_type = get_object(c)
     result_code = gen_result_code(
@@ -263,14 +294,14 @@ def gen_binary_operator(obj_name, rhs_obj_name, op_name, impl=None):
 }}"""
 
     if impl is not None:
-        rust_code = wrap_impl(rust_code, impl, obj_name, template=rhs_obj_name, types=[("Output", result_type)])
+        rust_code = wrap_impl(rust_code, obj_name, impl, template=rhs_obj_name, types=[("Output", result_type)])
     return rust_code
 
-def wrap_impl(rust_code, impl_name, obj_name, template=None, types=None):
+def wrap_impl(rust_code, obj_name, impl_name=None, template=None, types=None):
     """ Wraps rust code in an "impl" block.
     rust_code: the code to wrap
-    impl_name: the trait to implement
     obj_name: which struct to implement this trait on (type of "self")
+    impl_name: the trait to implement
     template: impl template arguments (string) (e.g. RHS type for binary operators)
     types: any type aliases to put at the top of the impl (array of pairs of strings, e.g. [("Output", "Float")])
     """
@@ -279,7 +310,7 @@ def wrap_impl(rust_code, impl_name, obj_name, template=None, types=None):
     types_str = ""
     if types is not None:
         types_str = "\n".join(f"    type {l} = {r};" for (l, r) in types) + "\n\n"
-    return f"""impl {impl_name}{"<" + template + ">" if template is not None else ""} for {obj_name} {{
+    return f"""impl{" " + impl_name if impl_name is not None else ""}{"<" + template + ">" if template is not None else ""}{" for" if impl_name is not None else ""} {obj_name} {{
 {types_str}{indent(rust_code)}
 }}"""
 
@@ -296,16 +327,32 @@ pub struct {obj_name} {{
 def gen_mv_ops(obj_name):
     """ Generates the "Multivector" trait implementation for the given type. """
 
-    mv_ops = ["reverse", "dual", "conjugate", "to_full_multivector"]
+    mv_ops = ["reverse", "dual", "conjugate", "norm", "inorm", "to_full_multivector"]
 
     dual_type = get_object(dual(get_multivector("a", objects[obj_name])))
 
-    rust_code = "\n\n".join(
+    rust_code = [
         gen_unary_operator(obj_name, op, full_result=op == "to_full_multivector")
         for op in mv_ops
-    )
+    ]
 
-    return wrap_impl(rust_code, "Multivector", obj_name, types=[("Dual", dual_type)])
+    rust_code = "\n\n".join(x for x in rust_code if x is not None)
+
+    return wrap_impl(rust_code, obj_name, "Multivector", types=[("Dual", dual_type)])
+
+def gen_impl_ops(obj_name):
+    """ Generates non-trait-based implementation for the given type. """
+
+    ops = []
+
+    rust_code = [
+        gen_unary_operator(obj_name, op)
+        for op in ops
+    ]
+
+    rust_code = "\n\n".join(x for x in rust_code if x is not None)
+
+    return wrap_impl(rust_code, obj_name)
 
 def gen_unary_arithmetic(obj_name):
     """ Generates overloaded unary arithemtic operators for the given type. """
@@ -340,12 +387,13 @@ def gen_binary_arithmetic(obj_name):
                 impl,
             ))
 
-    return "\n\n".join(blocks)
+    return "\n\n".join(x for x in blocks if x is not None)
 
 def main():
     """ Generates the pga.rs file, containing:
       * Header shown below, including the Multivector trait
       * Struct definitions for each type specified in "objects" at the top of this file
+      * Non-trait-based implementation for each object
       * Implementation of the Multivector trait for each object
       * Implementation of overloaded unary operators for each object
       * Implementation of overloaded binary operators for each pair of objects
@@ -361,6 +409,8 @@ def main():
         blocks.append(header)
         if obj != "Float":
             blocks.append(struct(obj))
+        #if obj != "Float":
+        #    blocks.append(gen_impl_ops(obj))
         blocks.append(gen_mv_ops(obj))
         if obj != "Float":
             blocks.append(gen_unary_arithmetic(obj))
@@ -399,14 +449,23 @@ use std::fmt;
 use std::ops::{{Add, Sub, Mul, Neg, BitXor, BitAnd, BitOr}};
 
 pub trait Multivector: fmt::Debug + Clone + Copy + PartialEq
-    + Neg {{
+    + Neg<Output=Self>
+    + Mul<Float, Output=Self>
+    + Add<Self, Output=Self>
+    + Sub<Self, Output=Self> {{
 
     type Dual: Multivector;
 
     fn reverse(self) -> Self;
     fn dual(self) -> Self::Dual;
     fn conjugate(self) -> Self;
+    fn norm(self) -> Float;
+    fn inorm(self) -> Float;
     fn to_full_multivector(self) -> FullMultivector;
+
+    fn hat(self) -> Self {{
+        self * (1.0 / self.norm())
+    }}
 }}
 
 {generated_code}

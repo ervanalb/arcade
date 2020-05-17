@@ -29,14 +29,23 @@ use std::fmt;
 use std::ops::{Add, Sub, Mul, Neg, BitXor, BitAnd, BitOr};
 
 pub trait Multivector: fmt::Debug + Clone + Copy + PartialEq
-    + Neg {
+    + Neg<Output=Self>
+    + Mul<Float, Output=Self>
+    + Add<Self, Output=Self>
+    + Sub<Self, Output=Self> {
 
     type Dual: Multivector;
 
     fn reverse(self) -> Self;
     fn dual(self) -> Self::Dual;
     fn conjugate(self) -> Self;
+    fn norm(self) -> Float;
+    fn inorm(self) -> Float;
     fn to_full_multivector(self) -> FullMultivector;
+
+    fn hat(self) -> Self {
+        self * (1.0 / self.norm())
+    }
 }
 
 // ===========================================================================
@@ -73,6 +82,14 @@ impl Multivector for Float {
     
     fn conjugate(self) -> Float {
         self
+    }
+    
+    fn norm(self) -> Float {
+        self.abs()
+    }
+    
+    fn inorm(self) -> Float {
+        0.
     }
     
     fn to_full_multivector(self) -> FullMultivector {
@@ -568,6 +585,14 @@ impl Multivector for Vector {
             a3: -self.a3,
             a4: -self.a4,
         }
+    }
+    
+    fn norm(self) -> Float {
+        (self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2)).sqrt()
+    }
+    
+    fn inorm(self) -> Float {
+        self.a1.abs()
     }
     
     fn to_full_multivector(self) -> FullMultivector {
@@ -1217,6 +1242,14 @@ impl Multivector for Bivector {
         }
     }
     
+    fn norm(self) -> Float {
+        (self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2)).sqrt()
+    }
+    
+    fn inorm(self) -> Float {
+        (self.a5.powi(2) + self.a6.powi(2) + self.a7.powi(2)).sqrt()
+    }
+    
     fn to_full_multivector(self) -> FullMultivector {
         FullMultivector {
             a0: 0.,
@@ -1862,6 +1895,14 @@ impl Multivector for Trivector {
             a13: self.a13,
             a14: self.a14,
         }
+    }
+    
+    fn norm(self) -> Float {
+        self.a14.abs()
+    }
+    
+    fn inorm(self) -> Float {
+        (self.a11.powi(2) + self.a12.powi(2) + self.a13.powi(2)).sqrt()
     }
     
     fn to_full_multivector(self) -> FullMultivector {
@@ -2549,6 +2590,14 @@ impl Multivector for FullMultivector {
             a14: self.a14,
             a15: self.a15,
         }
+    }
+    
+    fn norm(self) -> Float {
+        (self.a0.powi(2) + self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2) + self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2) + self.a14.powi(2)).sqrt()
+    }
+    
+    fn inorm(self) -> Float {
+        (self.a1.powi(2) + self.a5.powi(2) + self.a6.powi(2) + self.a7.powi(2) + self.a11.powi(2) + self.a12.powi(2) + self.a13.powi(2) + self.a15.powi(2)).sqrt()
     }
     
     fn to_full_multivector(self) -> FullMultivector {
