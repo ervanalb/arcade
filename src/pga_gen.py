@@ -5,7 +5,7 @@ import sympy
 BASIS_COUNT = 16
 
 objects = {
-    "Scalar": [1] + [0] * 16,
+    "Float": [1] + [0] * 15,
     "Vector": [0] + [1] * 4 + [0] * 11,
     "Bivector": [0] * 5 + [1] * 6 + [0] * 5,
     "Trivector": [0] * 11 + [1] * 4 + [0],
@@ -14,48 +14,23 @@ objects = {
 
 # What operations we want to generate
 
+def elem_mul(a, b):
+    return [x * y for x, y in zip(a, b)]
+
 def reverse(a):
-    return [
-        a[0],
-        a[1],
-        a[2],
-        a[3],
-        a[4],
-        -a[5],
-        -a[6],
-        -a[7],
-        -a[8],
-        -a[9],
-        -a[10],
-        -a[11],
-        -a[12],
-        -a[13],
-        -a[14],
-        a[15],
-    ]
+    return elem_mul(
+        [1, 1, 1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1],
+        a
+    )
 
 def dual(a):
     return list(reversed(a))
 
 def conjugate(a):
-    return [
-        a[0],
-        -a[1],
-        -a[2],
-        -a[3],
-        -a[4],
-        -a[5],
-        -a[6],
-        -a[7],
-        -a[8],
-        -a[9],
-        -a[10],
-        a[11],
-        a[12],
-        a[13],
-        a[14],
-        a[15],
-    ]
+    return elem_mul(
+        [1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 1, 1, 1, 1],
+        a
+    )
 
 def neg(a):
     return [-x for x in a]
@@ -130,22 +105,23 @@ def vee_product(a, b):
     return dual(wedge_product(dual(a), dual(b)))
 
 unary_operations = {
-    "negate": neg,
+    "neg": neg,
     "dual": dual,
     "conjugate": conjugate,
     "reverse": reverse,
+    "to_full_multivector": lambda x: x,
 }
 
 binary_operations = {
     "add": add,
     "sub": sub,
-    "geometric product": geometric_product,
-    "wedge product": wedge_product,
-    "vee product": vee_product,
-    "dot product": dot_product,
+    "mul": geometric_product,
+    "bitxor": wedge_product,
+    "bitand": vee_product,
+    "bitor": dot_product,
 }
 
-# Helper functions
+# Code gen helper functions
 
 def get_multivector(letter, components=None):
     """ Returns a multivector (list of length BASIS_COUNT) containing sympy symbols.
@@ -167,61 +143,232 @@ def get_object(mv):
             return name
 
 def indent(s, tabs=1):
+    """ Takes a string of code and indents each line by four spaces
+    for every "tab" specified in arguments.
+    """
+
     return "\n".join("    " * tabs + line for line in s.split("\n"))
 
-def gen_code_for_mv(mv, components=None, sub_a=None, sub_b=None):
+def fix_float_zero(s):
+    """ Replaces bare "0" with "0." for rust. """
+
+    return "0." if s == "0" else s
+
+def gen_code_for_mv(mv, components=None, sub_a="a", sub_b="b", a_is_scalar=False, b_is_scalar=False, result_is_scalar=False):
+    """ Generates code for the inner part of a multivector return value.
+    See gen_result_code for full return value generation.
+
+    mv: The sympy multivector to represent
+    components: Array of 0/1 to select which components to output
+    sub_a: What to call the sympy "a" variable (e.g. "self")
+    sub_b: What to call the sympy "b" variable (e.g. "rhs")
+    a_is_scalar: Flag to avoid generating property accesses on a ("self.a0" becomes just "self")
+    b_is_scalar: Flag to avoid generating property accesses on b ("rhs.a0" becomes just "rhs")
+    result_is_scalar: Flag to avoid generating property assignments on the reuslt ("a0: 0." becomes just "0.")
+    """
+
     subs = [
         ("a0", "a"),
         ("b0", "b"),
+        ("a", sub_a + ".a"),
+        ("b", sub_b + ".a"),
     ]
 
-    if sub_a is not None:
-        subs.append(("a", sub_a))
-    
-    if sub_b is not None:
-        subs.append(("b", sub_b))
+    if a_is_scalar:
+        subs.append((sub_a + ".a0", sub_a))
+    if b_is_scalar:
+        subs.append((sub_b + ".a0", sub_b))
 
-    result = []
-    for i, x in enumerate(mv):
-        if components is not None and components[i] == 0:
-            assert x == 0, "Tried to set an element not present in type!"
-            continue
-        code = sympy.rust_code(x)
+    if result_is_scalar:
+        # Special-case scalars
+        code = fix_float_zero(sympy.rust_code(mv[0]))
         for find, replace in subs:
             code = code.replace(find, replace)
-        result.append(f"a{i}: {code},")
+        #code = code.replace(".a0", "")
+        return code
+    else:
+        result = []
+        for i, x in enumerate(mv):
+            if components is not None and components[i] == 0:
+                assert x == 0, "Tried to set an element not present in type!"
+                continue
+            code = fix_float_zero(sympy.rust_code(x))
+            for find, replace in subs:
+                code = code.replace(find, replace)
+            result.append(f"a{i}: {code},")
 
-    return "\n".join(result)
+        return "\n".join(result)
 
-def gen_unary_operator(obj_name, op_name):
+def gen_result_code(result_type, result, *args, **kwargs):
+    """ Generates code for a multivector return value.
+    See gen_code_for_mv for the inner part of this return value generation.
+    This function just wraps it with the type name (or leaves it bare in the case of Float)
+    """
+
+    result_components = objects[result_type]
+    result_elems = gen_code_for_mv(result, result_components, *args, **kwargs)
+
+    if result_type == "Float":
+        return result_elems
+
+    return f"""{result_type} {{
+{indent(result_elems)}
+}}"""
+
+def gen_unary_operator(obj_name, op_name, impl=None, full_result=False):
+    """ Generates code for a unary operator.
+    obj_name: which struct to implement this operator on (type of "self")
+    op_name: what to name the function, and an index into unary_operations
+    impl: what trait this operator is implementing (optional)
+    full_result: whether the result should be a FullMultivector or a smaller type if available
+    """
+
     a = get_multivector("a", objects[obj_name])
     b = unary_operations[op_name](a)
-    result_type = get_object(b)
-    result_components = objects[result_type]
-    result = indent(gen_code_for_mv(b, result_components), 2)
+    result_type = "FullMultivector" if full_result else get_object(b)
+    result_code = gen_result_code(
+        result_type, b, sub_a="self",
+        a_is_scalar=obj_name == "Float",
+        result_is_scalar=result_type == "Float"
+    )
     rust_code = f"""fn {op_name}(self) -> {result_type} {{
-    {result_type} {{
-{result}
-    }}
-}}
-"""
+{indent(result_code)}
+}}"""
+    if impl is not None:
+        rust_code = wrap_impl(rust_code, impl, obj_name, types=[("Output", result_type)])
+
     return rust_code
 
-def gen_binary_operator(op_name, function):
-    for (a_name, a_components) in objects.items():
-        for (b_name, b_components) in objects.items():
-            a = get_multivector("a", a_components)
-            b = get_multivector("b", b_components)
-            c = function(a, b)
-            print(a_name, op_name, b_name, "=", get_object(c))
-            print("\n".join(str(x) for x in c))
+def gen_binary_operator(obj_name, rhs_obj_name, op_name, impl=None):
+    """ Generates code for a binary operator.
+    obj_name: which struct to implement this operator on (type of "self")
+    rhs_obj_name: type of second argument (right-hand-side of operator)
+    op_name: what to name the function, and an index into binary_operations
+    impl: what trait this operator is implementing (optional)
+    """
 
-#gen_unary_operator("Dual", dual)
-#gen_binary_operator(".", dot_product)
+    a = get_multivector("a", objects[obj_name])
+    b = get_multivector("b", objects[rhs_obj_name])
+    c = binary_operations[op_name](a, b)
+    result_type = get_object(c)
+    result_code = gen_result_code(
+        result_type, c, sub_a="self", sub_b="r",
+        a_is_scalar=obj_name == "Float",
+        b_is_scalar=rhs_obj_name == "Float",
+        result_is_scalar=result_type == "Float",
+    )
+    underscore = "" if "r" in result_code else "_" # A bit of a hack, might not catch all cases of unused "r"
+    rust_code = f"""fn {op_name}(self, {underscore}r: {rhs_obj_name}) -> {result_type} {{
+{indent(result_code)}
+}}"""
 
-generated_code = gen_unary_operator("Vector", "negate")
+    if impl is not None:
+        rust_code = wrap_impl(rust_code, impl, obj_name, template=rhs_obj_name, types=[("Output", result_type)])
+    return rust_code
 
-rust_template = f"""// ===========================================================================
+def wrap_impl(rust_code, impl_name, obj_name, template=None, types=None):
+    """ Wraps rust code in an "impl" block.
+    rust_code: the code to wrap
+    impl_name: the trait to implement
+    obj_name: which struct to implement this trait on (type of "self")
+    template: impl template arguments (string) (e.g. RHS type for binary operators)
+    types: any type aliases to put at the top of the impl (array of pairs of strings, e.g. [("Output", "Float")])
+    """
+
+    nl = "\n"
+    types_str = ""
+    if types is not None:
+        types_str = "\n".join(f"    type {l} = {r};" for (l, r) in types) + "\n\n"
+    return f"""impl {impl_name}{"<" + template + ">" if template is not None else ""} for {obj_name} {{
+{types_str}{indent(rust_code)}
+}}"""
+
+def struct(obj_name):
+    """ Generates the "struct" definition for the given type. """
+
+    components = objects[obj_name]
+    a = "".join("    a{}: Float,\n".format(i) for i in range(BASIS_COUNT) if components[i])
+    return f"""
+#[derive(Default,Debug,Clone,Copy,PartialEq)]
+pub struct {obj_name} {{
+{a}}}"""
+
+def gen_mv_ops(obj_name):
+    """ Generates the "Multivector" trait implementation for the given type. """
+
+    mv_ops = ["reverse", "dual", "conjugate", "to_full_multivector"]
+
+    dual_type = get_object(dual(get_multivector("a", objects[obj_name])))
+
+    rust_code = "\n\n".join(
+        gen_unary_operator(obj_name, op, full_result=op == "to_full_multivector")
+        for op in mv_ops
+    )
+
+    return wrap_impl(rust_code, "Multivector", obj_name, types=[("Dual", dual_type)])
+
+def gen_unary_arithmetic(obj_name):
+    """ Generates overloaded unary arithemtic operators for the given type. """
+
+    arith_ops = [("neg", "Neg")]
+
+    return "\n".join(gen_unary_operator(obj_name, op, impl) for (op, impl) in arith_ops)
+
+def gen_binary_arithmetic(obj_name):
+    """ Generates overloaded binary arithemtic operators for the given type. """
+
+    arith_ops = [
+        ("add", "Add"),
+        ("sub", "Sub"),
+        ("mul", "Mul"),
+        ("bitxor", "BitXor"),
+        ("bitand", "BitAnd"),
+        ("bitor", "BitOr"),
+    ]
+
+    blocks = []
+
+    for (op, impl) in arith_ops:
+        for rhs in objects:
+            if obj_name == "Float" and rhs == "Float":
+                # Do not re-implement Float+Float
+                continue
+            blocks.append(gen_binary_operator(
+                obj_name,
+                rhs,
+                op,
+                impl,
+            ))
+
+    return "\n\n".join(blocks)
+
+def main():
+    """ Generates the pga.rs file, containing:
+      * Header shown below, including the Multivector trait
+      * Struct definitions for each type specified in "objects" at the top of this file
+      * Implementation of the Multivector trait for each object
+      * Implementation of overloaded unary operators for each object
+      * Implementation of overloaded binary operators for each pair of objects
+
+    The result is printed to stdout.
+    """
+
+    blocks = []
+    for obj in objects:
+        header = f"""// ===========================================================================
+// {obj}
+// ==========================================================================="""
+        blocks.append(header)
+        if obj != "Float":
+            blocks.append(struct(obj))
+        blocks.append(gen_mv_ops(obj))
+        if obj != "Float":
+            blocks.append(gen_unary_arithmetic(obj))
+        blocks.append(gen_binary_arithmetic(obj))
+
+    generated_code = "\n\n".join(blocks)
+
+    rust_template = f"""// ===========================================================================
 // ======= THIS FILE IS AUTOGENERATED. PLEASE EDIT pga_gen.py INSTEAD ========
 // ===========================================================================
 
@@ -249,9 +396,7 @@ rust_template = f"""// =========================================================
 
 use crate::global::Float;
 use std::fmt;
-use std::ops::{{Index, IndexMut, Neg, Mul, BitXor, BitAnd, BitOr}};
-
-const BASIS_COUNT: usize = 16;
+use std::ops::{{Add, Sub, Mul, Neg, BitXor, BitAnd, BitOr}};
 
 pub trait Multivector: fmt::Debug + Clone + Copy + PartialEq
     + Neg {{
@@ -267,4 +412,7 @@ pub trait Multivector: fmt::Debug + Clone + Copy + PartialEq
 {generated_code}
 """
 
-print(rust_template)
+    print(rust_template)
+
+if __name__ == "__main__":
+    main()
