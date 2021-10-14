@@ -1,3 +1,4 @@
 pub mod global;
 pub mod pga;
-pub mod nurbs;
+pub mod primitives;
+pub mod curve;

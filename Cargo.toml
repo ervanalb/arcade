@@ -11,9 +11,9 @@ name = "arcade"
 path = "src/lib.rs"
 
 [[example]]
-name = "demo"
-path = "src/demo.rs"
+name = "example"
+path = "src/example.rs"
 
-[dev-dependencies]
-kiss3d = "0.23"
-nalgebra = "0.20"
+#[dev-dependencies]
+#kiss3d = "0.23"
+#nalgebra = "0.20"

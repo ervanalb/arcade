@@ -8,7 +8,6 @@ objects = {
     "Float": [1] + [0] * 15,
     "Vector": [0] + [1] * 4 + [0] * 11,
     "Bivector": [0] * 5 + [1] * 6 + [0] * 5,
-    "ScalarAndBivector": [1] + [0] * 4 + [1] * 6 + [0] * 5,
     "Trivector": [0] * 11 + [1] * 4 + [0],
     "FullMultivector": [1] * 16,
 }
@@ -117,12 +116,6 @@ def select_object(obj):
         return elem_mul(objects[obj], a)
     return _select
 
-def reflect(a, b):
-    return geometric_product(geometric_product(a, b), a)
-
-def transform(a, b):
-    return geometric_product(geometric_product(a, b), reverse(a))
-
 unary_operations = {
     "neg": neg,
     "dual": dual,
@@ -144,8 +137,6 @@ binary_operations = {
     "bitxor": wedge_product,
     "bitand": vee_product,
     "bitor": dot_product,
-    "transform": transform,
-    "reflect": reflect,
 }
 
 # Code gen helper functions
@@ -159,13 +150,6 @@ def get_multivector(letter, components=None):
     if components is None:
         return mv
     return [x * y for (x, y) in zip(mv, components)] 
-
-def simplify_mv(mv):
-    """ Takes a multivector (list of length BASIS_COUNT) and simplifies each component of it,
-    returning the simplified multivector.
-    """
-
-    return [sympy.simplify(c) for c in mv]
 
 def get_object(mv):
     """ Takes a multivector (list of length BASIS_COUNT) and returns the name of the
@@ -185,8 +169,6 @@ def indent(s, tabs=1):
 
 def fix_float(s):
     """ Replaces bare "0" with "0." for rust. """
-
-    s = s.replace("*", " * ")
 
     def fix(term):
         import sys
@@ -271,7 +253,7 @@ def gen_result_code(result_type, result, *args, **kwargs):
 {indent(result_elems)}
 }}"""
 
-def gen_unary_operator(obj_name, op_name, impl=None, result_type=None, pub=False):
+def gen_unary_operator(obj_name, op_name, impl=None, result_type=None):
     """ Generates code for a unary operator.
     obj_name: which struct to implement this operator on (type of "self")
     op_name: what to name the function, and an index into unary_operations
@@ -281,20 +263,17 @@ def gen_unary_operator(obj_name, op_name, impl=None, result_type=None, pub=False
 
     a = get_multivector("sym_a", objects[obj_name])
     b = unary_operations[op_name](a)
-    b = simplify_mv(b)
     if b is None:
         return
     if result_type == None:
         result_type = get_object(b)
-
-    pub_str = "pub " if pub else ""
 
     result_code = gen_result_code(
         result_type, b, sub_a="self",
         a_is_scalar=obj_name == "Float",
         result_is_scalar=result_type == "Float"
     )
-    rust_code = f"""{pub_str}fn {op_name}(self) -> {result_type} {{
+    rust_code = f"""fn {op_name}(self) -> {result_type} {{
 {indent(result_code)}
 }}"""
     if impl is not None:
@@ -302,7 +281,7 @@ def gen_unary_operator(obj_name, op_name, impl=None, result_type=None, pub=False
 
     return rust_code
 
-def gen_binary_operator(obj_name, rhs_obj_name, op_name, impl=None, pub=False):
+def gen_binary_operator(obj_name, rhs_obj_name, op_name, impl=None):
     """ Generates code for a binary operator.
     obj_name: which struct to implement this operator on (type of "self")
     rhs_obj_name: type of second argument (right-hand-side of operator)
@@ -313,7 +292,6 @@ def gen_binary_operator(obj_name, rhs_obj_name, op_name, impl=None, pub=False):
     a = get_multivector("sym_a", objects[obj_name])
     b = get_multivector("sym_b", objects[rhs_obj_name])
     c = binary_operations[op_name](a, b)
-    c = simplify_mv(c)
     result_type = get_object(c)
     result_code = gen_result_code(
         result_type, c, sub_a="self", sub_b="r",
@@ -322,9 +300,6 @@ def gen_binary_operator(obj_name, rhs_obj_name, op_name, impl=None, pub=False):
         result_is_scalar=result_type == "Float",
     )
     underscore = "" if "r" in result_code else "_" # A bit of a hack, might not catch all cases of unused "r"
-
-    pub_str = "pub " if pub else ""
-
     rust_code = f"""fn {op_name}(self, {underscore}r: {rhs_obj_name}) -> {result_type} {{
 {indent(result_code)}
 }}"""
@@ -360,96 +335,11 @@ def struct(obj_name):
 pub struct {obj_name} {{
 {a}}}"""
 
-def gen_reverse_ops(obj_name):
-    """ Generates the "Reverse" trait implementation for the given type """
+def gen_mv_ops(obj_name):
+    """ Generates the "Multivector" trait implementation for the given type. """
 
-    ops = ["reverse"]
-
-    rust_code = [
-        gen_unary_operator(obj_name, op)
-        for op in ops
-    ]
-
-    rust_code = "\n\n".join(x for x in rust_code if x is not None)
-
-    return wrap_impl(rust_code, obj_name, "Reverse")
-
-
-def gen_dual_ops(obj_name):
-    """ Generates the "Dual" trait implementation for the given type """
-
-    ops = ["dual"]
-
-    rust_code = [
-        gen_unary_operator(obj_name, op)
-        for op in ops
-    ]
-
-    dual_type = get_object(dual(get_multivector("a", objects[obj_name])))
-
-    rust_code = "\n\n".join(x for x in rust_code if x is not None)
-
-    return wrap_impl(rust_code, obj_name, "Dual", types=[("Output", dual_type)])
-
-def gen_conjugate_ops(obj_name):
-    """ Generates the "Conjugate" trait implementation for the given type """
-
-    ops = ["conjugate"]
-
-    rust_code = [
-        gen_unary_operator(obj_name, op)
-        for op in ops
-    ]
-
-    rust_code = "\n\n".join(x for x in rust_code if x is not None)
-
-    return wrap_impl(rust_code, obj_name, "Conjugate")
-
-def gen_normalize_ops(obj_name):
-    """ Generates the "Normalize" trait implementation for the given type """
-
-    ops = ["norm"]
-
-    rust_code = [
-        gen_unary_operator(obj_name, op)
-        for op in ops
-    ]
-
-    rust_code = "\n\n".join(x for x in rust_code if x is not None)
-
-    return wrap_impl(rust_code, obj_name, "Normalize")
-
-def gen_normalize_dual_ops(obj_name):
-    """ Generates the "NormalizeDual" trait implementation for the given type """
-
-    ops = ["inorm"]
-
-    rust_code = [
-        gen_unary_operator(obj_name, op)
-        for op in ops
-    ]
-
-    rust_code = "\n\n".join(x for x in rust_code if x is not None)
-
-    return wrap_impl(rust_code, obj_name, "NormalizeDual")
-
-def gen_impl_ops(obj_name):
-    """ Generates the non-trait-based implementation for the given type. """
-
-    # First generate a "new" constructor
-
-    var_names = [f"a{i}" for i, e in enumerate(objects[obj_name]) if e]
-    args = ", ".join([f"{v}: Float" for v in var_names])
-    constructor_code = ", ".join(var_names)
-    rust_code = [
-        f"""pub fn new({args}) -> {obj_name} {{
-    {obj_name} {{{constructor_code}}}
-}}"""
-    ]
-
-    # Now generate some additional functions
-
-    mv_ops = ["scalar", "vector", "bivector", "trivector", "full_multivector"]
+    mv_ops = ["reverse", "dual", "conjugate", "norm", "inorm",
+        "scalar", "vector", "bivector", "trivector", "full_multivector"]
 
     force_type = {
         "scalar": "Float",
@@ -459,70 +349,30 @@ def gen_impl_ops(obj_name):
         "full_multivector": "FullMultivector",
     }
 
-    def op_isnt_trivial(op):
-        if op not in force_type:
-            # Not a grade selector function
-            return True
+    dual_type = get_object(dual(get_multivector("a", objects[obj_name])))
 
-        elements_input = objects[obj_name]
-        elements_output = objects[force_type[op]]
-
-        if elements_input == elements_output:
-            # Returning the same type that we are
-            return False
-
-        if not any([a and b for (a, b) in zip(elements_input, elements_output)]):
-            # Returning zero
-            return False
-
-        return True
-
-    mv_ops = [op for op in mv_ops if op_isnt_trivial(op)]
-
-    rust_code += [
-        gen_unary_operator(obj_name, op, result_type=force_type.get(op), pub=True)
+    rust_code = [
+        gen_unary_operator(obj_name, op, result_type=force_type.get(op))
         for op in mv_ops
     ]
 
     rust_code = "\n\n".join(x for x in rust_code if x is not None)
 
-    return wrap_impl(rust_code, obj_name)
+    return wrap_impl(rust_code, obj_name, "Multivector", types=[("Dual", dual_type)])
 
-#def gen_impl_ops(obj_name):
-#    """ Generates non-trait-based implementation for the given type. """
-#
-#    mv_ops = ["reverse", "dual", "conjugate", "norm", "inorm",
-#        "scalar", "vector", "bivector", "trivector", "full_multivector"]
-#
-#    force_type = {
-#        "scalar": "Float",
-#        "vector": "Vector",
-#        "bivector": "Bivector",
-#        "trivector": "Trivector",
-#        "full_multivector": "FullMultivector",
-#    }
-#
-#    dual_type = get_object(dual(get_multivector("a", objects[obj_name])))
-#
-#    rust_code = [
-#        gen_unary_operator(obj_name, op, result_type=force_type.get(op))
-#        for op in mv_ops
-#    ]
-#
-#    rust_code = "\n\n".join(x for x in rust_code if x is not None)
-#
-#    #return wrap_impl(rust_code, obj_name, "Multivector", types=[("Dual", dual_type)])
-#    return wrap_impl(rust_code, obj_name)
-#    ops = []
-#
-#    rust_code = [
-#        gen_unary_operator(obj_name, op)
-#        for op in ops
-#    ]
-#
-#    rust_code = "\n\n".join(x for x in rust_code if x is not None)
-#
-#    return wrap_impl(rust_code, obj_name)
+def gen_impl_ops(obj_name):
+    """ Generates non-trait-based implementation for the given type. """
+
+    ops = []
+
+    rust_code = [
+        gen_unary_operator(obj_name, op)
+        for op in ops
+    ]
+
+    rust_code = "\n\n".join(x for x in rust_code if x is not None)
+
+    return wrap_impl(rust_code, obj_name)
 
 def gen_unary_arithmetic(obj_name):
     """ Generates overloaded unary arithemtic operators for the given type. """
@@ -541,15 +391,13 @@ def gen_binary_arithmetic(obj_name):
         ("bitxor", "BitXor"),
         ("bitand", "BitAnd"),
         ("bitor", "BitOr"),
-        ("transform", "Transform"),
-        ("reflect", "Reflect"),
     ]
 
     blocks = []
 
     for (op, impl) in arith_ops:
         for rhs in objects:
-            if obj_name == "Float" and rhs == "Float" and op not in ("transform", "reflect"):
+            if obj_name == "Float" and rhs == "Float":
                 # Do not re-implement Float+Float
                 continue
             blocks.append(gen_binary_operator(
@@ -581,50 +429,14 @@ def main():
         blocks.append(header)
         if obj != "Float":
             blocks.append(struct(obj))
-        blocks.append(gen_reverse_ops(obj))
-        blocks.append(gen_dual_ops(obj))
-        blocks.append(gen_conjugate_ops(obj))
-        blocks.append(gen_normalize_ops(obj))
-        blocks.append(gen_normalize_dual_ops(obj))
+        #if obj != "Float":
+        #    blocks.append(gen_impl_ops(obj))
+        blocks.append(gen_mv_ops(obj))
         if obj != "Float":
-            blocks.append(gen_impl_ops(obj))
             blocks.append(gen_unary_arithmetic(obj))
         blocks.append(gen_binary_arithmetic(obj))
 
     generated_code = "\n\n".join(blocks)
-
-#//pub trait Multivector: fmt::Debug + Clone + Copy + PartialEq + Default
-#//    + Neg<Output=Self>
-#//    + Mul<Float, Output=Self>
-#//    + Add<Self, Output=Self>
-#//    + Sub<Self, Output=Self> {{
-#//
-#//    type Dual: Multivector;
-#//
-#//    // Unary operations
-#//    fn reverse(self) -> Self;
-#//    fn dual(self) -> Self::Dual;
-#//    fn conjugate(self) -> Self;
-#//    fn norm(self) -> Float;
-#//    fn inorm(self) -> Float;
-#//
-#//    // Select elements of given grade:
-#//    fn scalar(self) -> Float;
-#//    fn vector(self) -> Vector;
-#//    fn bivector(self) -> Bivector;
-#//    fn trivector(self) -> Trivector;
-#//    fn full_multivector(self) -> FullMultivector;
-#//
-#//    // Construct a multivector representing zero
-#//    fn zero() -> Self {{
-#//        Default::default()
-#//    }}
-#//
-#//    // Return a normalized copy
-#//    fn hat(self) -> Self {{
-#//        self * (1.0 / self.norm())
-#//    }}
-#//}}
 
     rust_template = f"""// ===========================================================================
 // ======= THIS FILE IS AUTOGENERATED. PLEASE EDIT pga_gen.py INSTEAD ========
@@ -642,65 +454,72 @@ def main():
 // + a15 * e0123
 
 // Operators:
-// *  geometric product
-// ^  wedge (meet)
-// &  vee (join)
-// |  dot
+// * geometric product
+// ^ wedge (meet)
+// & vee (join)
+// | dot
 
 // This file heavily inspired by https://bivector.net/tools.html and their generated rust code.
 // Hopefully the conventions here are the same as ganja.js and company,
 // so there is good interoperability.
 // One exception is that using ! to take the dual has been removed (use .dual())
 
-use crate::global::{{Float, FLOAT_DIVISION_EPSILON}};
+use crate::global::Float;
+use std::fmt;
 use std::ops::{{Add, Sub, Mul, Neg, BitXor, BitAnd, BitOr}};
 
-pub trait Reverse {{
+pub trait Multivector: fmt::Debug + Clone + Copy + PartialEq + Default
+    + Neg<Output=Self>
+    + Mul<Float, Output=Self>
+    + Add<Self, Output=Self>
+    + Sub<Self, Output=Self> {{
+
+    type Dual: Multivector;
+
+    // Unary operations
     fn reverse(self) -> Self;
-}}
-
-pub trait Dual {{
-    type Output;
-    fn dual(self) -> Self::Output;
-}}
-
-pub trait Conjugate {{
+    fn dual(self) -> Self::Dual;
     fn conjugate(self) -> Self;
-}}
-
-pub trait Normalize {{
     fn norm(self) -> Float;
+    fn inorm(self) -> Float;
+
+    // Select elements of given grade:
+    fn scalar(self) -> Float;
+    fn vector(self) -> Vector;
+    fn bivector(self) -> Bivector;
+    fn trivector(self) -> Trivector;
+    fn full_multivector(self) -> FullMultivector;
+
+    // Construct a multivector representing zero
+    fn zero() -> Self {{
+        Default::default()
+    }}
 
     // Return a normalized copy
-    fn hat(self) -> Self where Self: Copy + Mul<Float, Output=Self> {{
+    fn hat(self) -> Self {{
         self * (1.0 / self.norm())
     }}
 }}
 
-pub trait NormalizeDual {{
-    fn inorm(self) -> Float;
-}}
-
-pub trait Transform<Entity> {{
-    type Output;
-    fn transform(self, r: Entity) -> Self::Output;
-}}
-
-pub trait Reflect<Entity> {{
-    type Output;
-    fn reflect(self, r: Entity) -> Self::Output;
-}}
-
 {generated_code}
 
-impl Bivector {{
-    pub fn exp(self) -> ScalarAndBivector {{
-        let theta = self.norm();
-        if theta.abs() < FLOAT_DIVISION_EPSILON {{
-            1. + self
-        }} else {{
-            theta.cos() + (theta.sin() / theta) * self
+pub type Point = Trivector;
+pub type Line = Bivector;
+pub type Plane = Vector;
+
+impl Point {{
+    pub fn from_xyz(x: Float, y: Float, z: Float) -> Point {{
+        Point {{
+            a13: x,
+            a12: y,
+            a11: z,
+            a14: 1.,
         }}
+    }}
+
+    pub fn to_xyz(self) -> (Float, Float, Float) {{
+        let inv_w = 1. / self.a14;
+        (inv_w * self.a13, inv_w * self.a12, inv_w * self.a11)
     }}
 }}
 """
