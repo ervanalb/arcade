@@ -1,17 +1,16 @@
+use crate::pga::*;
+use crate::global::*;
+use crate::construct::*;
+
 #[derive(Default,Debug,Clone,PartialEq)]
 pub struct Vertex {
     pub point: Trivector,
 }
 
-impl for Vertex {
-    fn new(x: Float, y: Float, z: Float) -> Self {
+impl Vertex {
+    pub fn new(x: Float, y: Float, z: Float) -> Vertex {
         Vertex {
-            point: Trivector {
-                a11: z,
-                a12: y,
-                a13: x,
-                a14: 1.,
-            }
+            point: point_from_xyz(x, y, z)
         }
     }
 }

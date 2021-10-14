@@ -1,4 +1,5 @@
 pub mod global;
 pub mod pga;
-pub mod primitives;
+pub mod construct;
 pub mod curve;
+pub mod vertex;

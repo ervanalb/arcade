@@ -6,8 +6,9 @@
 ## Parametric representations
 
 - [ ] Parametric curve union
-  - [ ] Line
-  - [ ] Circle
+  - [X] Line
+  - [X] Circle
+  - [ ] TrimmedCurve
   - [ ] Ellipse
   - [ ] Hyperbola
   - [ ] Parabola
@@ -30,7 +31,7 @@
 
 ## CAD Kernel primitives
 
-- [ ] Vertex
+- [X] Vertex
 - [ ] Edge (basis curve, endpoint parameters & vertices (optional))
 - [ ] Wire (sequence of edges connected by vertices, open or closed)
 - [ ] Face (basis surface, bounding wires (optional))
