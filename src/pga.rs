@@ -861,6 +861,14 @@ impl Vector {
         Vector {a1, a2, a3, a4}
     }
 
+    pub fn zero() -> Vector {
+        Default::default()
+    }
+
+    pub fn as_tuple(&self) -> (Float, Float, Float, Float) {
+        (self.a1, self.a2, self.a3, self.a4)
+    }
+
     pub fn full_multivector(self) -> FullMultivector {
         FullMultivector {
             a0: 0.,
@@ -1820,6 +1828,14 @@ impl NormalizeDual for Bivector {
 impl Bivector {
     pub fn new(a5: Float, a6: Float, a7: Float, a8: Float, a9: Float, a10: Float) -> Bivector {
         Bivector {a5, a6, a7, a8, a9, a10}
+    }
+
+    pub fn zero() -> Bivector {
+        Default::default()
+    }
+
+    pub fn as_tuple(&self) -> (Float, Float, Float, Float, Float, Float) {
+        (self.a5, self.a6, self.a7, self.a8, self.a9, self.a10)
     }
 
     pub fn full_multivector(self) -> FullMultivector {
@@ -2830,6 +2846,14 @@ impl NormalizeDual for ScalarAndBivector {
 impl ScalarAndBivector {
     pub fn new(a0: Float, a5: Float, a6: Float, a7: Float, a8: Float, a9: Float, a10: Float) -> ScalarAndBivector {
         ScalarAndBivector {a0, a5, a6, a7, a8, a9, a10}
+    }
+
+    pub fn zero() -> ScalarAndBivector {
+        Default::default()
+    }
+
+    pub fn as_tuple(&self) -> (Float, Float, Float, Float, Float, Float, Float) {
+        (self.a0, self.a5, self.a6, self.a7, self.a8, self.a9, self.a10)
     }
 
     pub fn scalar(self) -> Float {
@@ -3913,6 +3937,14 @@ impl Trivector {
         Trivector {a11, a12, a13, a14}
     }
 
+    pub fn zero() -> Trivector {
+        Default::default()
+    }
+
+    pub fn as_tuple(&self) -> (Float, Float, Float, Float) {
+        (self.a11, self.a12, self.a13, self.a14)
+    }
+
     pub fn full_multivector(self) -> FullMultivector {
         FullMultivector {
             a0: 0.,
@@ -4917,6 +4949,14 @@ impl NormalizeDual for FullMultivector {
 impl FullMultivector {
     pub fn new(a0: Float, a1: Float, a2: Float, a3: Float, a4: Float, a5: Float, a6: Float, a7: Float, a8: Float, a9: Float, a10: Float, a11: Float, a12: Float, a13: Float, a14: Float, a15: Float) -> FullMultivector {
         FullMultivector {a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15}
+    }
+
+    pub fn zero() -> FullMultivector {
+        Default::default()
+    }
+
+    pub fn as_tuple(&self) -> (Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float) {
+        (self.a0, self.a1, self.a2, self.a3, self.a4, self.a5, self.a6, self.a7, self.a8, self.a9, self.a10, self.a11, self.a12, self.a13, self.a14, self.a15)
     }
 
     pub fn scalar(self) -> Float {

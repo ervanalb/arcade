@@ -1,4 +1,5 @@
 use arcade::construct::{point_from_xyz, three_point_arc};
+use arcade::interpolate::interpolate_curve_fixed;
 
 fn main() {
     //let pt = point_from_xyz(1., 1., 1.);
@@ -16,4 +17,8 @@ fn main() {
 
     let c = three_point_arc(pt0, pt1, pt2);
     println!("c: {:?}", c);
+    let pts = interpolate_curve_fixed(&c, 10);
+    for pt in pts {
+        println!("interp: {:?}", pt);
+    }
 }

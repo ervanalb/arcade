@@ -436,14 +436,35 @@ def gen_normalize_dual_ops(obj_name):
 def gen_impl_ops(obj_name):
     """ Generates the non-trait-based implementation for the given type. """
 
+    rust_code = []
+
     # First generate a "new" constructor
 
     var_names = [f"a{i}" for i, e in enumerate(objects[obj_name]) if e]
     args = ", ".join([f"{v}: Float" for v in var_names])
     constructor_code = ", ".join(var_names)
-    rust_code = [
+    rust_code += [
         f"""pub fn new({args}) -> {obj_name} {{
     {obj_name} {{{constructor_code}}}
+}}"""
+    ]
+
+    # And a "zero" constructor
+
+    rust_code += [
+        f"""pub fn zero() -> {obj_name} {{
+    Default::default()
+}}"""
+    ]
+
+    # And "as_tuple"
+
+    var_names = [f"a{i}" for i, e in enumerate(objects[obj_name]) if e]
+    return_type = ", ".join(["Float"] * len(var_names))
+    return_tuple = ", ".join([f"self.{v}" for v in var_names])
+    rust_code += [
+        f"""pub fn as_tuple(&self) -> ({return_type}) {{
+    ({return_tuple})
 }}"""
     ]
 
