@@ -18,11 +18,24 @@ pub fn three_point_arc(p0: Trivector, p1: Trivector, p2: Trivector) -> Curve {
 
     let bisector0 = perpendicular_bisector(p0, p1);
     let bisector1 = perpendicular_bisector(p1, p2);
-    let axis = bisector1 ^ bisector0;
-    let plane0 = p0 & axis;
-    let plane1 = p2 & axis;
-    let angle = (plane1 ^ plane0).norm().atan2(plane1 | plane0);
-    let angle = (angle + 2. * PI) % (2. * PI);
+    let axis = (bisector1 ^ bisector0).hat();
+
+    let plane0 = (p0 & axis).hat();
+    let plane1 = (p2 & axis).hat();
+    let angle = (plane1 | plane0).acos();
+
+    // Calculate sense of circle
+    let circle_plane = p0 & p1 & p2;
+    let separating_plane = circle_plane | (p0 & p2);
+    let center = axis ^ circle_plane;
+    let sense = (separating_plane & center) * (separating_plane & p1);
+
+    println!("plane & center {:?}, plane & p1 {:?}", (separating_plane & center), (separating_plane & p1));
+
+    let angle = match sense < 0. {
+        false => 2. * PI - angle,
+        true => angle,
+    };
 
     Curve::TrimmedCurve(TrimmedCurve {
         curve: Arc::from(Curve::Circle(Circle {p0: p0, a: axis})),

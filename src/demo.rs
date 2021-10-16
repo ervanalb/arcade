@@ -68,7 +68,7 @@ fn main() {
 
     let pt0 = point_from_xyz(1., 1., 1.);
     let pt1 = point_from_xyz(2., 2., 1.);
-    let pt2 = point_from_xyz(1., 2.5, 1.);
+    let pt2 = point_from_xyz(3., 1.5, 1.);
 
     let arc0 = three_point_arc(pt0, pt1, pt2);
     let arc0_rendered = interpolate_curve_fixed(&arc0, 50);
