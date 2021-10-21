@@ -1,5 +1,5 @@
 use arcade::pga::{Trivector, Normalize};
-use arcade::construct::{point_from_xyz, three_point_arc};
+use arcade::construct::{point_from_xyz, arc_from_three_points, segment_from_two_points, plane_from_standard_form};
 use arcade::interpolate::interpolate_curve_fixed;
 
 extern crate kiss3d;
@@ -66,16 +66,45 @@ fn main() {
     //    knots: nurbs_knots
     //};
 
-    let pt0 = point_from_xyz(1., 1., 1.);
-    let pt1 = point_from_xyz(2., 2., 1.);
-    let pt2 = point_from_xyz(3., 1.5, 1.);
+    // Build a flask!
+    let width = 5.;
+    let thickness = 3.;
 
-    let arc0 = three_point_arc(pt0, pt1, pt2);
-    let arc0_rendered = interpolate_curve_fixed(&arc0, 50);
+    let pt1 = point_from_xyz(-width / 2., 0., 0.);
+    let pt2 = point_from_xyz(-width / 2., -thickness / 4., 0.);
+    let pt3 = point_from_xyz(0., -thickness / 2., 0.);
+    let pt4 = point_from_xyz(width / 2., -thickness / 4., 0.);
+    let pt5 = point_from_xyz(width / 2., 0., 0.);
+
+    let arc1 = arc_from_three_points(pt2, pt3, pt4);
+    let seg1 = segment_from_two_points(pt1, pt2);
+    let seg2 = segment_from_two_points(pt4, pt5);
+
+    let mirror = plane_from_standard_form(0., 1., 0., 0.).hat(); // Y = 0 plane
+    //let motor = ((point_from_xyz(0., 0., 0.) & point_from_xyz(0., 0., 1.)) * I).ihat().exp();
+
+    let arc2 = arc1.reflect(mirror);
+    let seg3 = seg1.reflect(mirror);
+    let seg4 = seg2.reflect(mirror);
+    //let arc2 = arc1.transform(motor);
+    //let seg3 = seg1.transform(motor);
+    //let seg4 = seg2.transform(motor);
+
+    let arc1_rendered = interpolate_curve_fixed(&arc1, 50);
+    let arc2_rendered = interpolate_curve_fixed(&arc2, 50);
+    let seg1_rendered = interpolate_curve_fixed(&seg1, 5);
+    let seg2_rendered = interpolate_curve_fixed(&seg2, 5);
+    let seg3_rendered = interpolate_curve_fixed(&seg3, 5);
+    let seg4_rendered = interpolate_curve_fixed(&seg4, 5);
 
     while window.render_with_camera(&mut arc_ball) {
         draw_axes(&mut window);
-        draw(&mut window, &arc0_rendered);
-        draw_pts(&mut window, &vec![pt0, pt1, pt2]);
+        draw(&mut window, &arc1_rendered);
+        draw(&mut window, &arc2_rendered);
+        draw(&mut window, &seg1_rendered);
+        draw(&mut window, &seg2_rendered);
+        draw(&mut window, &seg3_rendered);
+        draw(&mut window, &seg4_rendered);
+        draw_pts(&mut window, &vec![pt1, pt2, pt3, pt4, pt5]);
     }
 }

@@ -8,8 +8,9 @@ objects = {
     "Float": [1] + [0] * 15,
     "Vector": [0] + [1] * 4 + [0] * 11,
     "Bivector": [0] * 5 + [1] * 6 + [0] * 5,
-    "ScalarAndBivector": [1] + [0] * 4 + [1] * 6 + [0] * 5,
     "Trivector": [0] * 11 + [1] * 4 + [0],
+    "Pseudoscalar": [0] * 15 + [1],
+    "ScalarAndBivector": [1] + [0] * 4 + [1] * 6 + [0] * 5,
     "FullMultivector": [1] * 16,
 }
 
@@ -118,10 +119,10 @@ def select_object(obj):
     return _select
 
 def reflect(a, b):
-    return geometric_product(geometric_product(a, b), a)
+    return geometric_product(geometric_product(b, a), b)
 
 def transform(a, b):
-    return geometric_product(geometric_product(a, b), reverse(a))
+    return geometric_product(geometric_product(b, a), reverse(b))
 
 unary_operations = {
     "neg": neg,
@@ -134,6 +135,7 @@ unary_operations = {
     "vector": select_object("Vector"),
     "bivector": select_object("Bivector"),
     "trivector": select_object("Trivector"),
+    "pseudoscalar": select_object("Pseudoscalar"),
     "full_multivector": lambda x: x,
 }
 
@@ -175,6 +177,14 @@ def get_object(mv):
     for (name, components) in objects.items():
         if [x * y for (x, y) in zip(mv, components)] == mv:
             return name
+
+def is_object(mv, obj):
+    """ Takes a multivector (list of length BASIS_COUNT) and returns whether it can be expressed
+    using the given object name.
+    """
+
+    components = objects[obj]
+    return [x * y for (x, y) in zip(mv, components)] == mv
 
 def indent(s, tabs=1):
     """ Takes a string of code and indents each line by four spaces
@@ -302,7 +312,7 @@ def gen_unary_operator(obj_name, op_name, impl=None, result_type=None, pub=False
 
     return rust_code
 
-def gen_binary_operator(obj_name, rhs_obj_name, op_name, impl=None, pub=False):
+def gen_binary_operator(obj_name, rhs_obj_name, op_name, impl=None, pub=False, require_output_type=None):
     """ Generates code for a binary operator.
     obj_name: which struct to implement this operator on (type of "self")
     rhs_obj_name: type of second argument (right-hand-side of operator)
@@ -314,14 +324,23 @@ def gen_binary_operator(obj_name, rhs_obj_name, op_name, impl=None, pub=False):
     b = get_multivector("sym_b", objects[rhs_obj_name])
     c = binary_operations[op_name](a, b)
     c = simplify_mv(c)
-    result_type = get_object(c)
+
+    if require_output_type is None:
+        result_type = get_object(c)
+    else:
+        if is_object(c, require_output_type):
+            result_type = require_output_type
+        else:
+            # This operator does not apply
+            return None
+
     result_code = gen_result_code(
         result_type, c, sub_a="self", sub_b="r",
         a_is_scalar=obj_name == "Float",
         b_is_scalar=rhs_obj_name == "Float",
         result_is_scalar=result_type == "Float",
     )
-    underscore = "" if "r" in result_code else "_" # A bit of a hack, might not catch all cases of unused "r"
+    underscore = "" if "r" in result_code.replace(result_type, "") else "_" # A bit of a hack, might not catch all cases of unused "r"
 
     pub_str = "pub " if pub else ""
 
@@ -330,7 +349,8 @@ def gen_binary_operator(obj_name, rhs_obj_name, op_name, impl=None, pub=False):
 }}"""
 
     if impl is not None:
-        rust_code = wrap_impl(rust_code, obj_name, impl, template=rhs_obj_name, types=[("Output", result_type)])
+        types = [("Output", result_type)] if require_output_type is None else None
+        rust_code = wrap_impl(rust_code, obj_name, impl, template=rhs_obj_name, types=types)
     return rust_code
 
 def wrap_impl(rust_code, obj_name, impl_name=None, template=None, types=None):
@@ -419,8 +439,8 @@ def gen_normalize_ops(obj_name):
 
     return wrap_impl(rust_code, obj_name, "Normalize")
 
-def gen_normalize_dual_ops(obj_name):
-    """ Generates the "NormalizeDual" trait implementation for the given type """
+def gen_normalize_infinite_ops(obj_name):
+    """ Generates the "NormalizeInfinite" trait implementation for the given type """
 
     ops = ["inorm"]
 
@@ -431,7 +451,7 @@ def gen_normalize_dual_ops(obj_name):
 
     rust_code = "\n\n".join(x for x in rust_code if x is not None)
 
-    return wrap_impl(rust_code, obj_name, "NormalizeDual")
+    return wrap_impl(rust_code, obj_name, "NormalizeInfinite")
 
 def gen_impl_ops(obj_name):
     """ Generates the non-trait-based implementation for the given type. """
@@ -462,9 +482,12 @@ def gen_impl_ops(obj_name):
     var_names = [f"a{i}" for i, e in enumerate(objects[obj_name]) if e]
     return_type = ", ".join(["Float"] * len(var_names))
     return_tuple = ", ".join([f"self.{v}" for v in var_names])
+    if len(var_names) > 1:
+        return_type = f"({return_type})"
+        return_tuple = f"({return_tuple})"
     rust_code += [
-        f"""pub fn as_tuple(&self) -> ({return_type}) {{
-    ({return_tuple})
+        f"""pub fn as_tuple(&self) -> {return_type} {{
+    {return_tuple}
 }}"""
     ]
 
@@ -562,15 +585,13 @@ def gen_binary_arithmetic(obj_name):
         ("bitxor", "BitXor"),
         ("bitand", "BitAnd"),
         ("bitor", "BitOr"),
-        ("transform", "Transform"),
-        ("reflect", "Reflect"),
     ]
 
     blocks = []
 
     for (op, impl) in arith_ops:
         for rhs in objects:
-            if obj_name == "Float" and rhs == "Float" and op not in ("transform", "reflect"):
+            if obj_name == "Float" and rhs == "Float":
                 # Do not re-implement Float+Float
                 continue
             blocks.append(gen_binary_operator(
@@ -578,6 +599,28 @@ def gen_binary_arithmetic(obj_name):
                 rhs,
                 op,
                 impl,
+            ))
+
+    return "\n\n".join(x for x in blocks if x is not None)
+
+def gen_special_binary_operators(obj_name):
+    """ Generates special binary operators for the given type. """
+
+    ops = [
+        ("transform", "Transform"),
+        ("reflect", "Reflect"),
+    ]
+
+    blocks = []
+
+    for (op, impl) in ops:
+        for rhs in objects:
+            blocks.append(gen_binary_operator(
+                obj_name,
+                rhs,
+                op,
+                impl,
+                require_output_type = obj_name,
             ))
 
     return "\n\n".join(x for x in blocks if x is not None)
@@ -606,13 +649,14 @@ def main():
         blocks.append(gen_dual_ops(obj))
         blocks.append(gen_conjugate_ops(obj))
         blocks.append(gen_normalize_ops(obj))
-        blocks.append(gen_normalize_dual_ops(obj))
+        blocks.append(gen_normalize_infinite_ops(obj))
         if obj != "Float":
             blocks.append(gen_impl_ops(obj))
             blocks.append(gen_unary_arithmetic(obj))
         blocks.append(gen_binary_arithmetic(obj))
+        blocks.append(gen_special_binary_operators(obj))
 
-    generated_code = "\n\n".join(blocks)
+    generated_code = "\n\n".join([b for b in blocks if b])
 
     rust_template = f"""// ===========================================================================
 // ======= THIS FILE IS AUTOGENERATED. PLEASE EDIT pga_gen.py INSTEAD ========
@@ -661,22 +705,35 @@ pub trait Normalize {{
 
     // Return a normalized copy
     fn hat(self) -> Self where Self: Copy + Mul<Float, Output=Self> {{
-        self * (1.0 / self.norm())
+        assert!(self.is_finite(), "norm is zero");
+        self * (1. / self.norm())
+    }}
+
+    fn is_finite(self) -> bool where Self: Copy {{
+        return self.norm() > FLOAT_DIVISION_EPSILON;
     }}
 }}
 
-pub trait NormalizeDual {{
+pub trait NormalizeInfinite {{
     fn inorm(self) -> Float;
+
+    // Return a infinite-normalized copy
+    fn ihat(self) -> Self where Self: Copy + Mul<Float, Output=Self> {{
+        assert!(self.is_infinite(), "inorm is zero");
+        self * (1. / self.inorm())
+    }}
+
+    fn is_infinite(self) -> bool where Self: Copy {{
+        return self.inorm() > FLOAT_DIVISION_EPSILON;
+    }}
 }}
 
 pub trait Transform<Entity> {{
-    type Output;
-    fn transform(self, r: Entity) -> Self::Output;
+    fn transform(self, r: Entity) -> Self;
 }}
 
 pub trait Reflect<Entity> {{
-    type Output;
-    fn reflect(self, r: Entity) -> Self::Output;
+    fn reflect(self, r: Entity) -> Self;
 }}
 
 {generated_code}
@@ -691,6 +748,9 @@ impl Bivector {{
         }}
     }}
 }}
+
+pub const I: Pseudoscalar = Pseudoscalar {{ a15: 1. }};
+
 """
 
     print(rust_template)

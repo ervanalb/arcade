@@ -1,8 +1,7 @@
 use crate::pga::*;
 use crate::global::*;
-use std::sync::Arc;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Curve {
     Line(Line),
     Circle(Circle),
@@ -47,13 +46,33 @@ impl Curve {
             Curve::TrimmedCurve(x) => x.t_max(),
         }
     }
+
+    // Reflect the curve about the given entity (point, line, plane)
+    pub fn reflect<T>(&self, entity: T) -> Curve
+    where Vector: Reflect<T>, Bivector: Reflect<T>, Trivector: Reflect<T>, FullMultivector: Reflect<T>, T: Copy {
+        match &self {
+            Curve::Line(x) => Curve::Line(x.reflect(entity)),
+            Curve::Circle(x) => Curve::Circle(x.reflect(entity)),
+            Curve::TrimmedCurve(x) => Curve::TrimmedCurve(x.reflect(entity)),
+        }
+    }
+
+    // Transform the curve with the given motor
+    pub fn transform<T>(&self, entity: T) -> Curve
+    where Vector: Transform<T>, Bivector: Transform<T>, Trivector: Transform<T>, FullMultivector: Transform<T>, T: Copy {
+        match &self {
+            Curve::Line(x) => Curve::Line(x.transform(entity)),
+            Curve::Circle(x) => Curve::Circle(x.transform(entity)),
+            Curve::TrimmedCurve(x) => Curve::TrimmedCurve(x.transform(entity)),
+        }
+    }
 }
 
 // A line is parameterized by a (euclidean) point p0 and an infinite line d.
 // The line starts at p0 and extends orthogonal to d. The parameter t is the signed distance from p0.
 // The parametric equation for the point r at position t on the line is: r(t) = m(t) * p0 * ~m(t)
 // where m(t) = exp(t / 2 * d)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Line {
     pub p0: Trivector,
     pub d: Bivector,
@@ -61,7 +80,7 @@ pub struct Line {
 
 impl Line {
     pub fn d0(&self, t: Float) -> Trivector {
-        (0.5 * t * self.d).exp().transform(self.p0)
+        self.p0.transform((0.5 * t * self.d).exp())
     }
 
     pub fn closed(&self) -> bool {
@@ -75,13 +94,23 @@ impl Line {
     pub fn t_max(&self) -> Option<Float> {
         None
     }
+
+    pub fn reflect<T>(&self, entity: T) -> Line
+    where Bivector: Reflect<T>, Trivector: Reflect<T>, T: Copy {
+        Line {p0: self.p0.reflect(entity), d: self.d.reflect(entity)}
+    }
+
+    pub fn transform<T>(&self, entity: T) -> Line
+    where Bivector: Transform<T>, Trivector: Transform<T>, T: Copy {
+        Line {p0: self.p0.transform(entity), d: self.d.transform(entity)}
+    }
 }
 
 // A circle is parameterized by a (euclidean) point p0 and a euclidean line a.
 // The circle starts at p0 and rotates around a. The parameter t is the angle of rotation from p0.
 // The parametric equation for the point r at position t on the line is: r(t) = m(t) * p0 * ~m(t)
 // where m(t) = exp(t / 2 * d)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Circle {
     pub p0: Trivector,
     pub a: Bivector,
@@ -89,7 +118,7 @@ pub struct Circle {
 
 impl Circle {
     pub fn d0(&self, t: Float) -> Trivector {
-        (0.5 * t * self.a).exp().transform(self.p0)
+        self.p0.transform((0.5 * t * self.a).exp())
     }
 
     pub fn closed(&self) -> bool {
@@ -103,14 +132,34 @@ impl Circle {
     pub fn t_max(&self) -> Option<Float> {
         Some(2. * PI)
     }
+
+    pub fn reflect<T>(&self, entity: T) -> Circle
+    where Bivector: Reflect<T>, Trivector: Reflect<T>, T: Copy {
+        Circle {p0: self.p0.reflect(entity), a: self.a.reflect(entity)}
+    }
+
+    pub fn transform<T>(&self, entity: T) -> Circle
+    where Bivector: Transform<T>, Trivector: Transform<T>, T: Copy {
+        Circle {p0: self.p0.transform(entity), a: self.a.transform(entity)}
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TrimmedCurve {
-    pub curve: Arc<Curve>,
+    pub curve: Box<Curve>,
     pub t_start: Float,
     pub t_end: Float,
 }
+
+//impl Clone for TrimmedCurve {
+//    fn clone(&self) -> TrimmedCurve {
+//        TrimmedCurve {
+//            curve: Box::new(self.curve.clone()),
+//            t_start: self.t_start,
+//            t_end: self.t_end,
+//        }
+//    }
+//}
 
 impl TrimmedCurve {
     pub fn d0(&self, t: Float) -> Trivector {
@@ -127,5 +176,15 @@ impl TrimmedCurve {
 
     pub fn t_max(&self) -> Option<Float> {
         Some(self.t_end)
+    }
+
+    pub fn reflect<T>(&self, entity: T) -> TrimmedCurve
+    where Vector: Reflect<T>, Bivector: Reflect<T>, Trivector: Reflect<T>, FullMultivector: Reflect<T>, T: Copy {
+        TrimmedCurve {curve: Box::new(self.curve.reflect(entity)), t_start: self.t_start, t_end: self.t_end}
+    }
+
+    pub fn transform<T>(&self, entity: T) -> TrimmedCurve
+    where Vector: Transform<T>, Bivector: Transform<T>, Trivector: Transform<T>, FullMultivector: Transform<T>, T: Copy {
+        TrimmedCurve {curve: Box::new(self.curve.transform(entity)), t_start: self.t_start, t_end: self.t_end}
     }
 }

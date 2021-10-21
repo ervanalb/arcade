@@ -45,22 +45,35 @@ pub trait Normalize {
 
     // Return a normalized copy
     fn hat(self) -> Self where Self: Copy + Mul<Float, Output=Self> {
-        self * (1.0 / self.norm())
+        assert!(self.is_finite(), "norm is zero");
+        self * (1. / self.norm())
+    }
+
+    fn is_finite(self) -> bool where Self: Copy {
+        return self.norm() > FLOAT_DIVISION_EPSILON;
     }
 }
 
-pub trait NormalizeDual {
+pub trait NormalizeInfinite {
     fn inorm(self) -> Float;
+
+    // Return a infinite-normalized copy
+    fn ihat(self) -> Self where Self: Copy + Mul<Float, Output=Self> {
+        assert!(self.is_infinite(), "inorm is zero");
+        self * (1. / self.inorm())
+    }
+
+    fn is_infinite(self) -> bool where Self: Copy {
+        return self.inorm() > FLOAT_DIVISION_EPSILON;
+    }
 }
 
 pub trait Transform<Entity> {
-    type Output;
-    fn transform(self, r: Entity) -> Self::Output;
+    fn transform(self, r: Entity) -> Self;
 }
 
 pub trait Reflect<Entity> {
-    type Output;
-    fn reflect(self, r: Entity) -> Self::Output;
+    fn reflect(self, r: Entity) -> Self;
 }
 
 // ===========================================================================
@@ -74,25 +87,10 @@ impl Reverse for Float {
 }
 
 impl Dual for Float {
-    type Output = FullMultivector;
+    type Output = Pseudoscalar;
 
-    fn dual(self) -> FullMultivector {
-        FullMultivector {
-            a0: 0.,
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: 0.,
-            a6: 0.,
-            a7: 0.,
-            a8: 0.,
-            a9: 0.,
-            a10: 0.,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
+    fn dual(self) -> Pseudoscalar {
+        Pseudoscalar {
             a15: self,
         }
     }
@@ -110,7 +108,7 @@ impl Normalize for Float {
     }
 }
 
-impl NormalizeDual for Float {
+impl NormalizeInfinite for Float {
     fn inorm(self) -> Float {
         0.
     }
@@ -157,22 +155,6 @@ impl Add<Bivector> for Float {
     }
 }
 
-impl Add<ScalarAndBivector> for Float {
-    type Output = ScalarAndBivector;
-
-    fn add(self, r: ScalarAndBivector) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: self + r.a0,
-            a5: r.a5,
-            a6: r.a6,
-            a7: r.a7,
-            a8: r.a8,
-            a9: r.a9,
-            a10: r.a10,
-        }
-    }
-}
-
 impl Add<Trivector> for Float {
     type Output = FullMultivector;
 
@@ -194,6 +176,47 @@ impl Add<Trivector> for Float {
             a13: r.a13,
             a14: r.a14,
             a15: 0.,
+        }
+    }
+}
+
+impl Add<Pseudoscalar> for Float {
+    type Output = FullMultivector;
+
+    fn add(self, r: Pseudoscalar) -> FullMultivector {
+        FullMultivector {
+            a0: self,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: r.a15,
+        }
+    }
+}
+
+impl Add<ScalarAndBivector> for Float {
+    type Output = ScalarAndBivector;
+
+    fn add(self, r: ScalarAndBivector) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self + r.a0,
+            a5: r.a5,
+            a6: r.a6,
+            a7: r.a7,
+            a8: r.a8,
+            a9: r.a9,
+            a10: r.a10,
         }
     }
 }
@@ -264,22 +287,6 @@ impl Sub<Bivector> for Float {
     }
 }
 
-impl Sub<ScalarAndBivector> for Float {
-    type Output = ScalarAndBivector;
-
-    fn sub(self, r: ScalarAndBivector) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: self - r.a0,
-            a5: -r.a5,
-            a6: -r.a6,
-            a7: -r.a7,
-            a8: -r.a8,
-            a9: -r.a9,
-            a10: -r.a10,
-        }
-    }
-}
-
 impl Sub<Trivector> for Float {
     type Output = FullMultivector;
 
@@ -301,6 +308,47 @@ impl Sub<Trivector> for Float {
             a13: -r.a13,
             a14: -r.a14,
             a15: 0.,
+        }
+    }
+}
+
+impl Sub<Pseudoscalar> for Float {
+    type Output = FullMultivector;
+
+    fn sub(self, r: Pseudoscalar) -> FullMultivector {
+        FullMultivector {
+            a0: self,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: -r.a15,
+        }
+    }
+}
+
+impl Sub<ScalarAndBivector> for Float {
+    type Output = ScalarAndBivector;
+
+    fn sub(self, r: ScalarAndBivector) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self - r.a0,
+            a5: -r.a5,
+            a6: -r.a6,
+            a7: -r.a7,
+            a8: -r.a8,
+            a9: -r.a9,
+            a10: -r.a10,
         }
     }
 }
@@ -358,6 +406,29 @@ impl Mul<Bivector> for Float {
     }
 }
 
+impl Mul<Trivector> for Float {
+    type Output = Trivector;
+
+    fn mul(self, r: Trivector) -> Trivector {
+        Trivector {
+            a11: self * r.a11,
+            a12: self * r.a12,
+            a13: self * r.a13,
+            a14: self * r.a14,
+        }
+    }
+}
+
+impl Mul<Pseudoscalar> for Float {
+    type Output = Pseudoscalar;
+
+    fn mul(self, r: Pseudoscalar) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self * r.a15,
+        }
+    }
+}
+
 impl Mul<ScalarAndBivector> for Float {
     type Output = ScalarAndBivector;
 
@@ -370,19 +441,6 @@ impl Mul<ScalarAndBivector> for Float {
             a8: self * r.a8,
             a9: self * r.a9,
             a10: self * r.a10,
-        }
-    }
-}
-
-impl Mul<Trivector> for Float {
-    type Output = Trivector;
-
-    fn mul(self, r: Trivector) -> Trivector {
-        Trivector {
-            a11: self * r.a11,
-            a12: self * r.a12,
-            a13: self * r.a13,
-            a14: self * r.a14,
         }
     }
 }
@@ -440,6 +498,29 @@ impl BitXor<Bivector> for Float {
     }
 }
 
+impl BitXor<Trivector> for Float {
+    type Output = Trivector;
+
+    fn bitxor(self, r: Trivector) -> Trivector {
+        Trivector {
+            a11: self * r.a11,
+            a12: self * r.a12,
+            a13: self * r.a13,
+            a14: self * r.a14,
+        }
+    }
+}
+
+impl BitXor<Pseudoscalar> for Float {
+    type Output = Pseudoscalar;
+
+    fn bitxor(self, r: Pseudoscalar) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self * r.a15,
+        }
+    }
+}
+
 impl BitXor<ScalarAndBivector> for Float {
     type Output = ScalarAndBivector;
 
@@ -452,19 +533,6 @@ impl BitXor<ScalarAndBivector> for Float {
             a8: self * r.a8,
             a9: self * r.a9,
             a10: self * r.a10,
-        }
-    }
-}
-
-impl BitXor<Trivector> for Float {
-    type Output = Trivector;
-
-    fn bitxor(self, r: Trivector) -> Trivector {
-        Trivector {
-            a11: self * r.a11,
-            a12: self * r.a12,
-            a13: self * r.a13,
-            a14: self * r.a14,
         }
     }
 }
@@ -510,18 +578,26 @@ impl BitAnd<Bivector> for Float {
     }
 }
 
-impl BitAnd<ScalarAndBivector> for Float {
-    type Output = Float;
-
-    fn bitand(self, _r: ScalarAndBivector) -> Float {
-        0.
-    }
-}
-
 impl BitAnd<Trivector> for Float {
     type Output = Float;
 
     fn bitand(self, _r: Trivector) -> Float {
+        0.
+    }
+}
+
+impl BitAnd<Pseudoscalar> for Float {
+    type Output = Float;
+
+    fn bitand(self, r: Pseudoscalar) -> Float {
+        self * r.a15
+    }
+}
+
+impl BitAnd<ScalarAndBivector> for Float {
+    type Output = Float;
+
+    fn bitand(self, _r: ScalarAndBivector) -> Float {
         0.
     }
 }
@@ -562,6 +638,29 @@ impl BitOr<Bivector> for Float {
     }
 }
 
+impl BitOr<Trivector> for Float {
+    type Output = Trivector;
+
+    fn bitor(self, r: Trivector) -> Trivector {
+        Trivector {
+            a11: self * r.a11,
+            a12: self * r.a12,
+            a13: self * r.a13,
+            a14: self * r.a14,
+        }
+    }
+}
+
+impl BitOr<Pseudoscalar> for Float {
+    type Output = Pseudoscalar;
+
+    fn bitor(self, r: Pseudoscalar) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self * r.a15,
+        }
+    }
+}
+
 impl BitOr<ScalarAndBivector> for Float {
     type Output = ScalarAndBivector;
 
@@ -574,19 +673,6 @@ impl BitOr<ScalarAndBivector> for Float {
             a8: self * r.a8,
             a9: self * r.a9,
             a10: self * r.a10,
-        }
-    }
-}
-
-impl BitOr<Trivector> for Float {
-    type Output = Trivector;
-
-    fn bitor(self, r: Trivector) -> Trivector {
-        Trivector {
-            a11: self * r.a11,
-            a12: self * r.a12,
-            a13: self * r.a13,
-            a14: self * r.a14,
         }
     }
 }
@@ -617,182 +703,50 @@ impl BitOr<FullMultivector> for Float {
 }
 
 impl Transform<Float> for Float {
-    type Output = Float;
-
     fn transform(self, r: Float) -> Float {
-        self.powi(2) * r
+        self * r.powi(2)
     }
 }
 
 impl Transform<Vector> for Float {
-    type Output = Vector;
-
-    fn transform(self, r: Vector) -> Vector {
-        Vector {
-            a1: self.powi(2) * r.a1,
-            a2: self.powi(2) * r.a2,
-            a3: self.powi(2) * r.a3,
-            a4: self.powi(2) * r.a4,
-        }
-    }
-}
-
-impl Transform<Bivector> for Float {
-    type Output = Bivector;
-
-    fn transform(self, r: Bivector) -> Bivector {
-        Bivector {
-            a5: self.powi(2) * r.a5,
-            a6: self.powi(2) * r.a6,
-            a7: self.powi(2) * r.a7,
-            a8: self.powi(2) * r.a8,
-            a9: self.powi(2) * r.a9,
-            a10: self.powi(2) * r.a10,
-        }
-    }
-}
-
-impl Transform<ScalarAndBivector> for Float {
-    type Output = ScalarAndBivector;
-
-    fn transform(self, r: ScalarAndBivector) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: self.powi(2) * r.a0,
-            a5: self.powi(2) * r.a5,
-            a6: self.powi(2) * r.a6,
-            a7: self.powi(2) * r.a7,
-            a8: self.powi(2) * r.a8,
-            a9: self.powi(2) * r.a9,
-            a10: self.powi(2) * r.a10,
-        }
+    fn transform(self, r: Vector) -> Float {
+        self * (r.a2.powi(2) + r.a3.powi(2) + r.a4.powi(2))
     }
 }
 
 impl Transform<Trivector> for Float {
-    type Output = Trivector;
-
-    fn transform(self, r: Trivector) -> Trivector {
-        Trivector {
-            a11: self.powi(2) * r.a11,
-            a12: self.powi(2) * r.a12,
-            a13: self.powi(2) * r.a13,
-            a14: self.powi(2) * r.a14,
-        }
+    fn transform(self, r: Trivector) -> Float {
+        self * r.a14.powi(2)
     }
 }
 
-impl Transform<FullMultivector> for Float {
-    type Output = FullMultivector;
-
-    fn transform(self, r: FullMultivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.powi(2) * r.a0,
-            a1: self.powi(2) * r.a1,
-            a2: self.powi(2) * r.a2,
-            a3: self.powi(2) * r.a3,
-            a4: self.powi(2) * r.a4,
-            a5: self.powi(2) * r.a5,
-            a6: self.powi(2) * r.a6,
-            a7: self.powi(2) * r.a7,
-            a8: self.powi(2) * r.a8,
-            a9: self.powi(2) * r.a9,
-            a10: self.powi(2) * r.a10,
-            a11: self.powi(2) * r.a11,
-            a12: self.powi(2) * r.a12,
-            a13: self.powi(2) * r.a13,
-            a14: self.powi(2) * r.a14,
-            a15: self.powi(2) * r.a15,
-        }
+impl Transform<Pseudoscalar> for Float {
+    fn transform(self, _r: Pseudoscalar) -> Float {
+        0.
     }
 }
 
 impl Reflect<Float> for Float {
-    type Output = Float;
-
     fn reflect(self, r: Float) -> Float {
-        self.powi(2) * r
+        self * r.powi(2)
     }
 }
 
 impl Reflect<Vector> for Float {
-    type Output = Vector;
-
-    fn reflect(self, r: Vector) -> Vector {
-        Vector {
-            a1: self.powi(2) * r.a1,
-            a2: self.powi(2) * r.a2,
-            a3: self.powi(2) * r.a3,
-            a4: self.powi(2) * r.a4,
-        }
-    }
-}
-
-impl Reflect<Bivector> for Float {
-    type Output = Bivector;
-
-    fn reflect(self, r: Bivector) -> Bivector {
-        Bivector {
-            a5: self.powi(2) * r.a5,
-            a6: self.powi(2) * r.a6,
-            a7: self.powi(2) * r.a7,
-            a8: self.powi(2) * r.a8,
-            a9: self.powi(2) * r.a9,
-            a10: self.powi(2) * r.a10,
-        }
-    }
-}
-
-impl Reflect<ScalarAndBivector> for Float {
-    type Output = ScalarAndBivector;
-
-    fn reflect(self, r: ScalarAndBivector) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: self.powi(2) * r.a0,
-            a5: self.powi(2) * r.a5,
-            a6: self.powi(2) * r.a6,
-            a7: self.powi(2) * r.a7,
-            a8: self.powi(2) * r.a8,
-            a9: self.powi(2) * r.a9,
-            a10: self.powi(2) * r.a10,
-        }
+    fn reflect(self, r: Vector) -> Float {
+        self * (r.a2.powi(2) + r.a3.powi(2) + r.a4.powi(2))
     }
 }
 
 impl Reflect<Trivector> for Float {
-    type Output = Trivector;
-
-    fn reflect(self, r: Trivector) -> Trivector {
-        Trivector {
-            a11: self.powi(2) * r.a11,
-            a12: self.powi(2) * r.a12,
-            a13: self.powi(2) * r.a13,
-            a14: self.powi(2) * r.a14,
-        }
+    fn reflect(self, r: Trivector) -> Float {
+        -self * r.a14.powi(2)
     }
 }
 
-impl Reflect<FullMultivector> for Float {
-    type Output = FullMultivector;
-
-    fn reflect(self, r: FullMultivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.powi(2) * r.a0,
-            a1: self.powi(2) * r.a1,
-            a2: self.powi(2) * r.a2,
-            a3: self.powi(2) * r.a3,
-            a4: self.powi(2) * r.a4,
-            a5: self.powi(2) * r.a5,
-            a6: self.powi(2) * r.a6,
-            a7: self.powi(2) * r.a7,
-            a8: self.powi(2) * r.a8,
-            a9: self.powi(2) * r.a9,
-            a10: self.powi(2) * r.a10,
-            a11: self.powi(2) * r.a11,
-            a12: self.powi(2) * r.a12,
-            a13: self.powi(2) * r.a13,
-            a14: self.powi(2) * r.a14,
-            a15: self.powi(2) * r.a15,
-        }
+impl Reflect<Pseudoscalar> for Float {
+    fn reflect(self, _r: Pseudoscalar) -> Float {
+        0.
     }
 }
 
@@ -850,7 +804,7 @@ impl Normalize for Vector {
     }
 }
 
-impl NormalizeDual for Vector {
+impl NormalizeInfinite for Vector {
     fn inorm(self) -> Float {
         self.a1.abs()
     }
@@ -967,31 +921,6 @@ impl Add<Bivector> for Vector {
     }
 }
 
-impl Add<ScalarAndBivector> for Vector {
-    type Output = FullMultivector;
-
-    fn add(self, r: ScalarAndBivector) -> FullMultivector {
-        FullMultivector {
-            a0: r.a0,
-            a1: self.a1,
-            a2: self.a2,
-            a3: self.a3,
-            a4: self.a4,
-            a5: r.a5,
-            a6: r.a6,
-            a7: r.a7,
-            a8: r.a8,
-            a9: r.a9,
-            a10: r.a10,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: 0.,
-        }
-    }
-}
-
 impl Add<Trivector> for Vector {
     type Output = FullMultivector;
 
@@ -1012,6 +941,56 @@ impl Add<Trivector> for Vector {
             a12: r.a12,
             a13: r.a13,
             a14: r.a14,
+            a15: 0.,
+        }
+    }
+}
+
+impl Add<Pseudoscalar> for Vector {
+    type Output = FullMultivector;
+
+    fn add(self, r: Pseudoscalar) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: self.a1,
+            a2: self.a2,
+            a3: self.a3,
+            a4: self.a4,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: r.a15,
+        }
+    }
+}
+
+impl Add<ScalarAndBivector> for Vector {
+    type Output = FullMultivector;
+
+    fn add(self, r: ScalarAndBivector) -> FullMultivector {
+        FullMultivector {
+            a0: r.a0,
+            a1: self.a1,
+            a2: self.a2,
+            a3: self.a3,
+            a4: self.a4,
+            a5: r.a5,
+            a6: r.a6,
+            a7: r.a7,
+            a8: r.a8,
+            a9: r.a9,
+            a10: r.a10,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
             a15: 0.,
         }
     }
@@ -1105,31 +1084,6 @@ impl Sub<Bivector> for Vector {
     }
 }
 
-impl Sub<ScalarAndBivector> for Vector {
-    type Output = FullMultivector;
-
-    fn sub(self, r: ScalarAndBivector) -> FullMultivector {
-        FullMultivector {
-            a0: -r.a0,
-            a1: self.a1,
-            a2: self.a2,
-            a3: self.a3,
-            a4: self.a4,
-            a5: -r.a5,
-            a6: -r.a6,
-            a7: -r.a7,
-            a8: -r.a8,
-            a9: -r.a9,
-            a10: -r.a10,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: 0.,
-        }
-    }
-}
-
 impl Sub<Trivector> for Vector {
     type Output = FullMultivector;
 
@@ -1150,6 +1104,56 @@ impl Sub<Trivector> for Vector {
             a12: -r.a12,
             a13: -r.a13,
             a14: -r.a14,
+            a15: 0.,
+        }
+    }
+}
+
+impl Sub<Pseudoscalar> for Vector {
+    type Output = FullMultivector;
+
+    fn sub(self, r: Pseudoscalar) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: self.a1,
+            a2: self.a2,
+            a3: self.a3,
+            a4: self.a4,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: -r.a15,
+        }
+    }
+}
+
+impl Sub<ScalarAndBivector> for Vector {
+    type Output = FullMultivector;
+
+    fn sub(self, r: ScalarAndBivector) -> FullMultivector {
+        FullMultivector {
+            a0: -r.a0,
+            a1: self.a1,
+            a2: self.a2,
+            a3: self.a3,
+            a4: self.a4,
+            a5: -r.a5,
+            a6: -r.a6,
+            a7: -r.a7,
+            a8: -r.a8,
+            a9: -r.a9,
+            a10: -r.a10,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
             a15: 0.,
         }
     }
@@ -1234,31 +1238,6 @@ impl Mul<Bivector> for Vector {
     }
 }
 
-impl Mul<ScalarAndBivector> for Vector {
-    type Output = FullMultivector;
-
-    fn mul(self, r: ScalarAndBivector) -> FullMultivector {
-        FullMultivector {
-            a0: 0.,
-            a1: self.a1 * r.a0 - self.a2 * r.a5 - self.a3 * r.a6 - self.a4 * r.a7,
-            a2: self.a2 * r.a0 - self.a3 * r.a8 + self.a4 * r.a9,
-            a3: self.a2 * r.a8 + self.a3 * r.a0 - self.a4 * r.a10,
-            a4: -self.a2 * r.a9 + self.a3 * r.a10 + self.a4 * r.a0,
-            a5: 0.,
-            a6: 0.,
-            a7: 0.,
-            a8: 0.,
-            a9: 0.,
-            a10: 0.,
-            a11: -self.a1 * r.a8 + self.a2 * r.a6 - self.a3 * r.a5,
-            a12: -self.a1 * r.a9 - self.a2 * r.a7 + self.a4 * r.a5,
-            a13: -self.a1 * r.a10 + self.a3 * r.a7 - self.a4 * r.a6,
-            a14: self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8,
-            a15: 0.,
-        }
-    }
-}
-
 impl Mul<Trivector> for Vector {
     type Output = FullMultivector;
 
@@ -1280,6 +1259,44 @@ impl Mul<Trivector> for Vector {
             a13: 0.,
             a14: 0.,
             a15: self.a1 * r.a14 + self.a2 * r.a13 + self.a3 * r.a12 + self.a4 * r.a11,
+        }
+    }
+}
+
+impl Mul<Pseudoscalar> for Vector {
+    type Output = Trivector;
+
+    fn mul(self, r: Pseudoscalar) -> Trivector {
+        Trivector {
+            a11: self.a4 * r.a15,
+            a12: self.a3 * r.a15,
+            a13: self.a2 * r.a15,
+            a14: 0.,
+        }
+    }
+}
+
+impl Mul<ScalarAndBivector> for Vector {
+    type Output = FullMultivector;
+
+    fn mul(self, r: ScalarAndBivector) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: self.a1 * r.a0 - self.a2 * r.a5 - self.a3 * r.a6 - self.a4 * r.a7,
+            a2: self.a2 * r.a0 - self.a3 * r.a8 + self.a4 * r.a9,
+            a3: self.a2 * r.a8 + self.a3 * r.a0 - self.a4 * r.a10,
+            a4: -self.a2 * r.a9 + self.a3 * r.a10 + self.a4 * r.a0,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: -self.a1 * r.a8 + self.a2 * r.a6 - self.a3 * r.a5,
+            a12: -self.a1 * r.a9 - self.a2 * r.a7 + self.a4 * r.a5,
+            a13: -self.a1 * r.a10 + self.a3 * r.a7 - self.a4 * r.a6,
+            a14: self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8,
+            a15: 0.,
         }
     }
 }
@@ -1350,6 +1367,24 @@ impl BitXor<Bivector> for Vector {
     }
 }
 
+impl BitXor<Trivector> for Vector {
+    type Output = Pseudoscalar;
+
+    fn bitxor(self, r: Trivector) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self.a1 * r.a14 + self.a2 * r.a13 + self.a3 * r.a12 + self.a4 * r.a11,
+        }
+    }
+}
+
+impl BitXor<Pseudoscalar> for Vector {
+    type Output = Float;
+
+    fn bitxor(self, _r: Pseudoscalar) -> Float {
+        0.
+    }
+}
+
 impl BitXor<ScalarAndBivector> for Vector {
     type Output = FullMultivector;
 
@@ -1371,31 +1406,6 @@ impl BitXor<ScalarAndBivector> for Vector {
             a13: -self.a1 * r.a10 + self.a3 * r.a7 - self.a4 * r.a6,
             a14: self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8,
             a15: 0.,
-        }
-    }
-}
-
-impl BitXor<Trivector> for Vector {
-    type Output = FullMultivector;
-
-    fn bitxor(self, r: Trivector) -> FullMultivector {
-        FullMultivector {
-            a0: 0.,
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: 0.,
-            a6: 0.,
-            a7: 0.,
-            a8: 0.,
-            a9: 0.,
-            a10: 0.,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: self.a1 * r.a14 + self.a2 * r.a13 + self.a3 * r.a12 + self.a4 * r.a11,
         }
     }
 }
@@ -1449,19 +1459,32 @@ impl BitAnd<Bivector> for Vector {
     }
 }
 
-impl BitAnd<ScalarAndBivector> for Vector {
-    type Output = Float;
-
-    fn bitand(self, _r: ScalarAndBivector) -> Float {
-        0.
-    }
-}
-
 impl BitAnd<Trivector> for Vector {
     type Output = Float;
 
     fn bitand(self, r: Trivector) -> Float {
         -self.a1 * r.a14 - self.a2 * r.a13 - self.a3 * r.a12 - self.a4 * r.a11
+    }
+}
+
+impl BitAnd<Pseudoscalar> for Vector {
+    type Output = Vector;
+
+    fn bitand(self, r: Pseudoscalar) -> Vector {
+        Vector {
+            a1: self.a1 * r.a15,
+            a2: self.a2 * r.a15,
+            a3: self.a3 * r.a15,
+            a4: self.a4 * r.a15,
+        }
+    }
+}
+
+impl BitAnd<ScalarAndBivector> for Vector {
+    type Output = Float;
+
+    fn bitand(self, _r: ScalarAndBivector) -> Float {
+        0.
     }
 }
 
@@ -1524,19 +1547,6 @@ impl BitOr<Bivector> for Vector {
     }
 }
 
-impl BitOr<ScalarAndBivector> for Vector {
-    type Output = Vector;
-
-    fn bitor(self, r: ScalarAndBivector) -> Vector {
-        Vector {
-            a1: self.a1 * r.a0 - self.a2 * r.a5 - self.a3 * r.a6 - self.a4 * r.a7,
-            a2: self.a2 * r.a0 - self.a3 * r.a8 + self.a4 * r.a9,
-            a3: self.a2 * r.a8 + self.a3 * r.a0 - self.a4 * r.a10,
-            a4: -self.a2 * r.a9 + self.a3 * r.a10 + self.a4 * r.a0,
-        }
-    }
-}
-
 impl BitOr<Trivector> for Vector {
     type Output = Bivector;
 
@@ -1548,6 +1558,32 @@ impl BitOr<Trivector> for Vector {
             a8: self.a4 * r.a14,
             a9: self.a3 * r.a14,
             a10: self.a2 * r.a14,
+        }
+    }
+}
+
+impl BitOr<Pseudoscalar> for Vector {
+    type Output = Trivector;
+
+    fn bitor(self, r: Pseudoscalar) -> Trivector {
+        Trivector {
+            a11: self.a4 * r.a15,
+            a12: self.a3 * r.a15,
+            a13: self.a2 * r.a15,
+            a14: 0.,
+        }
+    }
+}
+
+impl BitOr<ScalarAndBivector> for Vector {
+    type Output = Vector;
+
+    fn bitor(self, r: ScalarAndBivector) -> Vector {
+        Vector {
+            a1: self.a1 * r.a0 - self.a2 * r.a5 - self.a3 * r.a6 - self.a4 * r.a7,
+            a2: self.a2 * r.a0 - self.a3 * r.a8 + self.a4 * r.a9,
+            a3: self.a2 * r.a8 + self.a3 * r.a0 - self.a4 * r.a10,
+            a4: -self.a2 * r.a9 + self.a3 * r.a10 + self.a4 * r.a0,
         }
     }
 }
@@ -1578,181 +1614,122 @@ impl BitOr<FullMultivector> for Vector {
 }
 
 impl Transform<Float> for Vector {
-    type Output = Float;
-
-    fn transform(self, r: Float) -> Float {
-        r * (self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2))
+    fn transform(self, r: Float) -> Vector {
+        Vector {
+            a1: self.a1 * r.powi(2),
+            a2: self.a2 * r.powi(2),
+            a3: self.a3 * r.powi(2),
+            a4: self.a4 * r.powi(2),
+        }
     }
 }
 
 impl Transform<Vector> for Vector {
-    type Output = Vector;
-
     fn transform(self, r: Vector) -> Vector {
         Vector {
-            a1: 2. * self.a1 * self.a2 * r.a2 + 2. * self.a1 * self.a3 * r.a3 + 2. * self.a1 * self.a4 * r.a4 - self.a2.powi(2) * r.a1 - self.a3.powi(2) * r.a1 - self.a4.powi(2) * r.a1,
-            a2: self.a2 * (self.a2 * r.a2 + self.a3 * r.a3 + self.a4 * r.a4) + self.a3 * (self.a2 * r.a3 - self.a3 * r.a2) + self.a4 * (self.a2 * r.a4 - self.a4 * r.a2),
-            a3: -self.a2 * (self.a2 * r.a3 - self.a3 * r.a2) + self.a3 * (self.a2 * r.a2 + self.a3 * r.a3 + self.a4 * r.a4) + self.a4 * (self.a3 * r.a4 - self.a4 * r.a3),
-            a4: -self.a2 * (self.a2 * r.a4 - self.a4 * r.a2) - self.a3 * (self.a3 * r.a4 - self.a4 * r.a3) + self.a4 * (self.a2 * r.a2 + self.a3 * r.a3 + self.a4 * r.a4),
+            a1: -self.a1 * r.a2.powi(2) - self.a1 * r.a3.powi(2) - self.a1 * r.a4.powi(2) + 2. * self.a2 * r.a1 * r.a2 + 2. * self.a3 * r.a1 * r.a3 + 2. * self.a4 * r.a1 * r.a4,
+            a2: r.a2 * (self.a2 * r.a2 + self.a3 * r.a3 + self.a4 * r.a4) - r.a3 * (self.a2 * r.a3 - self.a3 * r.a2) - r.a4 * (self.a2 * r.a4 - self.a4 * r.a2),
+            a3: r.a2 * (self.a2 * r.a3 - self.a3 * r.a2) + r.a3 * (self.a2 * r.a2 + self.a3 * r.a3 + self.a4 * r.a4) - r.a4 * (self.a3 * r.a4 - self.a4 * r.a3),
+            a4: r.a2 * (self.a2 * r.a4 - self.a4 * r.a2) + r.a3 * (self.a3 * r.a4 - self.a4 * r.a3) + r.a4 * (self.a2 * r.a2 + self.a3 * r.a3 + self.a4 * r.a4),
         }
     }
 }
 
 impl Transform<Bivector> for Vector {
-    type Output = Bivector;
-
-    fn transform(self, r: Bivector) -> Bivector {
-        Bivector {
-            a5: 2. * self.a1 * self.a3 * r.a8 - 2. * self.a1 * self.a4 * r.a9 - self.a2.powi(2) * r.a5 - 2. * self.a2 * self.a3 * r.a6 - 2. * self.a2 * self.a4 * r.a7 + self.a3.powi(2) * r.a5 + self.a4.powi(2) * r.a5,
-            a6: -2. * self.a1 * self.a2 * r.a8 + 2. * self.a1 * self.a4 * r.a10 + self.a2.powi(2) * r.a6 - 2. * self.a2 * self.a3 * r.a5 - self.a3.powi(2) * r.a6 - 2. * self.a3 * self.a4 * r.a7 + self.a4.powi(2) * r.a6,
-            a7: 2. * self.a1 * self.a2 * r.a9 - 2. * self.a1 * self.a3 * r.a10 + self.a2.powi(2) * r.a7 - 2. * self.a2 * self.a4 * r.a5 + self.a3.powi(2) * r.a7 - 2. * self.a3 * self.a4 * r.a6 - self.a4.powi(2) * r.a7,
-            a8: -self.a2 * (self.a2 * r.a8 - self.a4 * r.a10) - self.a3 * (self.a3 * r.a8 - self.a4 * r.a9) + self.a4 * (self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8),
-            a9: -self.a2 * (self.a2 * r.a9 - self.a3 * r.a10) + self.a3 * (self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8) + self.a4 * (self.a3 * r.a8 - self.a4 * r.a9),
-            a10: self.a2 * (self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8) + self.a3 * (self.a2 * r.a9 - self.a3 * r.a10) + self.a4 * (self.a2 * r.a8 - self.a4 * r.a10),
-        }
-    }
-}
-
-impl Transform<ScalarAndBivector> for Vector {
-    type Output = ScalarAndBivector;
-
-    fn transform(self, r: ScalarAndBivector) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: r.a0 * (self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2)),
-            a5: 2. * self.a1 * self.a3 * r.a8 - 2. * self.a1 * self.a4 * r.a9 - self.a2.powi(2) * r.a5 - 2. * self.a2 * self.a3 * r.a6 - 2. * self.a2 * self.a4 * r.a7 + self.a3.powi(2) * r.a5 + self.a4.powi(2) * r.a5,
-            a6: -2. * self.a1 * self.a2 * r.a8 + 2. * self.a1 * self.a4 * r.a10 + self.a2.powi(2) * r.a6 - 2. * self.a2 * self.a3 * r.a5 - self.a3.powi(2) * r.a6 - 2. * self.a3 * self.a4 * r.a7 + self.a4.powi(2) * r.a6,
-            a7: 2. * self.a1 * self.a2 * r.a9 - 2. * self.a1 * self.a3 * r.a10 + self.a2.powi(2) * r.a7 - 2. * self.a2 * self.a4 * r.a5 + self.a3.powi(2) * r.a7 - 2. * self.a3 * self.a4 * r.a6 - self.a4.powi(2) * r.a7,
-            a8: -self.a2.powi(2) * r.a8 + 2. * self.a2 * self.a4 * r.a10 - self.a3.powi(2) * r.a8 + 2. * self.a3 * self.a4 * r.a9 + self.a4.powi(2) * r.a8,
-            a9: -self.a2.powi(2) * r.a9 + 2. * self.a2 * self.a3 * r.a10 + self.a3.powi(2) * r.a9 + 2. * self.a3 * self.a4 * r.a8 - self.a4.powi(2) * r.a9,
-            a10: self.a2.powi(2) * r.a10 + 2. * self.a2 * self.a3 * r.a9 + 2. * self.a2 * self.a4 * r.a8 - self.a3.powi(2) * r.a10 - self.a4.powi(2) * r.a10,
+    fn transform(self, r: Bivector) -> Vector {
+        Vector {
+            a1: self.a1 * r.a8.powi(2) + self.a1 * r.a9.powi(2) + self.a1 * r.a10.powi(2) - 2. * self.a2 * r.a6 * r.a8 + 2. * self.a2 * r.a7 * r.a9 + 2. * self.a3 * r.a5 * r.a8 - 2. * self.a3 * r.a7 * r.a10 - 2. * self.a4 * r.a5 * r.a9 + 2. * self.a4 * r.a6 * r.a10,
+            a2: -r.a8 * (self.a2 * r.a8 - self.a4 * r.a10) - r.a9 * (self.a2 * r.a9 - self.a3 * r.a10) + r.a10 * (self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8),
+            a3: -r.a8 * (self.a3 * r.a8 - self.a4 * r.a9) + r.a9 * (self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8) + r.a10 * (self.a2 * r.a9 - self.a3 * r.a10),
+            a4: r.a8 * (self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8) + r.a9 * (self.a3 * r.a8 - self.a4 * r.a9) + r.a10 * (self.a2 * r.a8 - self.a4 * r.a10),
         }
     }
 }
 
 impl Transform<Trivector> for Vector {
-    type Output = Trivector;
-
-    fn transform(self, r: Trivector) -> Trivector {
-        Trivector {
-            a11: -2. * self.a1 * self.a4 * r.a14 + self.a2.powi(2) * r.a11 - 2. * self.a2 * self.a4 * r.a13 + self.a3.powi(2) * r.a11 - 2. * self.a3 * self.a4 * r.a12 - self.a4.powi(2) * r.a11,
-            a12: -2. * self.a1 * self.a3 * r.a14 + self.a2.powi(2) * r.a12 - 2. * self.a2 * self.a3 * r.a13 - self.a3.powi(2) * r.a12 - 2. * self.a3 * self.a4 * r.a11 + self.a4.powi(2) * r.a12,
-            a13: -2. * self.a1 * self.a2 * r.a14 - self.a2.powi(2) * r.a13 - 2. * self.a2 * self.a3 * r.a12 - 2. * self.a2 * self.a4 * r.a11 + self.a3.powi(2) * r.a13 + self.a4.powi(2) * r.a13,
-            a14: r.a14 * (self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2)),
+    fn transform(self, r: Trivector) -> Vector {
+        Vector {
+            a1: -r.a14 * (self.a1 * r.a14 + 2. * self.a2 * r.a13 + 2. * self.a3 * r.a12 + 2. * self.a4 * r.a11),
+            a2: self.a2 * r.a14.powi(2),
+            a3: self.a3 * r.a14.powi(2),
+            a4: self.a4 * r.a14.powi(2),
         }
     }
 }
 
-impl Transform<FullMultivector> for Vector {
-    type Output = FullMultivector;
+impl Transform<Pseudoscalar> for Vector {
+    fn transform(self, _r: Pseudoscalar) -> Vector {
+        Vector {
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+        }
+    }
+}
 
-    fn transform(self, r: FullMultivector) -> FullMultivector {
-        FullMultivector {
-            a0: r.a0 * (self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2)),
-            a1: 2. * self.a1 * self.a2 * r.a2 + 2. * self.a1 * self.a3 * r.a3 + 2. * self.a1 * self.a4 * r.a4 - self.a2.powi(2) * r.a1 - self.a3.powi(2) * r.a1 - self.a4.powi(2) * r.a1,
-            a2: self.a2.powi(2) * r.a2 + 2. * self.a2 * self.a3 * r.a3 + 2. * self.a2 * self.a4 * r.a4 - self.a3.powi(2) * r.a2 - self.a4.powi(2) * r.a2,
-            a3: -self.a2.powi(2) * r.a3 + 2. * self.a2 * self.a3 * r.a2 + self.a3.powi(2) * r.a3 + 2. * self.a3 * self.a4 * r.a4 - self.a4.powi(2) * r.a3,
-            a4: -self.a2.powi(2) * r.a4 + 2. * self.a2 * self.a4 * r.a2 - self.a3.powi(2) * r.a4 + 2. * self.a3 * self.a4 * r.a3 + self.a4.powi(2) * r.a4,
-            a5: 2. * self.a1 * self.a3 * r.a8 - 2. * self.a1 * self.a4 * r.a9 - self.a2.powi(2) * r.a5 - 2. * self.a2 * self.a3 * r.a6 - 2. * self.a2 * self.a4 * r.a7 + self.a3.powi(2) * r.a5 + self.a4.powi(2) * r.a5,
-            a6: -2. * self.a1 * self.a2 * r.a8 + 2. * self.a1 * self.a4 * r.a10 + self.a2.powi(2) * r.a6 - 2. * self.a2 * self.a3 * r.a5 - self.a3.powi(2) * r.a6 - 2. * self.a3 * self.a4 * r.a7 + self.a4.powi(2) * r.a6,
-            a7: 2. * self.a1 * self.a2 * r.a9 - 2. * self.a1 * self.a3 * r.a10 + self.a2.powi(2) * r.a7 - 2. * self.a2 * self.a4 * r.a5 + self.a3.powi(2) * r.a7 - 2. * self.a3 * self.a4 * r.a6 - self.a4.powi(2) * r.a7,
-            a8: -self.a2.powi(2) * r.a8 + 2. * self.a2 * self.a4 * r.a10 - self.a3.powi(2) * r.a8 + 2. * self.a3 * self.a4 * r.a9 + self.a4.powi(2) * r.a8,
-            a9: -self.a2.powi(2) * r.a9 + 2. * self.a2 * self.a3 * r.a10 + self.a3.powi(2) * r.a9 + 2. * self.a3 * self.a4 * r.a8 - self.a4.powi(2) * r.a9,
-            a10: self.a2.powi(2) * r.a10 + 2. * self.a2 * self.a3 * r.a9 + 2. * self.a2 * self.a4 * r.a8 - self.a3.powi(2) * r.a10 - self.a4.powi(2) * r.a10,
-            a11: -2. * self.a1 * self.a4 * r.a14 + self.a2.powi(2) * r.a11 - 2. * self.a2 * self.a4 * r.a13 + self.a3.powi(2) * r.a11 - 2. * self.a3 * self.a4 * r.a12 - self.a4.powi(2) * r.a11,
-            a12: -2. * self.a1 * self.a3 * r.a14 + self.a2.powi(2) * r.a12 - 2. * self.a2 * self.a3 * r.a13 - self.a3.powi(2) * r.a12 - 2. * self.a3 * self.a4 * r.a11 + self.a4.powi(2) * r.a12,
-            a13: -2. * self.a1 * self.a2 * r.a14 - self.a2.powi(2) * r.a13 - 2. * self.a2 * self.a3 * r.a12 - 2. * self.a2 * self.a4 * r.a11 + self.a3.powi(2) * r.a13 + self.a4.powi(2) * r.a13,
-            a14: r.a14 * (self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2)),
-            a15: -r.a15 * (self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2)),
+impl Transform<ScalarAndBivector> for Vector {
+    fn transform(self, r: ScalarAndBivector) -> Vector {
+        Vector {
+            a1: self.a1 * r.a0.powi(2) + self.a1 * r.a8.powi(2) + self.a1 * r.a9.powi(2) + self.a1 * r.a10.powi(2) + 2. * self.a2 * r.a0 * r.a5 - 2. * self.a2 * r.a6 * r.a8 + 2. * self.a2 * r.a7 * r.a9 + 2. * self.a3 * r.a0 * r.a6 + 2. * self.a3 * r.a5 * r.a8 - 2. * self.a3 * r.a7 * r.a10 + 2. * self.a4 * r.a0 * r.a7 - 2. * self.a4 * r.a5 * r.a9 + 2. * self.a4 * r.a6 * r.a10,
+            a2: r.a0 * (self.a2 * r.a0 + self.a3 * r.a8 - self.a4 * r.a9) + r.a8 * (-self.a2 * r.a8 + self.a3 * r.a0 + self.a4 * r.a10) - r.a9 * (self.a2 * r.a9 - self.a3 * r.a10 + self.a4 * r.a0) + r.a10 * (self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8),
+            a3: r.a0 * (-self.a2 * r.a8 + self.a3 * r.a0 + self.a4 * r.a10) - r.a8 * (self.a2 * r.a0 + self.a3 * r.a8 - self.a4 * r.a9) + r.a9 * (self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8) + r.a10 * (self.a2 * r.a9 - self.a3 * r.a10 + self.a4 * r.a0),
+            a4: r.a0 * (self.a2 * r.a9 - self.a3 * r.a10 + self.a4 * r.a0) + r.a8 * (self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8) + r.a9 * (self.a2 * r.a0 + self.a3 * r.a8 - self.a4 * r.a9) - r.a10 * (-self.a2 * r.a8 + self.a3 * r.a0 + self.a4 * r.a10),
         }
     }
 }
 
 impl Reflect<Float> for Vector {
-    type Output = Float;
-
-    fn reflect(self, r: Float) -> Float {
-        r * (self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2))
+    fn reflect(self, r: Float) -> Vector {
+        Vector {
+            a1: self.a1 * r.powi(2),
+            a2: self.a2 * r.powi(2),
+            a3: self.a3 * r.powi(2),
+            a4: self.a4 * r.powi(2),
+        }
     }
 }
 
 impl Reflect<Vector> for Vector {
-    type Output = Vector;
-
     fn reflect(self, r: Vector) -> Vector {
         Vector {
-            a1: 2. * self.a1 * self.a2 * r.a2 + 2. * self.a1 * self.a3 * r.a3 + 2. * self.a1 * self.a4 * r.a4 - self.a2.powi(2) * r.a1 - self.a3.powi(2) * r.a1 - self.a4.powi(2) * r.a1,
-            a2: self.a2 * (self.a2 * r.a2 + self.a3 * r.a3 + self.a4 * r.a4) + self.a3 * (self.a2 * r.a3 - self.a3 * r.a2) + self.a4 * (self.a2 * r.a4 - self.a4 * r.a2),
-            a3: -self.a2 * (self.a2 * r.a3 - self.a3 * r.a2) + self.a3 * (self.a2 * r.a2 + self.a3 * r.a3 + self.a4 * r.a4) + self.a4 * (self.a3 * r.a4 - self.a4 * r.a3),
-            a4: -self.a2 * (self.a2 * r.a4 - self.a4 * r.a2) - self.a3 * (self.a3 * r.a4 - self.a4 * r.a3) + self.a4 * (self.a2 * r.a2 + self.a3 * r.a3 + self.a4 * r.a4),
+            a1: -self.a1 * r.a2.powi(2) - self.a1 * r.a3.powi(2) - self.a1 * r.a4.powi(2) + 2. * self.a2 * r.a1 * r.a2 + 2. * self.a3 * r.a1 * r.a3 + 2. * self.a4 * r.a1 * r.a4,
+            a2: r.a2 * (self.a2 * r.a2 + self.a3 * r.a3 + self.a4 * r.a4) - r.a3 * (self.a2 * r.a3 - self.a3 * r.a2) - r.a4 * (self.a2 * r.a4 - self.a4 * r.a2),
+            a3: r.a2 * (self.a2 * r.a3 - self.a3 * r.a2) + r.a3 * (self.a2 * r.a2 + self.a3 * r.a3 + self.a4 * r.a4) - r.a4 * (self.a3 * r.a4 - self.a4 * r.a3),
+            a4: r.a2 * (self.a2 * r.a4 - self.a4 * r.a2) + r.a3 * (self.a3 * r.a4 - self.a4 * r.a3) + r.a4 * (self.a2 * r.a2 + self.a3 * r.a3 + self.a4 * r.a4),
         }
     }
 }
 
 impl Reflect<Bivector> for Vector {
-    type Output = Bivector;
-
-    fn reflect(self, r: Bivector) -> Bivector {
-        Bivector {
-            a5: 2. * self.a1 * self.a3 * r.a8 - 2. * self.a1 * self.a4 * r.a9 - self.a2.powi(2) * r.a5 - 2. * self.a2 * self.a3 * r.a6 - 2. * self.a2 * self.a4 * r.a7 + self.a3.powi(2) * r.a5 + self.a4.powi(2) * r.a5,
-            a6: -2. * self.a1 * self.a2 * r.a8 + 2. * self.a1 * self.a4 * r.a10 + self.a2.powi(2) * r.a6 - 2. * self.a2 * self.a3 * r.a5 - self.a3.powi(2) * r.a6 - 2. * self.a3 * self.a4 * r.a7 + self.a4.powi(2) * r.a6,
-            a7: 2. * self.a1 * self.a2 * r.a9 - 2. * self.a1 * self.a3 * r.a10 + self.a2.powi(2) * r.a7 - 2. * self.a2 * self.a4 * r.a5 + self.a3.powi(2) * r.a7 - 2. * self.a3 * self.a4 * r.a6 - self.a4.powi(2) * r.a7,
-            a8: -self.a2 * (self.a2 * r.a8 - self.a4 * r.a10) - self.a3 * (self.a3 * r.a8 - self.a4 * r.a9) + self.a4 * (self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8),
-            a9: -self.a2 * (self.a2 * r.a9 - self.a3 * r.a10) + self.a3 * (self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8) + self.a4 * (self.a3 * r.a8 - self.a4 * r.a9),
-            a10: self.a2 * (self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8) + self.a3 * (self.a2 * r.a9 - self.a3 * r.a10) + self.a4 * (self.a2 * r.a8 - self.a4 * r.a10),
-        }
-    }
-}
-
-impl Reflect<ScalarAndBivector> for Vector {
-    type Output = ScalarAndBivector;
-
-    fn reflect(self, r: ScalarAndBivector) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: r.a0 * (self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2)),
-            a5: 2. * self.a1 * self.a3 * r.a8 - 2. * self.a1 * self.a4 * r.a9 - self.a2.powi(2) * r.a5 - 2. * self.a2 * self.a3 * r.a6 - 2. * self.a2 * self.a4 * r.a7 + self.a3.powi(2) * r.a5 + self.a4.powi(2) * r.a5,
-            a6: -2. * self.a1 * self.a2 * r.a8 + 2. * self.a1 * self.a4 * r.a10 + self.a2.powi(2) * r.a6 - 2. * self.a2 * self.a3 * r.a5 - self.a3.powi(2) * r.a6 - 2. * self.a3 * self.a4 * r.a7 + self.a4.powi(2) * r.a6,
-            a7: 2. * self.a1 * self.a2 * r.a9 - 2. * self.a1 * self.a3 * r.a10 + self.a2.powi(2) * r.a7 - 2. * self.a2 * self.a4 * r.a5 + self.a3.powi(2) * r.a7 - 2. * self.a3 * self.a4 * r.a6 - self.a4.powi(2) * r.a7,
-            a8: -self.a2.powi(2) * r.a8 + 2. * self.a2 * self.a4 * r.a10 - self.a3.powi(2) * r.a8 + 2. * self.a3 * self.a4 * r.a9 + self.a4.powi(2) * r.a8,
-            a9: -self.a2.powi(2) * r.a9 + 2. * self.a2 * self.a3 * r.a10 + self.a3.powi(2) * r.a9 + 2. * self.a3 * self.a4 * r.a8 - self.a4.powi(2) * r.a9,
-            a10: self.a2.powi(2) * r.a10 + 2. * self.a2 * self.a3 * r.a9 + 2. * self.a2 * self.a4 * r.a8 - self.a3.powi(2) * r.a10 - self.a4.powi(2) * r.a10,
+    fn reflect(self, r: Bivector) -> Vector {
+        Vector {
+            a1: -self.a1 * r.a8.powi(2) - self.a1 * r.a9.powi(2) - self.a1 * r.a10.powi(2) + 2. * self.a2 * r.a6 * r.a8 - 2. * self.a2 * r.a7 * r.a9 - 2. * self.a3 * r.a5 * r.a8 + 2. * self.a3 * r.a7 * r.a10 + 2. * self.a4 * r.a5 * r.a9 - 2. * self.a4 * r.a6 * r.a10,
+            a2: r.a8 * (self.a2 * r.a8 - self.a4 * r.a10) + r.a9 * (self.a2 * r.a9 - self.a3 * r.a10) - r.a10 * (self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8),
+            a3: r.a8 * (self.a3 * r.a8 - self.a4 * r.a9) - r.a9 * (self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8) - r.a10 * (self.a2 * r.a9 - self.a3 * r.a10),
+            a4: -2. * self.a2 * r.a8 * r.a10 - 2. * self.a3 * r.a8 * r.a9 - self.a4 * r.a8.powi(2) + self.a4 * r.a9.powi(2) + self.a4 * r.a10.powi(2),
         }
     }
 }
 
 impl Reflect<Trivector> for Vector {
-    type Output = Trivector;
-
-    fn reflect(self, r: Trivector) -> Trivector {
-        Trivector {
-            a11: -2. * self.a1 * self.a4 * r.a14 + self.a2.powi(2) * r.a11 - 2. * self.a2 * self.a4 * r.a13 + self.a3.powi(2) * r.a11 - 2. * self.a3 * self.a4 * r.a12 - self.a4.powi(2) * r.a11,
-            a12: -2. * self.a1 * self.a3 * r.a14 + self.a2.powi(2) * r.a12 - 2. * self.a2 * self.a3 * r.a13 - self.a3.powi(2) * r.a12 - 2. * self.a3 * self.a4 * r.a11 + self.a4.powi(2) * r.a12,
-            a13: -2. * self.a1 * self.a2 * r.a14 - self.a2.powi(2) * r.a13 - 2. * self.a2 * self.a3 * r.a12 - 2. * self.a2 * self.a4 * r.a11 + self.a3.powi(2) * r.a13 + self.a4.powi(2) * r.a13,
-            a14: r.a14 * (self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2)),
+    fn reflect(self, r: Trivector) -> Vector {
+        Vector {
+            a1: r.a14 * (self.a1 * r.a14 + 2. * self.a2 * r.a13 + 2. * self.a3 * r.a12 + 2. * self.a4 * r.a11),
+            a2: -self.a2 * r.a14.powi(2),
+            a3: -self.a3 * r.a14.powi(2),
+            a4: -self.a4 * r.a14.powi(2),
         }
     }
 }
 
-impl Reflect<FullMultivector> for Vector {
-    type Output = FullMultivector;
-
-    fn reflect(self, r: FullMultivector) -> FullMultivector {
-        FullMultivector {
-            a0: r.a0 * (self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2)),
-            a1: 2. * self.a1 * self.a2 * r.a2 + 2. * self.a1 * self.a3 * r.a3 + 2. * self.a1 * self.a4 * r.a4 - self.a2.powi(2) * r.a1 - self.a3.powi(2) * r.a1 - self.a4.powi(2) * r.a1,
-            a2: self.a2.powi(2) * r.a2 + 2. * self.a2 * self.a3 * r.a3 + 2. * self.a2 * self.a4 * r.a4 - self.a3.powi(2) * r.a2 - self.a4.powi(2) * r.a2,
-            a3: -self.a2.powi(2) * r.a3 + 2. * self.a2 * self.a3 * r.a2 + self.a3.powi(2) * r.a3 + 2. * self.a3 * self.a4 * r.a4 - self.a4.powi(2) * r.a3,
-            a4: -self.a2.powi(2) * r.a4 + 2. * self.a2 * self.a4 * r.a2 - self.a3.powi(2) * r.a4 + 2. * self.a3 * self.a4 * r.a3 + self.a4.powi(2) * r.a4,
-            a5: 2. * self.a1 * self.a3 * r.a8 - 2. * self.a1 * self.a4 * r.a9 - self.a2.powi(2) * r.a5 - 2. * self.a2 * self.a3 * r.a6 - 2. * self.a2 * self.a4 * r.a7 + self.a3.powi(2) * r.a5 + self.a4.powi(2) * r.a5,
-            a6: -2. * self.a1 * self.a2 * r.a8 + 2. * self.a1 * self.a4 * r.a10 + self.a2.powi(2) * r.a6 - 2. * self.a2 * self.a3 * r.a5 - self.a3.powi(2) * r.a6 - 2. * self.a3 * self.a4 * r.a7 + self.a4.powi(2) * r.a6,
-            a7: 2. * self.a1 * self.a2 * r.a9 - 2. * self.a1 * self.a3 * r.a10 + self.a2.powi(2) * r.a7 - 2. * self.a2 * self.a4 * r.a5 + self.a3.powi(2) * r.a7 - 2. * self.a3 * self.a4 * r.a6 - self.a4.powi(2) * r.a7,
-            a8: -self.a2.powi(2) * r.a8 + 2. * self.a2 * self.a4 * r.a10 - self.a3.powi(2) * r.a8 + 2. * self.a3 * self.a4 * r.a9 + self.a4.powi(2) * r.a8,
-            a9: -self.a2.powi(2) * r.a9 + 2. * self.a2 * self.a3 * r.a10 + self.a3.powi(2) * r.a9 + 2. * self.a3 * self.a4 * r.a8 - self.a4.powi(2) * r.a9,
-            a10: self.a2.powi(2) * r.a10 + 2. * self.a2 * self.a3 * r.a9 + 2. * self.a2 * self.a4 * r.a8 - self.a3.powi(2) * r.a10 - self.a4.powi(2) * r.a10,
-            a11: -2. * self.a1 * self.a4 * r.a14 + self.a2.powi(2) * r.a11 - 2. * self.a2 * self.a4 * r.a13 + self.a3.powi(2) * r.a11 - 2. * self.a3 * self.a4 * r.a12 - self.a4.powi(2) * r.a11,
-            a12: -2. * self.a1 * self.a3 * r.a14 + self.a2.powi(2) * r.a12 - 2. * self.a2 * self.a3 * r.a13 - self.a3.powi(2) * r.a12 - 2. * self.a3 * self.a4 * r.a11 + self.a4.powi(2) * r.a12,
-            a13: -2. * self.a1 * self.a2 * r.a14 - self.a2.powi(2) * r.a13 - 2. * self.a2 * self.a3 * r.a12 - 2. * self.a2 * self.a4 * r.a11 + self.a3.powi(2) * r.a13 + self.a4.powi(2) * r.a13,
-            a14: r.a14 * (self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2)),
-            a15: -r.a15 * (self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2)),
+impl Reflect<Pseudoscalar> for Vector {
+    fn reflect(self, _r: Pseudoscalar) -> Vector {
+        Vector {
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
         }
     }
 }
@@ -1819,7 +1796,7 @@ impl Normalize for Bivector {
     }
 }
 
-impl NormalizeDual for Bivector {
+impl NormalizeInfinite for Bivector {
     fn inorm(self) -> Float {
         (self.a5.powi(2) + self.a6.powi(2) + self.a7.powi(2)).sqrt()
     }
@@ -1931,22 +1908,6 @@ impl Add<Bivector> for Bivector {
     }
 }
 
-impl Add<ScalarAndBivector> for Bivector {
-    type Output = ScalarAndBivector;
-
-    fn add(self, r: ScalarAndBivector) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: r.a0,
-            a5: self.a5 + r.a5,
-            a6: self.a6 + r.a6,
-            a7: self.a7 + r.a7,
-            a8: self.a8 + r.a8,
-            a9: self.a9 + r.a9,
-            a10: self.a10 + r.a10,
-        }
-    }
-}
-
 impl Add<Trivector> for Bivector {
     type Output = FullMultivector;
 
@@ -1968,6 +1929,47 @@ impl Add<Trivector> for Bivector {
             a13: r.a13,
             a14: r.a14,
             a15: 0.,
+        }
+    }
+}
+
+impl Add<Pseudoscalar> for Bivector {
+    type Output = FullMultivector;
+
+    fn add(self, r: Pseudoscalar) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: self.a5,
+            a6: self.a6,
+            a7: self.a7,
+            a8: self.a8,
+            a9: self.a9,
+            a10: self.a10,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: r.a15,
+        }
+    }
+}
+
+impl Add<ScalarAndBivector> for Bivector {
+    type Output = ScalarAndBivector;
+
+    fn add(self, r: ScalarAndBivector) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: r.a0,
+            a5: self.a5 + r.a5,
+            a6: self.a6 + r.a6,
+            a7: self.a7 + r.a7,
+            a8: self.a8 + r.a8,
+            a9: self.a9 + r.a9,
+            a10: self.a10 + r.a10,
         }
     }
 }
@@ -2053,22 +2055,6 @@ impl Sub<Bivector> for Bivector {
     }
 }
 
-impl Sub<ScalarAndBivector> for Bivector {
-    type Output = ScalarAndBivector;
-
-    fn sub(self, r: ScalarAndBivector) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: -r.a0,
-            a5: self.a5 - r.a5,
-            a6: self.a6 - r.a6,
-            a7: self.a7 - r.a7,
-            a8: self.a8 - r.a8,
-            a9: self.a9 - r.a9,
-            a10: self.a10 - r.a10,
-        }
-    }
-}
-
 impl Sub<Trivector> for Bivector {
     type Output = FullMultivector;
 
@@ -2090,6 +2076,47 @@ impl Sub<Trivector> for Bivector {
             a13: -r.a13,
             a14: -r.a14,
             a15: 0.,
+        }
+    }
+}
+
+impl Sub<Pseudoscalar> for Bivector {
+    type Output = FullMultivector;
+
+    fn sub(self, r: Pseudoscalar) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: self.a5,
+            a6: self.a6,
+            a7: self.a7,
+            a8: self.a8,
+            a9: self.a9,
+            a10: self.a10,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: -r.a15,
+        }
+    }
+}
+
+impl Sub<ScalarAndBivector> for Bivector {
+    type Output = ScalarAndBivector;
+
+    fn sub(self, r: ScalarAndBivector) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: -r.a0,
+            a5: self.a5 - r.a5,
+            a6: self.a6 - r.a6,
+            a7: self.a7 - r.a7,
+            a8: self.a8 - r.a8,
+            a9: self.a9 - r.a9,
+            a10: self.a10 - r.a10,
         }
     }
 }
@@ -2184,31 +2211,6 @@ impl Mul<Bivector> for Bivector {
     }
 }
 
-impl Mul<ScalarAndBivector> for Bivector {
-    type Output = FullMultivector;
-
-    fn mul(self, r: ScalarAndBivector) -> FullMultivector {
-        FullMultivector {
-            a0: -self.a8 * r.a8 - self.a9 * r.a9 - self.a10 * r.a10,
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: self.a5 * r.a0 - self.a6 * r.a8 + self.a7 * r.a9 + self.a8 * r.a6 - self.a9 * r.a7,
-            a6: self.a5 * r.a8 + self.a6 * r.a0 - self.a7 * r.a10 - self.a8 * r.a5 + self.a10 * r.a7,
-            a7: -self.a5 * r.a9 + self.a6 * r.a10 + self.a7 * r.a0 + self.a9 * r.a5 - self.a10 * r.a6,
-            a8: self.a8 * r.a0 + self.a9 * r.a10 - self.a10 * r.a9,
-            a9: -self.a8 * r.a10 + self.a9 * r.a0 + self.a10 * r.a8,
-            a10: self.a8 * r.a9 - self.a9 * r.a8 + self.a10 * r.a0,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5,
-        }
-    }
-}
-
 impl Mul<Trivector> for Bivector {
     type Output = FullMultivector;
 
@@ -2230,6 +2232,46 @@ impl Mul<Trivector> for Bivector {
             a13: -self.a5 * r.a14 + self.a8 * r.a12 - self.a9 * r.a11,
             a14: 0.,
             a15: 0.,
+        }
+    }
+}
+
+impl Mul<Pseudoscalar> for Bivector {
+    type Output = Bivector;
+
+    fn mul(self, r: Pseudoscalar) -> Bivector {
+        Bivector {
+            a5: -self.a10 * r.a15,
+            a6: -self.a9 * r.a15,
+            a7: -self.a8 * r.a15,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+        }
+    }
+}
+
+impl Mul<ScalarAndBivector> for Bivector {
+    type Output = FullMultivector;
+
+    fn mul(self, r: ScalarAndBivector) -> FullMultivector {
+        FullMultivector {
+            a0: -self.a8 * r.a8 - self.a9 * r.a9 - self.a10 * r.a10,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: self.a5 * r.a0 - self.a6 * r.a8 + self.a7 * r.a9 + self.a8 * r.a6 - self.a9 * r.a7,
+            a6: self.a5 * r.a8 + self.a6 * r.a0 - self.a7 * r.a10 - self.a8 * r.a5 + self.a10 * r.a7,
+            a7: -self.a5 * r.a9 + self.a6 * r.a10 + self.a7 * r.a0 + self.a9 * r.a5 - self.a10 * r.a6,
+            a8: self.a8 * r.a0 + self.a9 * r.a10 - self.a10 * r.a9,
+            a9: -self.a8 * r.a10 + self.a9 * r.a0 + self.a10 * r.a8,
+            a10: self.a8 * r.a9 - self.a9 * r.a8 + self.a10 * r.a0,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5,
         }
     }
 }
@@ -2288,27 +2330,28 @@ impl BitXor<Vector> for Bivector {
 }
 
 impl BitXor<Bivector> for Bivector {
-    type Output = FullMultivector;
+    type Output = Pseudoscalar;
 
-    fn bitxor(self, r: Bivector) -> FullMultivector {
-        FullMultivector {
-            a0: 0.,
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: 0.,
-            a6: 0.,
-            a7: 0.,
-            a8: 0.,
-            a9: 0.,
-            a10: 0.,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
+    fn bitxor(self, r: Bivector) -> Pseudoscalar {
+        Pseudoscalar {
             a15: self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5,
         }
+    }
+}
+
+impl BitXor<Trivector> for Bivector {
+    type Output = Float;
+
+    fn bitxor(self, _r: Trivector) -> Float {
+        0.
+    }
+}
+
+impl BitXor<Pseudoscalar> for Bivector {
+    type Output = Float;
+
+    fn bitxor(self, _r: Pseudoscalar) -> Float {
+        0.
     }
 }
 
@@ -2334,14 +2377,6 @@ impl BitXor<ScalarAndBivector> for Bivector {
             a14: 0.,
             a15: self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5,
         }
-    }
-}
-
-impl BitXor<Trivector> for Bivector {
-    type Output = Float;
-
-    fn bitxor(self, _r: Trivector) -> Float {
-        0.
     }
 }
 
@@ -2394,14 +2429,6 @@ impl BitAnd<Bivector> for Bivector {
     }
 }
 
-impl BitAnd<ScalarAndBivector> for Bivector {
-    type Output = Float;
-
-    fn bitand(self, r: ScalarAndBivector) -> Float {
-        self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5
-    }
-}
-
 impl BitAnd<Trivector> for Bivector {
     type Output = Vector;
 
@@ -2412,6 +2439,29 @@ impl BitAnd<Trivector> for Bivector {
             a3: -self.a6 * r.a14 - self.a8 * r.a13 + self.a10 * r.a11,
             a4: -self.a7 * r.a14 + self.a9 * r.a13 - self.a10 * r.a12,
         }
+    }
+}
+
+impl BitAnd<Pseudoscalar> for Bivector {
+    type Output = Bivector;
+
+    fn bitand(self, r: Pseudoscalar) -> Bivector {
+        Bivector {
+            a5: self.a5 * r.a15,
+            a6: self.a6 * r.a15,
+            a7: self.a7 * r.a15,
+            a8: self.a8 * r.a15,
+            a9: self.a9 * r.a15,
+            a10: self.a10 * r.a15,
+        }
+    }
+}
+
+impl BitAnd<ScalarAndBivector> for Bivector {
+    type Output = Float;
+
+    fn bitand(self, r: ScalarAndBivector) -> Float {
+        self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5
     }
 }
 
@@ -2476,6 +2526,34 @@ impl BitOr<Bivector> for Bivector {
     }
 }
 
+impl BitOr<Trivector> for Bivector {
+    type Output = Vector;
+
+    fn bitor(self, r: Trivector) -> Vector {
+        Vector {
+            a1: self.a8 * r.a11 + self.a9 * r.a12 + self.a10 * r.a13,
+            a2: -self.a10 * r.a14,
+            a3: -self.a9 * r.a14,
+            a4: -self.a8 * r.a14,
+        }
+    }
+}
+
+impl BitOr<Pseudoscalar> for Bivector {
+    type Output = Bivector;
+
+    fn bitor(self, r: Pseudoscalar) -> Bivector {
+        Bivector {
+            a5: -self.a10 * r.a15,
+            a6: -self.a9 * r.a15,
+            a7: -self.a8 * r.a15,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+        }
+    }
+}
+
 impl BitOr<ScalarAndBivector> for Bivector {
     type Output = ScalarAndBivector;
 
@@ -2488,19 +2566,6 @@ impl BitOr<ScalarAndBivector> for Bivector {
             a8: self.a8 * r.a0,
             a9: self.a9 * r.a0,
             a10: self.a10 * r.a0,
-        }
-    }
-}
-
-impl BitOr<Trivector> for Bivector {
-    type Output = Vector;
-
-    fn bitor(self, r: Trivector) -> Vector {
-        Vector {
-            a1: self.a8 * r.a11 + self.a9 * r.a12 + self.a10 * r.a13,
-            a2: -self.a10 * r.a14,
-            a3: -self.a9 * r.a14,
-            a4: -self.a8 * r.a14,
         }
     }
 }
@@ -2531,1343 +2596,144 @@ impl BitOr<FullMultivector> for Bivector {
 }
 
 impl Transform<Float> for Bivector {
-    type Output = FullMultivector;
-
-    fn transform(self, r: Float) -> FullMultivector {
-        FullMultivector {
-            a0: r * (self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2)),
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: 0.,
-            a6: 0.,
-            a7: 0.,
-            a8: 0.,
-            a9: 0.,
-            a10: 0.,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: -2. * r * (self.a5 * self.a10 + self.a6 * self.a9 + self.a7 * self.a8),
+    fn transform(self, r: Float) -> Bivector {
+        Bivector {
+            a5: self.a5 * r.powi(2),
+            a6: self.a6 * r.powi(2),
+            a7: self.a7 * r.powi(2),
+            a8: self.a8 * r.powi(2),
+            a9: self.a9 * r.powi(2),
+            a10: self.a10 * r.powi(2),
         }
     }
 }
 
 impl Transform<Vector> for Bivector {
-    type Output = Vector;
-
-    fn transform(self, r: Vector) -> Vector {
-        Vector {
-            a1: 2. * self.a5 * self.a8 * r.a3 - 2. * self.a5 * self.a9 * r.a4 - 2. * self.a6 * self.a8 * r.a2 + 2. * self.a6 * self.a10 * r.a4 + 2. * self.a7 * self.a9 * r.a2 - 2. * self.a7 * self.a10 * r.a3 + self.a8.powi(2) * r.a1 + self.a9.powi(2) * r.a1 + self.a10.powi(2) * r.a1,
-            a2: -self.a8 * (self.a8 * r.a2 - self.a10 * r.a4) - self.a9 * (self.a9 * r.a2 - self.a10 * r.a3) + self.a10 * (self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2),
-            a3: -self.a8 * (self.a8 * r.a3 - self.a9 * r.a4) + self.a9 * (self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2) + self.a10 * (self.a9 * r.a2 - self.a10 * r.a3),
-            a4: self.a8 * (self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2) + self.a9 * (self.a8 * r.a3 - self.a9 * r.a4) + self.a10 * (self.a8 * r.a2 - self.a10 * r.a4),
+    fn transform(self, r: Vector) -> Bivector {
+        Bivector {
+            a5: -self.a5 * r.a2.powi(2) + self.a5 * r.a3.powi(2) + self.a5 * r.a4.powi(2) - 2. * self.a6 * r.a2 * r.a3 - 2. * self.a7 * r.a2 * r.a4 + 2. * self.a8 * r.a1 * r.a3 - 2. * self.a9 * r.a1 * r.a4,
+            a6: -2. * self.a5 * r.a2 * r.a3 + self.a6 * r.a2.powi(2) - self.a6 * r.a3.powi(2) + self.a6 * r.a4.powi(2) - 2. * self.a7 * r.a3 * r.a4 - 2. * self.a8 * r.a1 * r.a2 + 2. * self.a10 * r.a1 * r.a4,
+            a7: -2. * self.a5 * r.a2 * r.a4 - 2. * self.a6 * r.a3 * r.a4 + self.a7 * r.a2.powi(2) + self.a7 * r.a3.powi(2) - self.a7 * r.a4.powi(2) + 2. * self.a9 * r.a1 * r.a2 - 2. * self.a10 * r.a1 * r.a3,
+            a8: -r.a2 * (self.a8 * r.a2 - self.a10 * r.a4) - r.a3 * (self.a8 * r.a3 - self.a9 * r.a4) + r.a4 * (self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2),
+            a9: -r.a2 * (self.a9 * r.a2 - self.a10 * r.a3) + r.a3 * (self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2) + r.a4 * (self.a8 * r.a3 - self.a9 * r.a4),
+            a10: r.a2 * (self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2) + r.a3 * (self.a9 * r.a2 - self.a10 * r.a3) + r.a4 * (self.a8 * r.a2 - self.a10 * r.a4),
         }
     }
 }
 
 impl Transform<Bivector> for Bivector {
-    type Output = Bivector;
-
     fn transform(self, r: Bivector) -> Bivector {
         Bivector {
-            a5: 2. * self.a5 * self.a8 * r.a8 + 2. * self.a5 * self.a9 * r.a9 + 2. * self.a5 * self.a10 * r.a10 - 2. * self.a6 * self.a9 * r.a10 + 2. * self.a6 * self.a10 * r.a9 - 2. * self.a7 * self.a8 * r.a10 + 2. * self.a7 * self.a10 * r.a8 - self.a8.powi(2) * r.a5 + 2. * self.a8 * self.a10 * r.a7 - self.a9.powi(2) * r.a5 + 2. * self.a9 * self.a10 * r.a6 + self.a10.powi(2) * r.a5,
-            a6: 2. * self.a5 * self.a9 * r.a10 - 2. * self.a5 * self.a10 * r.a9 + 2. * self.a6 * self.a8 * r.a8 + 2. * self.a6 * self.a9 * r.a9 + 2. * self.a6 * self.a10 * r.a10 - 2. * self.a7 * self.a8 * r.a9 + 2. * self.a7 * self.a9 * r.a8 - self.a8.powi(2) * r.a6 + 2. * self.a8 * self.a9 * r.a7 + self.a9.powi(2) * r.a6 + 2. * self.a9 * self.a10 * r.a5 - self.a10.powi(2) * r.a6,
-            a7: 2. * self.a5 * self.a8 * r.a10 - 2. * self.a5 * self.a10 * r.a8 + 2. * self.a6 * self.a8 * r.a9 - 2. * self.a6 * self.a9 * r.a8 + 2. * self.a7 * self.a8 * r.a8 + 2. * self.a7 * self.a9 * r.a9 + 2. * self.a7 * self.a10 * r.a10 + self.a8.powi(2) * r.a7 + 2. * self.a8 * self.a9 * r.a6 + 2. * self.a8 * self.a10 * r.a5 - self.a9.powi(2) * r.a7 - self.a10.powi(2) * r.a7,
-            a8: self.a8 * (self.a8 * r.a8 + self.a9 * r.a9 + self.a10 * r.a10) + self.a9 * (self.a8 * r.a9 - self.a9 * r.a8) + self.a10 * (self.a8 * r.a10 - self.a10 * r.a8),
-            a9: -self.a8 * (self.a8 * r.a9 - self.a9 * r.a8) + self.a9 * (self.a8 * r.a8 + self.a9 * r.a9 + self.a10 * r.a10) + self.a10 * (self.a9 * r.a10 - self.a10 * r.a9),
-            a10: -self.a8 * (self.a8 * r.a10 - self.a10 * r.a8) - self.a9 * (self.a9 * r.a10 - self.a10 * r.a9) + self.a10 * (self.a8 * r.a8 + self.a9 * r.a9 + self.a10 * r.a10),
-        }
-    }
-}
-
-impl Transform<ScalarAndBivector> for Bivector {
-    type Output = FullMultivector;
-
-    fn transform(self, r: ScalarAndBivector) -> FullMultivector {
-        FullMultivector {
-            a0: r.a0 * (self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2)),
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: 2. * self.a5 * self.a8 * r.a8 + 2. * self.a5 * self.a9 * r.a9 + 2. * self.a5 * self.a10 * r.a10 - 2. * self.a6 * self.a9 * r.a10 + 2. * self.a6 * self.a10 * r.a9 - 2. * self.a7 * self.a8 * r.a10 + 2. * self.a7 * self.a10 * r.a8 - self.a8.powi(2) * r.a5 + 2. * self.a8 * self.a10 * r.a7 - self.a9.powi(2) * r.a5 + 2. * self.a9 * self.a10 * r.a6 + self.a10.powi(2) * r.a5,
-            a6: 2. * self.a5 * self.a9 * r.a10 - 2. * self.a5 * self.a10 * r.a9 + 2. * self.a6 * self.a8 * r.a8 + 2. * self.a6 * self.a9 * r.a9 + 2. * self.a6 * self.a10 * r.a10 - 2. * self.a7 * self.a8 * r.a9 + 2. * self.a7 * self.a9 * r.a8 - self.a8.powi(2) * r.a6 + 2. * self.a8 * self.a9 * r.a7 + self.a9.powi(2) * r.a6 + 2. * self.a9 * self.a10 * r.a5 - self.a10.powi(2) * r.a6,
-            a7: 2. * self.a5 * self.a8 * r.a10 - 2. * self.a5 * self.a10 * r.a8 + 2. * self.a6 * self.a8 * r.a9 - 2. * self.a6 * self.a9 * r.a8 + 2. * self.a7 * self.a8 * r.a8 + 2. * self.a7 * self.a9 * r.a9 + 2. * self.a7 * self.a10 * r.a10 + self.a8.powi(2) * r.a7 + 2. * self.a8 * self.a9 * r.a6 + 2. * self.a8 * self.a10 * r.a5 - self.a9.powi(2) * r.a7 - self.a10.powi(2) * r.a7,
-            a8: self.a8.powi(2) * r.a8 + 2. * self.a8 * self.a9 * r.a9 + 2. * self.a8 * self.a10 * r.a10 - self.a9.powi(2) * r.a8 - self.a10.powi(2) * r.a8,
-            a9: -self.a8.powi(2) * r.a9 + 2. * self.a8 * self.a9 * r.a8 + self.a9.powi(2) * r.a9 + 2. * self.a9 * self.a10 * r.a10 - self.a10.powi(2) * r.a9,
-            a10: -self.a8.powi(2) * r.a10 + 2. * self.a8 * self.a10 * r.a8 - self.a9.powi(2) * r.a10 + 2. * self.a9 * self.a10 * r.a9 + self.a10.powi(2) * r.a10,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: -2. * r.a0 * (self.a5 * self.a10 + self.a6 * self.a9 + self.a7 * self.a8),
+            a5: -self.a5 * r.a8.powi(2) - self.a5 * r.a9.powi(2) + self.a5 * r.a10.powi(2) + 2. * self.a6 * r.a9 * r.a10 + 2. * self.a7 * r.a8 * r.a10 + 2. * self.a8 * r.a5 * r.a8 + 2. * self.a8 * r.a7 * r.a10 + 2. * self.a9 * r.a5 * r.a9 + 2. * self.a9 * r.a6 * r.a10 + 2. * self.a10 * r.a5 * r.a10 - 2. * self.a10 * r.a6 * r.a9 - 2. * self.a10 * r.a7 * r.a8,
+            a6: 2. * self.a5 * r.a9 * r.a10 - self.a6 * r.a8.powi(2) + self.a6 * r.a9.powi(2) - self.a6 * r.a10.powi(2) + 2. * self.a7 * r.a8 * r.a9 + 2. * self.a8 * r.a6 * r.a8 + 2. * self.a8 * r.a7 * r.a9 - 2. * self.a9 * r.a5 * r.a10 + 2. * self.a9 * r.a6 * r.a9 - 2. * self.a9 * r.a7 * r.a8 + 2. * self.a10 * r.a5 * r.a9 + 2. * self.a10 * r.a6 * r.a10,
+            a7: 2. * self.a5 * r.a8 * r.a10 + 2. * self.a6 * r.a8 * r.a9 + self.a7 * r.a8.powi(2) - self.a7 * r.a9.powi(2) - self.a7 * r.a10.powi(2) - 2. * self.a8 * r.a5 * r.a10 - 2. * self.a8 * r.a6 * r.a9 + 2. * self.a8 * r.a7 * r.a8 + 2. * self.a9 * r.a6 * r.a8 + 2. * self.a9 * r.a7 * r.a9 + 2. * self.a10 * r.a5 * r.a8 + 2. * self.a10 * r.a7 * r.a10,
+            a8: r.a8 * (self.a8 * r.a8 + self.a9 * r.a9 + self.a10 * r.a10) - r.a9 * (self.a8 * r.a9 - self.a9 * r.a8) - r.a10 * (self.a8 * r.a10 - self.a10 * r.a8),
+            a9: r.a8 * (self.a8 * r.a9 - self.a9 * r.a8) + r.a9 * (self.a8 * r.a8 + self.a9 * r.a9 + self.a10 * r.a10) - r.a10 * (self.a9 * r.a10 - self.a10 * r.a9),
+            a10: r.a8 * (self.a8 * r.a10 - self.a10 * r.a8) + r.a9 * (self.a9 * r.a10 - self.a10 * r.a9) + r.a10 * (self.a8 * r.a8 + self.a9 * r.a9 + self.a10 * r.a10),
         }
     }
 }
 
 impl Transform<Trivector> for Bivector {
-    type Output = Trivector;
-
-    fn transform(self, r: Trivector) -> Trivector {
-        Trivector {
-            a11: -2. * self.a5 * self.a9 * r.a14 + 2. * self.a6 * self.a10 * r.a14 + self.a8.powi(2) * r.a11 + 2. * self.a8 * self.a9 * r.a12 + 2. * self.a8 * self.a10 * r.a13 - self.a9.powi(2) * r.a11 - self.a10.powi(2) * r.a11,
-            a12: 2. * self.a5 * self.a8 * r.a14 - 2. * self.a7 * self.a10 * r.a14 - self.a8.powi(2) * r.a12 + 2. * self.a8 * self.a9 * r.a11 + self.a9.powi(2) * r.a12 + 2. * self.a9 * self.a10 * r.a13 - self.a10.powi(2) * r.a12,
-            a13: -2. * self.a6 * self.a8 * r.a14 + 2. * self.a7 * self.a9 * r.a14 - self.a8.powi(2) * r.a13 + 2. * self.a8 * self.a10 * r.a11 - self.a9.powi(2) * r.a13 + 2. * self.a9 * self.a10 * r.a12 + self.a10.powi(2) * r.a13,
-            a14: r.a14 * (self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2)),
+    fn transform(self, r: Trivector) -> Bivector {
+        Bivector {
+            a5: r.a14 * (-self.a5 * r.a14 + 2. * self.a8 * r.a12 - 2. * self.a9 * r.a11),
+            a6: r.a14 * (-self.a6 * r.a14 - 2. * self.a8 * r.a13 + 2. * self.a10 * r.a11),
+            a7: r.a14 * (-self.a7 * r.a14 + 2. * self.a9 * r.a13 - 2. * self.a10 * r.a12),
+            a8: self.a8 * r.a14.powi(2),
+            a9: self.a9 * r.a14.powi(2),
+            a10: self.a10 * r.a14.powi(2),
         }
     }
 }
 
-impl Transform<FullMultivector> for Bivector {
-    type Output = FullMultivector;
+impl Transform<Pseudoscalar> for Bivector {
+    fn transform(self, _r: Pseudoscalar) -> Bivector {
+        Bivector {
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+        }
+    }
+}
 
-    fn transform(self, r: FullMultivector) -> FullMultivector {
-        FullMultivector {
-            a0: r.a0 * (self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2)),
-            a1: 2. * self.a5 * self.a8 * r.a3 - 2. * self.a5 * self.a9 * r.a4 - 2. * self.a6 * self.a8 * r.a2 + 2. * self.a6 * self.a10 * r.a4 + 2. * self.a7 * self.a9 * r.a2 - 2. * self.a7 * self.a10 * r.a3 + self.a8.powi(2) * r.a1 + self.a9.powi(2) * r.a1 + self.a10.powi(2) * r.a1,
-            a2: -self.a8.powi(2) * r.a2 + 2. * self.a8 * self.a10 * r.a4 - self.a9.powi(2) * r.a2 + 2. * self.a9 * self.a10 * r.a3 + self.a10.powi(2) * r.a2,
-            a3: -self.a8.powi(2) * r.a3 + 2. * self.a8 * self.a9 * r.a4 + self.a9.powi(2) * r.a3 + 2. * self.a9 * self.a10 * r.a2 - self.a10.powi(2) * r.a3,
-            a4: self.a8.powi(2) * r.a4 + 2. * self.a8 * self.a9 * r.a3 + 2. * self.a8 * self.a10 * r.a2 - self.a9.powi(2) * r.a4 - self.a10.powi(2) * r.a4,
-            a5: 2. * self.a5 * self.a8 * r.a8 + 2. * self.a5 * self.a9 * r.a9 + 2. * self.a5 * self.a10 * r.a10 - 2. * self.a6 * self.a9 * r.a10 + 2. * self.a6 * self.a10 * r.a9 - 2. * self.a7 * self.a8 * r.a10 + 2. * self.a7 * self.a10 * r.a8 - self.a8.powi(2) * r.a5 + 2. * self.a8 * self.a10 * r.a7 - self.a9.powi(2) * r.a5 + 2. * self.a9 * self.a10 * r.a6 + self.a10.powi(2) * r.a5,
-            a6: 2. * self.a5 * self.a9 * r.a10 - 2. * self.a5 * self.a10 * r.a9 + 2. * self.a6 * self.a8 * r.a8 + 2. * self.a6 * self.a9 * r.a9 + 2. * self.a6 * self.a10 * r.a10 - 2. * self.a7 * self.a8 * r.a9 + 2. * self.a7 * self.a9 * r.a8 - self.a8.powi(2) * r.a6 + 2. * self.a8 * self.a9 * r.a7 + self.a9.powi(2) * r.a6 + 2. * self.a9 * self.a10 * r.a5 - self.a10.powi(2) * r.a6,
-            a7: 2. * self.a5 * self.a8 * r.a10 - 2. * self.a5 * self.a10 * r.a8 + 2. * self.a6 * self.a8 * r.a9 - 2. * self.a6 * self.a9 * r.a8 + 2. * self.a7 * self.a8 * r.a8 + 2. * self.a7 * self.a9 * r.a9 + 2. * self.a7 * self.a10 * r.a10 + self.a8.powi(2) * r.a7 + 2. * self.a8 * self.a9 * r.a6 + 2. * self.a8 * self.a10 * r.a5 - self.a9.powi(2) * r.a7 - self.a10.powi(2) * r.a7,
-            a8: self.a8.powi(2) * r.a8 + 2. * self.a8 * self.a9 * r.a9 + 2. * self.a8 * self.a10 * r.a10 - self.a9.powi(2) * r.a8 - self.a10.powi(2) * r.a8,
-            a9: -self.a8.powi(2) * r.a9 + 2. * self.a8 * self.a9 * r.a8 + self.a9.powi(2) * r.a9 + 2. * self.a9 * self.a10 * r.a10 - self.a10.powi(2) * r.a9,
-            a10: -self.a8.powi(2) * r.a10 + 2. * self.a8 * self.a10 * r.a8 - self.a9.powi(2) * r.a10 + 2. * self.a9 * self.a10 * r.a9 + self.a10.powi(2) * r.a10,
-            a11: -2. * self.a5 * self.a9 * r.a14 + 2. * self.a6 * self.a10 * r.a14 + self.a8.powi(2) * r.a11 + 2. * self.a8 * self.a9 * r.a12 + 2. * self.a8 * self.a10 * r.a13 - self.a9.powi(2) * r.a11 - self.a10.powi(2) * r.a11,
-            a12: 2. * self.a5 * self.a8 * r.a14 - 2. * self.a7 * self.a10 * r.a14 - self.a8.powi(2) * r.a12 + 2. * self.a8 * self.a9 * r.a11 + self.a9.powi(2) * r.a12 + 2. * self.a9 * self.a10 * r.a13 - self.a10.powi(2) * r.a12,
-            a13: -2. * self.a6 * self.a8 * r.a14 + 2. * self.a7 * self.a9 * r.a14 - self.a8.powi(2) * r.a13 + 2. * self.a8 * self.a10 * r.a11 - self.a9.powi(2) * r.a13 + 2. * self.a9 * self.a10 * r.a12 + self.a10.powi(2) * r.a13,
-            a14: r.a14 * (self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2)),
-            a15: -2. * self.a5 * self.a10 * r.a0 - 2. * self.a6 * self.a9 * r.a0 - 2. * self.a7 * self.a8 * r.a0 + self.a8.powi(2) * r.a15 + self.a9.powi(2) * r.a15 + self.a10.powi(2) * r.a15,
+impl Transform<ScalarAndBivector> for Bivector {
+    fn transform(self, r: ScalarAndBivector) -> Bivector {
+        Bivector {
+            a5: self.a5 * r.a0.powi(2) - self.a5 * r.a8.powi(2) - self.a5 * r.a9.powi(2) + self.a5 * r.a10.powi(2) + 2. * self.a6 * r.a0 * r.a8 + 2. * self.a6 * r.a9 * r.a10 - 2. * self.a7 * r.a0 * r.a9 + 2. * self.a7 * r.a8 * r.a10 - 2. * self.a8 * r.a0 * r.a6 + 2. * self.a8 * r.a5 * r.a8 + 2. * self.a8 * r.a7 * r.a10 + 2. * self.a9 * r.a0 * r.a7 + 2. * self.a9 * r.a5 * r.a9 + 2. * self.a9 * r.a6 * r.a10 + 2. * self.a10 * r.a5 * r.a10 - 2. * self.a10 * r.a6 * r.a9 - 2. * self.a10 * r.a7 * r.a8,
+            a6: -2. * self.a5 * r.a0 * r.a8 + 2. * self.a5 * r.a9 * r.a10 + self.a6 * r.a0.powi(2) - self.a6 * r.a8.powi(2) + self.a6 * r.a9.powi(2) - self.a6 * r.a10.powi(2) + 2. * self.a7 * r.a0 * r.a10 + 2. * self.a7 * r.a8 * r.a9 + 2. * self.a8 * r.a0 * r.a5 + 2. * self.a8 * r.a6 * r.a8 + 2. * self.a8 * r.a7 * r.a9 - 2. * self.a9 * r.a5 * r.a10 + 2. * self.a9 * r.a6 * r.a9 - 2. * self.a9 * r.a7 * r.a8 - 2. * self.a10 * r.a0 * r.a7 + 2. * self.a10 * r.a5 * r.a9 + 2. * self.a10 * r.a6 * r.a10,
+            a7: 2. * self.a5 * r.a0 * r.a9 + 2. * self.a5 * r.a8 * r.a10 - 2. * self.a6 * r.a0 * r.a10 + 2. * self.a6 * r.a8 * r.a9 + self.a7 * r.a0.powi(2) + self.a7 * r.a8.powi(2) - self.a7 * r.a9.powi(2) - self.a7 * r.a10.powi(2) - 2. * self.a8 * r.a5 * r.a10 - 2. * self.a8 * r.a6 * r.a9 + 2. * self.a8 * r.a7 * r.a8 - 2. * self.a9 * r.a0 * r.a5 + 2. * self.a9 * r.a6 * r.a8 + 2. * self.a9 * r.a7 * r.a9 + 2. * self.a10 * r.a0 * r.a6 + 2. * self.a10 * r.a5 * r.a8 + 2. * self.a10 * r.a7 * r.a10,
+            a8: r.a0 * (self.a8 * r.a0 - self.a9 * r.a10 + self.a10 * r.a9) + r.a8 * (self.a8 * r.a8 + self.a9 * r.a9 + self.a10 * r.a10) + r.a9 * (-self.a8 * r.a9 + self.a9 * r.a8 + self.a10 * r.a0) - r.a10 * (self.a8 * r.a10 + self.a9 * r.a0 - self.a10 * r.a8),
+            a9: r.a0 * (self.a8 * r.a10 + self.a9 * r.a0 - self.a10 * r.a8) - r.a8 * (-self.a8 * r.a9 + self.a9 * r.a8 + self.a10 * r.a0) + r.a9 * (self.a8 * r.a8 + self.a9 * r.a9 + self.a10 * r.a10) + r.a10 * (self.a8 * r.a0 - self.a9 * r.a10 + self.a10 * r.a9),
+            a10: r.a0 * (-self.a8 * r.a9 + self.a9 * r.a8 + self.a10 * r.a0) + r.a8 * (self.a8 * r.a10 + self.a9 * r.a0 - self.a10 * r.a8) - r.a9 * (self.a8 * r.a0 - self.a9 * r.a10 + self.a10 * r.a9) + r.a10 * (self.a8 * r.a8 + self.a9 * r.a9 + self.a10 * r.a10),
         }
     }
 }
 
 impl Reflect<Float> for Bivector {
-    type Output = FullMultivector;
-
-    fn reflect(self, r: Float) -> FullMultivector {
-        FullMultivector {
-            a0: -r * (self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2)),
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: 0.,
-            a6: 0.,
-            a7: 0.,
-            a8: 0.,
-            a9: 0.,
-            a10: 0.,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: 2. * r * (self.a5 * self.a10 + self.a6 * self.a9 + self.a7 * self.a8),
+    fn reflect(self, r: Float) -> Bivector {
+        Bivector {
+            a5: self.a5 * r.powi(2),
+            a6: self.a6 * r.powi(2),
+            a7: self.a7 * r.powi(2),
+            a8: self.a8 * r.powi(2),
+            a9: self.a9 * r.powi(2),
+            a10: self.a10 * r.powi(2),
         }
     }
 }
 
 impl Reflect<Vector> for Bivector {
-    type Output = Vector;
-
-    fn reflect(self, r: Vector) -> Vector {
-        Vector {
-            a1: -2. * self.a5 * self.a8 * r.a3 + 2. * self.a5 * self.a9 * r.a4 + 2. * self.a6 * self.a8 * r.a2 - 2. * self.a6 * self.a10 * r.a4 - 2. * self.a7 * self.a9 * r.a2 + 2. * self.a7 * self.a10 * r.a3 - self.a8.powi(2) * r.a1 - self.a9.powi(2) * r.a1 - self.a10.powi(2) * r.a1,
-            a2: self.a8 * (self.a8 * r.a2 - self.a10 * r.a4) + self.a9 * (self.a9 * r.a2 - self.a10 * r.a3) - self.a10 * (self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2),
-            a3: self.a8 * (self.a8 * r.a3 - self.a9 * r.a4) - self.a9 * (self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2) - self.a10 * (self.a9 * r.a2 - self.a10 * r.a3),
-            a4: -self.a8.powi(2) * r.a4 - 2. * self.a8 * self.a9 * r.a3 - 2. * self.a8 * self.a10 * r.a2 + self.a9.powi(2) * r.a4 + self.a10.powi(2) * r.a4,
+    fn reflect(self, r: Vector) -> Bivector {
+        Bivector {
+            a5: -self.a5 * r.a2.powi(2) + self.a5 * r.a3.powi(2) + self.a5 * r.a4.powi(2) - 2. * self.a6 * r.a2 * r.a3 - 2. * self.a7 * r.a2 * r.a4 + 2. * self.a8 * r.a1 * r.a3 - 2. * self.a9 * r.a1 * r.a4,
+            a6: -2. * self.a5 * r.a2 * r.a3 + self.a6 * r.a2.powi(2) - self.a6 * r.a3.powi(2) + self.a6 * r.a4.powi(2) - 2. * self.a7 * r.a3 * r.a4 - 2. * self.a8 * r.a1 * r.a2 + 2. * self.a10 * r.a1 * r.a4,
+            a7: -2. * self.a5 * r.a2 * r.a4 - 2. * self.a6 * r.a3 * r.a4 + self.a7 * r.a2.powi(2) + self.a7 * r.a3.powi(2) - self.a7 * r.a4.powi(2) + 2. * self.a9 * r.a1 * r.a2 - 2. * self.a10 * r.a1 * r.a3,
+            a8: -r.a2 * (self.a8 * r.a2 - self.a10 * r.a4) - r.a3 * (self.a8 * r.a3 - self.a9 * r.a4) + r.a4 * (self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2),
+            a9: -r.a2 * (self.a9 * r.a2 - self.a10 * r.a3) + r.a3 * (self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2) + r.a4 * (self.a8 * r.a3 - self.a9 * r.a4),
+            a10: r.a2 * (self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2) + r.a3 * (self.a9 * r.a2 - self.a10 * r.a3) + r.a4 * (self.a8 * r.a2 - self.a10 * r.a4),
         }
     }
 }
 
 impl Reflect<Bivector> for Bivector {
-    type Output = Bivector;
-
     fn reflect(self, r: Bivector) -> Bivector {
         Bivector {
-            a5: -2. * self.a5 * self.a8 * r.a8 - 2. * self.a5 * self.a9 * r.a9 - 2. * self.a5 * self.a10 * r.a10 + 2. * self.a6 * self.a9 * r.a10 - 2. * self.a6 * self.a10 * r.a9 + 2. * self.a7 * self.a8 * r.a10 - 2. * self.a7 * self.a10 * r.a8 + self.a8.powi(2) * r.a5 - 2. * self.a8 * self.a10 * r.a7 + self.a9.powi(2) * r.a5 - 2. * self.a9 * self.a10 * r.a6 - self.a10.powi(2) * r.a5,
-            a6: -2. * self.a5 * self.a9 * r.a10 + 2. * self.a5 * self.a10 * r.a9 - 2. * self.a6 * self.a8 * r.a8 - 2. * self.a6 * self.a9 * r.a9 - 2. * self.a6 * self.a10 * r.a10 + 2. * self.a7 * self.a8 * r.a9 - 2. * self.a7 * self.a9 * r.a8 + self.a8.powi(2) * r.a6 - 2. * self.a8 * self.a9 * r.a7 - self.a9.powi(2) * r.a6 - 2. * self.a9 * self.a10 * r.a5 + self.a10.powi(2) * r.a6,
-            a7: -2. * self.a5 * self.a8 * r.a10 + 2. * self.a5 * self.a10 * r.a8 - 2. * self.a6 * self.a8 * r.a9 + 2. * self.a6 * self.a9 * r.a8 - 2. * self.a7 * self.a8 * r.a8 - 2. * self.a7 * self.a9 * r.a9 - 2. * self.a7 * self.a10 * r.a10 - self.a8.powi(2) * r.a7 - 2. * self.a8 * self.a9 * r.a6 - 2. * self.a8 * self.a10 * r.a5 + self.a9.powi(2) * r.a7 + self.a10.powi(2) * r.a7,
-            a8: -self.a8.powi(2) * r.a8 - 2. * self.a8 * self.a9 * r.a9 - 2. * self.a8 * self.a10 * r.a10 + self.a9.powi(2) * r.a8 + self.a10.powi(2) * r.a8,
-            a9: self.a8 * (self.a8 * r.a9 - self.a9 * r.a8) - self.a9 * (self.a8 * r.a8 + self.a9 * r.a9 + self.a10 * r.a10) - self.a10 * (self.a9 * r.a10 - self.a10 * r.a9),
-            a10: self.a8 * (self.a8 * r.a10 - self.a10 * r.a8) + self.a9 * (self.a9 * r.a10 - self.a10 * r.a9) - self.a10 * (self.a8 * r.a8 + self.a9 * r.a9 + self.a10 * r.a10),
-        }
-    }
-}
-
-impl Reflect<ScalarAndBivector> for Bivector {
-    type Output = FullMultivector;
-
-    fn reflect(self, r: ScalarAndBivector) -> FullMultivector {
-        FullMultivector {
-            a0: -r.a0 * (self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2)),
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: -2. * self.a5 * self.a8 * r.a8 - 2. * self.a5 * self.a9 * r.a9 - 2. * self.a5 * self.a10 * r.a10 + 2. * self.a6 * self.a9 * r.a10 - 2. * self.a6 * self.a10 * r.a9 + 2. * self.a7 * self.a8 * r.a10 - 2. * self.a7 * self.a10 * r.a8 + self.a8.powi(2) * r.a5 - 2. * self.a8 * self.a10 * r.a7 + self.a9.powi(2) * r.a5 - 2. * self.a9 * self.a10 * r.a6 - self.a10.powi(2) * r.a5,
-            a6: -2. * self.a5 * self.a9 * r.a10 + 2. * self.a5 * self.a10 * r.a9 - 2. * self.a6 * self.a8 * r.a8 - 2. * self.a6 * self.a9 * r.a9 - 2. * self.a6 * self.a10 * r.a10 + 2. * self.a7 * self.a8 * r.a9 - 2. * self.a7 * self.a9 * r.a8 + self.a8.powi(2) * r.a6 - 2. * self.a8 * self.a9 * r.a7 - self.a9.powi(2) * r.a6 - 2. * self.a9 * self.a10 * r.a5 + self.a10.powi(2) * r.a6,
-            a7: -2. * self.a5 * self.a8 * r.a10 + 2. * self.a5 * self.a10 * r.a8 - 2. * self.a6 * self.a8 * r.a9 + 2. * self.a6 * self.a9 * r.a8 - 2. * self.a7 * self.a8 * r.a8 - 2. * self.a7 * self.a9 * r.a9 - 2. * self.a7 * self.a10 * r.a10 - self.a8.powi(2) * r.a7 - 2. * self.a8 * self.a9 * r.a6 - 2. * self.a8 * self.a10 * r.a5 + self.a9.powi(2) * r.a7 + self.a10.powi(2) * r.a7,
-            a8: -self.a8.powi(2) * r.a8 - 2. * self.a8 * self.a9 * r.a9 - 2. * self.a8 * self.a10 * r.a10 + self.a9.powi(2) * r.a8 + self.a10.powi(2) * r.a8,
-            a9: self.a8.powi(2) * r.a9 - 2. * self.a8 * self.a9 * r.a8 - self.a9.powi(2) * r.a9 - 2. * self.a9 * self.a10 * r.a10 + self.a10.powi(2) * r.a9,
-            a10: self.a8.powi(2) * r.a10 - 2. * self.a8 * self.a10 * r.a8 + self.a9.powi(2) * r.a10 - 2. * self.a9 * self.a10 * r.a9 - self.a10.powi(2) * r.a10,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: 2. * r.a0 * (self.a5 * self.a10 + self.a6 * self.a9 + self.a7 * self.a8),
+            a5: self.a5 * r.a8.powi(2) + self.a5 * r.a9.powi(2) - self.a5 * r.a10.powi(2) - 2. * self.a6 * r.a9 * r.a10 - 2. * self.a7 * r.a8 * r.a10 - 2. * self.a8 * r.a5 * r.a8 - 2. * self.a8 * r.a7 * r.a10 - 2. * self.a9 * r.a5 * r.a9 - 2. * self.a9 * r.a6 * r.a10 - 2. * self.a10 * r.a5 * r.a10 + 2. * self.a10 * r.a6 * r.a9 + 2. * self.a10 * r.a7 * r.a8,
+            a6: -2. * self.a5 * r.a9 * r.a10 + self.a6 * r.a8.powi(2) - self.a6 * r.a9.powi(2) + self.a6 * r.a10.powi(2) - 2. * self.a7 * r.a8 * r.a9 - 2. * self.a8 * r.a6 * r.a8 - 2. * self.a8 * r.a7 * r.a9 + 2. * self.a9 * r.a5 * r.a10 - 2. * self.a9 * r.a6 * r.a9 + 2. * self.a9 * r.a7 * r.a8 - 2. * self.a10 * r.a5 * r.a9 - 2. * self.a10 * r.a6 * r.a10,
+            a7: -2. * self.a5 * r.a8 * r.a10 - 2. * self.a6 * r.a8 * r.a9 - self.a7 * r.a8.powi(2) + self.a7 * r.a9.powi(2) + self.a7 * r.a10.powi(2) + 2. * self.a8 * r.a5 * r.a10 + 2. * self.a8 * r.a6 * r.a9 - 2. * self.a8 * r.a7 * r.a8 - 2. * self.a9 * r.a6 * r.a8 - 2. * self.a9 * r.a7 * r.a9 - 2. * self.a10 * r.a5 * r.a8 - 2. * self.a10 * r.a7 * r.a10,
+            a8: -r.a8 * (self.a8 * r.a8 + self.a9 * r.a9 + self.a10 * r.a10) + r.a9 * (self.a8 * r.a9 - self.a9 * r.a8) + r.a10 * (self.a8 * r.a10 - self.a10 * r.a8),
+            a9: -r.a8 * (self.a8 * r.a9 - self.a9 * r.a8) - r.a9 * (self.a8 * r.a8 + self.a9 * r.a9 + self.a10 * r.a10) + r.a10 * (self.a9 * r.a10 - self.a10 * r.a9),
+            a10: -2. * self.a8 * r.a8 * r.a10 - 2. * self.a9 * r.a9 * r.a10 + self.a10 * r.a8.powi(2) + self.a10 * r.a9.powi(2) - self.a10 * r.a10.powi(2),
         }
     }
 }
 
 impl Reflect<Trivector> for Bivector {
-    type Output = Trivector;
-
-    fn reflect(self, r: Trivector) -> Trivector {
-        Trivector {
-            a11: 2. * self.a5 * self.a9 * r.a14 - 2. * self.a6 * self.a10 * r.a14 - self.a8.powi(2) * r.a11 - 2. * self.a8 * self.a9 * r.a12 - 2. * self.a8 * self.a10 * r.a13 + self.a9.powi(2) * r.a11 + self.a10.powi(2) * r.a11,
-            a12: -2. * self.a5 * self.a8 * r.a14 + 2. * self.a7 * self.a10 * r.a14 + self.a8.powi(2) * r.a12 - 2. * self.a8 * self.a9 * r.a11 - self.a9.powi(2) * r.a12 - 2. * self.a9 * self.a10 * r.a13 + self.a10.powi(2) * r.a12,
-            a13: 2. * self.a6 * self.a8 * r.a14 - 2. * self.a7 * self.a9 * r.a14 + self.a8.powi(2) * r.a13 - 2. * self.a8 * self.a10 * r.a11 + self.a9.powi(2) * r.a13 - 2. * self.a9 * self.a10 * r.a12 - self.a10.powi(2) * r.a13,
-            a14: -r.a14 * (self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2)),
-        }
-    }
-}
-
-impl Reflect<FullMultivector> for Bivector {
-    type Output = FullMultivector;
-
-    fn reflect(self, r: FullMultivector) -> FullMultivector {
-        FullMultivector {
-            a0: -r.a0 * (self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2)),
-            a1: -2. * self.a5 * self.a8 * r.a3 + 2. * self.a5 * self.a9 * r.a4 + 2. * self.a6 * self.a8 * r.a2 - 2. * self.a6 * self.a10 * r.a4 - 2. * self.a7 * self.a9 * r.a2 + 2. * self.a7 * self.a10 * r.a3 - self.a8.powi(2) * r.a1 - self.a9.powi(2) * r.a1 - self.a10.powi(2) * r.a1,
-            a2: self.a8.powi(2) * r.a2 - 2. * self.a8 * self.a10 * r.a4 + self.a9.powi(2) * r.a2 - 2. * self.a9 * self.a10 * r.a3 - self.a10.powi(2) * r.a2,
-            a3: self.a8.powi(2) * r.a3 - 2. * self.a8 * self.a9 * r.a4 - self.a9.powi(2) * r.a3 - 2. * self.a9 * self.a10 * r.a2 + self.a10.powi(2) * r.a3,
-            a4: -self.a8.powi(2) * r.a4 - 2. * self.a8 * self.a9 * r.a3 - 2. * self.a8 * self.a10 * r.a2 + self.a9.powi(2) * r.a4 + self.a10.powi(2) * r.a4,
-            a5: -2. * self.a5 * self.a8 * r.a8 - 2. * self.a5 * self.a9 * r.a9 - 2. * self.a5 * self.a10 * r.a10 + 2. * self.a6 * self.a9 * r.a10 - 2. * self.a6 * self.a10 * r.a9 + 2. * self.a7 * self.a8 * r.a10 - 2. * self.a7 * self.a10 * r.a8 + self.a8.powi(2) * r.a5 - 2. * self.a8 * self.a10 * r.a7 + self.a9.powi(2) * r.a5 - 2. * self.a9 * self.a10 * r.a6 - self.a10.powi(2) * r.a5,
-            a6: -2. * self.a5 * self.a9 * r.a10 + 2. * self.a5 * self.a10 * r.a9 - 2. * self.a6 * self.a8 * r.a8 - 2. * self.a6 * self.a9 * r.a9 - 2. * self.a6 * self.a10 * r.a10 + 2. * self.a7 * self.a8 * r.a9 - 2. * self.a7 * self.a9 * r.a8 + self.a8.powi(2) * r.a6 - 2. * self.a8 * self.a9 * r.a7 - self.a9.powi(2) * r.a6 - 2. * self.a9 * self.a10 * r.a5 + self.a10.powi(2) * r.a6,
-            a7: -2. * self.a5 * self.a8 * r.a10 + 2. * self.a5 * self.a10 * r.a8 - 2. * self.a6 * self.a8 * r.a9 + 2. * self.a6 * self.a9 * r.a8 - 2. * self.a7 * self.a8 * r.a8 - 2. * self.a7 * self.a9 * r.a9 - 2. * self.a7 * self.a10 * r.a10 - self.a8.powi(2) * r.a7 - 2. * self.a8 * self.a9 * r.a6 - 2. * self.a8 * self.a10 * r.a5 + self.a9.powi(2) * r.a7 + self.a10.powi(2) * r.a7,
-            a8: -self.a8.powi(2) * r.a8 - 2. * self.a8 * self.a9 * r.a9 - 2. * self.a8 * self.a10 * r.a10 + self.a9.powi(2) * r.a8 + self.a10.powi(2) * r.a8,
-            a9: self.a8.powi(2) * r.a9 - 2. * self.a8 * self.a9 * r.a8 - self.a9.powi(2) * r.a9 - 2. * self.a9 * self.a10 * r.a10 + self.a10.powi(2) * r.a9,
-            a10: self.a8.powi(2) * r.a10 - 2. * self.a8 * self.a10 * r.a8 + self.a9.powi(2) * r.a10 - 2. * self.a9 * self.a10 * r.a9 - self.a10.powi(2) * r.a10,
-            a11: 2. * self.a5 * self.a9 * r.a14 - 2. * self.a6 * self.a10 * r.a14 - self.a8.powi(2) * r.a11 - 2. * self.a8 * self.a9 * r.a12 - 2. * self.a8 * self.a10 * r.a13 + self.a9.powi(2) * r.a11 + self.a10.powi(2) * r.a11,
-            a12: -2. * self.a5 * self.a8 * r.a14 + 2. * self.a7 * self.a10 * r.a14 + self.a8.powi(2) * r.a12 - 2. * self.a8 * self.a9 * r.a11 - self.a9.powi(2) * r.a12 - 2. * self.a9 * self.a10 * r.a13 + self.a10.powi(2) * r.a12,
-            a13: 2. * self.a6 * self.a8 * r.a14 - 2. * self.a7 * self.a9 * r.a14 + self.a8.powi(2) * r.a13 - 2. * self.a8 * self.a10 * r.a11 + self.a9.powi(2) * r.a13 - 2. * self.a9 * self.a10 * r.a12 - self.a10.powi(2) * r.a13,
-            a14: -r.a14 * (self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2)),
-            a15: 2. * self.a5 * self.a10 * r.a0 + 2. * self.a6 * self.a9 * r.a0 + 2. * self.a7 * self.a8 * r.a0 - self.a8.powi(2) * r.a15 - self.a9.powi(2) * r.a15 - self.a10.powi(2) * r.a15,
-        }
-    }
-}
-
-// ===========================================================================
-// ScalarAndBivector
-// ===========================================================================
-
-
-#[derive(Default,Debug,Clone,Copy,PartialEq)]
-pub struct ScalarAndBivector {
-    a0: Float,
-    a5: Float,
-    a6: Float,
-    a7: Float,
-    a8: Float,
-    a9: Float,
-    a10: Float,
-}
-
-impl Reverse for ScalarAndBivector {
-    fn reverse(self) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: self.a0,
-            a5: -self.a5,
-            a6: -self.a6,
-            a7: -self.a7,
-            a8: -self.a8,
-            a9: -self.a9,
-            a10: -self.a10,
-        }
-    }
-}
-
-impl Dual for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn dual(self) -> FullMultivector {
-        FullMultivector {
-            a0: 0.,
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: self.a10,
-            a6: self.a9,
-            a7: self.a8,
-            a8: self.a7,
-            a9: self.a6,
-            a10: self.a5,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: self.a0,
-        }
-    }
-}
-
-impl Conjugate for ScalarAndBivector {
-    fn conjugate(self) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: self.a0,
-            a5: -self.a5,
-            a6: -self.a6,
-            a7: -self.a7,
-            a8: -self.a8,
-            a9: -self.a9,
-            a10: -self.a10,
-        }
-    }
-}
-
-impl Normalize for ScalarAndBivector {
-    fn norm(self) -> Float {
-        (self.a0.powi(2) + self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2)).sqrt()
-    }
-}
-
-impl NormalizeDual for ScalarAndBivector {
-    fn inorm(self) -> Float {
-        (self.a5.powi(2) + self.a6.powi(2) + self.a7.powi(2)).sqrt()
-    }
-}
-
-impl ScalarAndBivector {
-    pub fn new(a0: Float, a5: Float, a6: Float, a7: Float, a8: Float, a9: Float, a10: Float) -> ScalarAndBivector {
-        ScalarAndBivector {a0, a5, a6, a7, a8, a9, a10}
-    }
-
-    pub fn zero() -> ScalarAndBivector {
-        Default::default()
-    }
-
-    pub fn as_tuple(&self) -> (Float, Float, Float, Float, Float, Float, Float) {
-        (self.a0, self.a5, self.a6, self.a7, self.a8, self.a9, self.a10)
-    }
-
-    pub fn scalar(self) -> Float {
-        self.a0
-    }
-
-    pub fn bivector(self) -> Bivector {
+    fn reflect(self, r: Trivector) -> Bivector {
         Bivector {
-            a5: self.a5,
-            a6: self.a6,
-            a7: self.a7,
-            a8: self.a8,
-            a9: self.a9,
-            a10: self.a10,
-        }
-    }
-
-    pub fn full_multivector(self) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0,
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: self.a5,
-            a6: self.a6,
-            a7: self.a7,
-            a8: self.a8,
-            a9: self.a9,
-            a10: self.a10,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: 0.,
+            a5: r.a14 * (self.a5 * r.a14 - 2. * self.a8 * r.a12 + 2. * self.a9 * r.a11),
+            a6: r.a14 * (self.a6 * r.a14 + 2. * self.a8 * r.a13 - 2. * self.a10 * r.a11),
+            a7: r.a14 * (self.a7 * r.a14 - 2. * self.a9 * r.a13 + 2. * self.a10 * r.a12),
+            a8: -self.a8 * r.a14.powi(2),
+            a9: -self.a9 * r.a14.powi(2),
+            a10: -self.a10 * r.a14.powi(2),
         }
     }
 }
 
-impl Neg for ScalarAndBivector {
-    type Output = ScalarAndBivector;
-
-    fn neg(self) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: -self.a0,
-            a5: -self.a5,
-            a6: -self.a6,
-            a7: -self.a7,
-            a8: -self.a8,
-            a9: -self.a9,
-            a10: -self.a10,
-        }
-    }
-}
-
-impl Add<Float> for ScalarAndBivector {
-    type Output = ScalarAndBivector;
-
-    fn add(self, r: Float) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: self.a0 + r,
-            a5: self.a5,
-            a6: self.a6,
-            a7: self.a7,
-            a8: self.a8,
-            a9: self.a9,
-            a10: self.a10,
-        }
-    }
-}
-
-impl Add<Vector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn add(self, r: Vector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0,
-            a1: r.a1,
-            a2: r.a2,
-            a3: r.a3,
-            a4: r.a4,
-            a5: self.a5,
-            a6: self.a6,
-            a7: self.a7,
-            a8: self.a8,
-            a9: self.a9,
-            a10: self.a10,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: 0.,
-        }
-    }
-}
-
-impl Add<Bivector> for ScalarAndBivector {
-    type Output = ScalarAndBivector;
-
-    fn add(self, r: Bivector) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: self.a0,
-            a5: self.a5 + r.a5,
-            a6: self.a6 + r.a6,
-            a7: self.a7 + r.a7,
-            a8: self.a8 + r.a8,
-            a9: self.a9 + r.a9,
-            a10: self.a10 + r.a10,
-        }
-    }
-}
-
-impl Add<ScalarAndBivector> for ScalarAndBivector {
-    type Output = ScalarAndBivector;
-
-    fn add(self, r: ScalarAndBivector) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: self.a0 + r.a0,
-            a5: self.a5 + r.a5,
-            a6: self.a6 + r.a6,
-            a7: self.a7 + r.a7,
-            a8: self.a8 + r.a8,
-            a9: self.a9 + r.a9,
-            a10: self.a10 + r.a10,
-        }
-    }
-}
-
-impl Add<Trivector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn add(self, r: Trivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0,
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: self.a5,
-            a6: self.a6,
-            a7: self.a7,
-            a8: self.a8,
-            a9: self.a9,
-            a10: self.a10,
-            a11: r.a11,
-            a12: r.a12,
-            a13: r.a13,
-            a14: r.a14,
-            a15: 0.,
-        }
-    }
-}
-
-impl Add<FullMultivector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn add(self, r: FullMultivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0 + r.a0,
-            a1: r.a1,
-            a2: r.a2,
-            a3: r.a3,
-            a4: r.a4,
-            a5: self.a5 + r.a5,
-            a6: self.a6 + r.a6,
-            a7: self.a7 + r.a7,
-            a8: self.a8 + r.a8,
-            a9: self.a9 + r.a9,
-            a10: self.a10 + r.a10,
-            a11: r.a11,
-            a12: r.a12,
-            a13: r.a13,
-            a14: r.a14,
-            a15: r.a15,
-        }
-    }
-}
-
-impl Sub<Float> for ScalarAndBivector {
-    type Output = ScalarAndBivector;
-
-    fn sub(self, r: Float) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: self.a0 - r,
-            a5: self.a5,
-            a6: self.a6,
-            a7: self.a7,
-            a8: self.a8,
-            a9: self.a9,
-            a10: self.a10,
-        }
-    }
-}
-
-impl Sub<Vector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn sub(self, r: Vector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0,
-            a1: -r.a1,
-            a2: -r.a2,
-            a3: -r.a3,
-            a4: -r.a4,
-            a5: self.a5,
-            a6: self.a6,
-            a7: self.a7,
-            a8: self.a8,
-            a9: self.a9,
-            a10: self.a10,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: 0.,
-        }
-    }
-}
-
-impl Sub<Bivector> for ScalarAndBivector {
-    type Output = ScalarAndBivector;
-
-    fn sub(self, r: Bivector) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: self.a0,
-            a5: self.a5 - r.a5,
-            a6: self.a6 - r.a6,
-            a7: self.a7 - r.a7,
-            a8: self.a8 - r.a8,
-            a9: self.a9 - r.a9,
-            a10: self.a10 - r.a10,
-        }
-    }
-}
-
-impl Sub<ScalarAndBivector> for ScalarAndBivector {
-    type Output = ScalarAndBivector;
-
-    fn sub(self, r: ScalarAndBivector) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: self.a0 - r.a0,
-            a5: self.a5 - r.a5,
-            a6: self.a6 - r.a6,
-            a7: self.a7 - r.a7,
-            a8: self.a8 - r.a8,
-            a9: self.a9 - r.a9,
-            a10: self.a10 - r.a10,
-        }
-    }
-}
-
-impl Sub<Trivector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn sub(self, r: Trivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0,
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: self.a5,
-            a6: self.a6,
-            a7: self.a7,
-            a8: self.a8,
-            a9: self.a9,
-            a10: self.a10,
-            a11: -r.a11,
-            a12: -r.a12,
-            a13: -r.a13,
-            a14: -r.a14,
-            a15: 0.,
-        }
-    }
-}
-
-impl Sub<FullMultivector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn sub(self, r: FullMultivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0 - r.a0,
-            a1: -r.a1,
-            a2: -r.a2,
-            a3: -r.a3,
-            a4: -r.a4,
-            a5: self.a5 - r.a5,
-            a6: self.a6 - r.a6,
-            a7: self.a7 - r.a7,
-            a8: self.a8 - r.a8,
-            a9: self.a9 - r.a9,
-            a10: self.a10 - r.a10,
-            a11: -r.a11,
-            a12: -r.a12,
-            a13: -r.a13,
-            a14: -r.a14,
-            a15: -r.a15,
-        }
-    }
-}
-
-impl Mul<Float> for ScalarAndBivector {
-    type Output = ScalarAndBivector;
-
-    fn mul(self, r: Float) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: self.a0 * r,
-            a5: self.a5 * r,
-            a6: self.a6 * r,
-            a7: self.a7 * r,
-            a8: self.a8 * r,
-            a9: self.a9 * r,
-            a10: self.a10 * r,
-        }
-    }
-}
-
-impl Mul<Vector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn mul(self, r: Vector) -> FullMultivector {
-        FullMultivector {
-            a0: 0.,
-            a1: self.a0 * r.a1 + self.a5 * r.a2 + self.a6 * r.a3 + self.a7 * r.a4,
-            a2: self.a0 * r.a2 + self.a8 * r.a3 - self.a9 * r.a4,
-            a3: self.a0 * r.a3 - self.a8 * r.a2 + self.a10 * r.a4,
-            a4: self.a0 * r.a4 + self.a9 * r.a2 - self.a10 * r.a3,
-            a5: 0.,
-            a6: 0.,
-            a7: 0.,
-            a8: 0.,
-            a9: 0.,
-            a10: 0.,
-            a11: -self.a5 * r.a3 + self.a6 * r.a2 - self.a8 * r.a1,
-            a12: self.a5 * r.a4 - self.a7 * r.a2 - self.a9 * r.a1,
-            a13: -self.a6 * r.a4 + self.a7 * r.a3 - self.a10 * r.a1,
-            a14: self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2,
-            a15: 0.,
-        }
-    }
-}
-
-impl Mul<Bivector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn mul(self, r: Bivector) -> FullMultivector {
-        FullMultivector {
-            a0: -self.a8 * r.a8 - self.a9 * r.a9 - self.a10 * r.a10,
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: self.a0 * r.a5 - self.a6 * r.a8 + self.a7 * r.a9 + self.a8 * r.a6 - self.a9 * r.a7,
-            a6: self.a0 * r.a6 + self.a5 * r.a8 - self.a7 * r.a10 - self.a8 * r.a5 + self.a10 * r.a7,
-            a7: self.a0 * r.a7 - self.a5 * r.a9 + self.a6 * r.a10 + self.a9 * r.a5 - self.a10 * r.a6,
-            a8: self.a0 * r.a8 + self.a9 * r.a10 - self.a10 * r.a9,
-            a9: self.a0 * r.a9 - self.a8 * r.a10 + self.a10 * r.a8,
-            a10: self.a0 * r.a10 + self.a8 * r.a9 - self.a9 * r.a8,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5,
-        }
-    }
-}
-
-impl Mul<ScalarAndBivector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn mul(self, r: ScalarAndBivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0 * r.a0 - self.a8 * r.a8 - self.a9 * r.a9 - self.a10 * r.a10,
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: self.a0 * r.a5 + self.a5 * r.a0 - self.a6 * r.a8 + self.a7 * r.a9 + self.a8 * r.a6 - self.a9 * r.a7,
-            a6: self.a0 * r.a6 + self.a5 * r.a8 + self.a6 * r.a0 - self.a7 * r.a10 - self.a8 * r.a5 + self.a10 * r.a7,
-            a7: self.a0 * r.a7 - self.a5 * r.a9 + self.a6 * r.a10 + self.a7 * r.a0 + self.a9 * r.a5 - self.a10 * r.a6,
-            a8: self.a0 * r.a8 + self.a8 * r.a0 + self.a9 * r.a10 - self.a10 * r.a9,
-            a9: self.a0 * r.a9 - self.a8 * r.a10 + self.a9 * r.a0 + self.a10 * r.a8,
-            a10: self.a0 * r.a10 + self.a8 * r.a9 - self.a9 * r.a8 + self.a10 * r.a0,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5,
-        }
-    }
-}
-
-impl Mul<Trivector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn mul(self, r: Trivector) -> FullMultivector {
-        FullMultivector {
-            a0: 0.,
-            a1: self.a8 * r.a11 + self.a9 * r.a12 + self.a10 * r.a13,
-            a2: -self.a10 * r.a14,
-            a3: -self.a9 * r.a14,
-            a4: -self.a8 * r.a14,
-            a5: 0.,
-            a6: 0.,
-            a7: 0.,
-            a8: 0.,
-            a9: 0.,
-            a10: 0.,
-            a11: self.a0 * r.a11 - self.a7 * r.a14 + self.a9 * r.a13 - self.a10 * r.a12,
-            a12: self.a0 * r.a12 - self.a6 * r.a14 - self.a8 * r.a13 + self.a10 * r.a11,
-            a13: self.a0 * r.a13 - self.a5 * r.a14 + self.a8 * r.a12 - self.a9 * r.a11,
-            a14: self.a0 * r.a14,
-            a15: 0.,
-        }
-    }
-}
-
-impl Mul<FullMultivector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn mul(self, r: FullMultivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0 * r.a0 - self.a8 * r.a8 - self.a9 * r.a9 - self.a10 * r.a10,
-            a1: self.a0 * r.a1 + self.a5 * r.a2 + self.a6 * r.a3 + self.a7 * r.a4 + self.a8 * r.a11 + self.a9 * r.a12 + self.a10 * r.a13,
-            a2: self.a0 * r.a2 + self.a8 * r.a3 - self.a9 * r.a4 - self.a10 * r.a14,
-            a3: self.a0 * r.a3 - self.a8 * r.a2 - self.a9 * r.a14 + self.a10 * r.a4,
-            a4: self.a0 * r.a4 - self.a8 * r.a14 + self.a9 * r.a2 - self.a10 * r.a3,
-            a5: self.a0 * r.a5 + self.a5 * r.a0 - self.a6 * r.a8 + self.a7 * r.a9 + self.a8 * r.a6 - self.a9 * r.a7 - self.a10 * r.a15,
-            a6: self.a0 * r.a6 + self.a5 * r.a8 + self.a6 * r.a0 - self.a7 * r.a10 - self.a8 * r.a5 - self.a9 * r.a15 + self.a10 * r.a7,
-            a7: self.a0 * r.a7 - self.a5 * r.a9 + self.a6 * r.a10 + self.a7 * r.a0 - self.a8 * r.a15 + self.a9 * r.a5 - self.a10 * r.a6,
-            a8: self.a0 * r.a8 + self.a8 * r.a0 + self.a9 * r.a10 - self.a10 * r.a9,
-            a9: self.a0 * r.a9 - self.a8 * r.a10 + self.a9 * r.a0 + self.a10 * r.a8,
-            a10: self.a0 * r.a10 + self.a8 * r.a9 - self.a9 * r.a8 + self.a10 * r.a0,
-            a11: self.a0 * r.a11 - self.a5 * r.a3 + self.a6 * r.a2 - self.a7 * r.a14 - self.a8 * r.a1 + self.a9 * r.a13 - self.a10 * r.a12,
-            a12: self.a0 * r.a12 + self.a5 * r.a4 - self.a6 * r.a14 - self.a7 * r.a2 - self.a8 * r.a13 - self.a9 * r.a1 + self.a10 * r.a11,
-            a13: self.a0 * r.a13 - self.a5 * r.a14 - self.a6 * r.a4 + self.a7 * r.a3 + self.a8 * r.a12 - self.a9 * r.a11 - self.a10 * r.a1,
-            a14: self.a0 * r.a14 + self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2,
-            a15: self.a0 * r.a15 + self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5,
-        }
-    }
-}
-
-impl BitXor<Float> for ScalarAndBivector {
-    type Output = ScalarAndBivector;
-
-    fn bitxor(self, r: Float) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: self.a0 * r,
-            a5: self.a5 * r,
-            a6: self.a6 * r,
-            a7: self.a7 * r,
-            a8: self.a8 * r,
-            a9: self.a9 * r,
-            a10: self.a10 * r,
-        }
-    }
-}
-
-impl BitXor<Vector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn bitxor(self, r: Vector) -> FullMultivector {
-        FullMultivector {
-            a0: 0.,
-            a1: self.a0 * r.a1,
-            a2: self.a0 * r.a2,
-            a3: self.a0 * r.a3,
-            a4: self.a0 * r.a4,
-            a5: 0.,
-            a6: 0.,
-            a7: 0.,
-            a8: 0.,
-            a9: 0.,
-            a10: 0.,
-            a11: -self.a5 * r.a3 + self.a6 * r.a2 - self.a8 * r.a1,
-            a12: self.a5 * r.a4 - self.a7 * r.a2 - self.a9 * r.a1,
-            a13: -self.a6 * r.a4 + self.a7 * r.a3 - self.a10 * r.a1,
-            a14: self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2,
-            a15: 0.,
-        }
-    }
-}
-
-impl BitXor<Bivector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn bitxor(self, r: Bivector) -> FullMultivector {
-        FullMultivector {
-            a0: 0.,
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: self.a0 * r.a5,
-            a6: self.a0 * r.a6,
-            a7: self.a0 * r.a7,
-            a8: self.a0 * r.a8,
-            a9: self.a0 * r.a9,
-            a10: self.a0 * r.a10,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5,
-        }
-    }
-}
-
-impl BitXor<ScalarAndBivector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn bitxor(self, r: ScalarAndBivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0 * r.a0,
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: self.a0 * r.a5 + self.a5 * r.a0,
-            a6: self.a0 * r.a6 + self.a6 * r.a0,
-            a7: self.a0 * r.a7 + self.a7 * r.a0,
-            a8: self.a0 * r.a8 + self.a8 * r.a0,
-            a9: self.a0 * r.a9 + self.a9 * r.a0,
-            a10: self.a0 * r.a10 + self.a10 * r.a0,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5,
-        }
-    }
-}
-
-impl BitXor<Trivector> for ScalarAndBivector {
-    type Output = Trivector;
-
-    fn bitxor(self, r: Trivector) -> Trivector {
-        Trivector {
-            a11: self.a0 * r.a11,
-            a12: self.a0 * r.a12,
-            a13: self.a0 * r.a13,
-            a14: self.a0 * r.a14,
-        }
-    }
-}
-
-impl BitXor<FullMultivector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn bitxor(self, r: FullMultivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0 * r.a0,
-            a1: self.a0 * r.a1,
-            a2: self.a0 * r.a2,
-            a3: self.a0 * r.a3,
-            a4: self.a0 * r.a4,
-            a5: self.a0 * r.a5 + self.a5 * r.a0,
-            a6: self.a0 * r.a6 + self.a6 * r.a0,
-            a7: self.a0 * r.a7 + self.a7 * r.a0,
-            a8: self.a0 * r.a8 + self.a8 * r.a0,
-            a9: self.a0 * r.a9 + self.a9 * r.a0,
-            a10: self.a0 * r.a10 + self.a10 * r.a0,
-            a11: self.a0 * r.a11 - self.a5 * r.a3 + self.a6 * r.a2 - self.a8 * r.a1,
-            a12: self.a0 * r.a12 + self.a5 * r.a4 - self.a7 * r.a2 - self.a9 * r.a1,
-            a13: self.a0 * r.a13 - self.a6 * r.a4 + self.a7 * r.a3 - self.a10 * r.a1,
-            a14: self.a0 * r.a14 + self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2,
-            a15: self.a0 * r.a15 + self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5,
-        }
-    }
-}
-
-impl BitAnd<Float> for ScalarAndBivector {
-    type Output = Float;
-
-    fn bitand(self, _r: Float) -> Float {
-        0.
-    }
-}
-
-impl BitAnd<Vector> for ScalarAndBivector {
-    type Output = Float;
-
-    fn bitand(self, _r: Vector) -> Float {
-        0.
-    }
-}
-
-impl BitAnd<Bivector> for ScalarAndBivector {
-    type Output = Float;
-
-    fn bitand(self, r: Bivector) -> Float {
-        self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5
-    }
-}
-
-impl BitAnd<ScalarAndBivector> for ScalarAndBivector {
-    type Output = Float;
-
-    fn bitand(self, r: ScalarAndBivector) -> Float {
-        self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5
-    }
-}
-
-impl BitAnd<Trivector> for ScalarAndBivector {
-    type Output = Vector;
-
-    fn bitand(self, r: Trivector) -> Vector {
-        Vector {
-            a1: self.a5 * r.a13 + self.a6 * r.a12 + self.a7 * r.a11,
-            a2: -self.a5 * r.a14 + self.a8 * r.a12 - self.a9 * r.a11,
-            a3: -self.a6 * r.a14 - self.a8 * r.a13 + self.a10 * r.a11,
-            a4: -self.a7 * r.a14 + self.a9 * r.a13 - self.a10 * r.a12,
-        }
-    }
-}
-
-impl BitAnd<FullMultivector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn bitand(self, r: FullMultivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0 * r.a15 + self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5,
-            a1: self.a5 * r.a13 + self.a6 * r.a12 + self.a7 * r.a11,
-            a2: -self.a5 * r.a14 + self.a8 * r.a12 - self.a9 * r.a11,
-            a3: -self.a6 * r.a14 - self.a8 * r.a13 + self.a10 * r.a11,
-            a4: -self.a7 * r.a14 + self.a9 * r.a13 - self.a10 * r.a12,
-            a5: self.a5 * r.a15,
-            a6: self.a6 * r.a15,
-            a7: self.a7 * r.a15,
-            a8: self.a8 * r.a15,
-            a9: self.a9 * r.a15,
-            a10: self.a10 * r.a15,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: 0.,
-        }
-    }
-}
-
-impl BitOr<Float> for ScalarAndBivector {
-    type Output = ScalarAndBivector;
-
-    fn bitor(self, r: Float) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: self.a0 * r,
-            a5: self.a5 * r,
-            a6: self.a6 * r,
-            a7: self.a7 * r,
-            a8: self.a8 * r,
-            a9: self.a9 * r,
-            a10: self.a10 * r,
-        }
-    }
-}
-
-impl BitOr<Vector> for ScalarAndBivector {
-    type Output = Vector;
-
-    fn bitor(self, r: Vector) -> Vector {
-        Vector {
-            a1: self.a0 * r.a1 + self.a5 * r.a2 + self.a6 * r.a3 + self.a7 * r.a4,
-            a2: self.a0 * r.a2 + self.a8 * r.a3 - self.a9 * r.a4,
-            a3: self.a0 * r.a3 - self.a8 * r.a2 + self.a10 * r.a4,
-            a4: self.a0 * r.a4 + self.a9 * r.a2 - self.a10 * r.a3,
-        }
-    }
-}
-
-impl BitOr<Bivector> for ScalarAndBivector {
-    type Output = ScalarAndBivector;
-
-    fn bitor(self, r: Bivector) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: -self.a8 * r.a8 - self.a9 * r.a9 - self.a10 * r.a10,
-            a5: self.a0 * r.a5,
-            a6: self.a0 * r.a6,
-            a7: self.a0 * r.a7,
-            a8: self.a0 * r.a8,
-            a9: self.a0 * r.a9,
-            a10: self.a0 * r.a10,
-        }
-    }
-}
-
-impl BitOr<ScalarAndBivector> for ScalarAndBivector {
-    type Output = ScalarAndBivector;
-
-    fn bitor(self, r: ScalarAndBivector) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: self.a0 * r.a0 - self.a8 * r.a8 - self.a9 * r.a9 - self.a10 * r.a10,
-            a5: self.a0 * r.a5 + self.a5 * r.a0,
-            a6: self.a0 * r.a6 + self.a6 * r.a0,
-            a7: self.a0 * r.a7 + self.a7 * r.a0,
-            a8: self.a0 * r.a8 + self.a8 * r.a0,
-            a9: self.a0 * r.a9 + self.a9 * r.a0,
-            a10: self.a0 * r.a10 + self.a10 * r.a0,
-        }
-    }
-}
-
-impl BitOr<Trivector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn bitor(self, r: Trivector) -> FullMultivector {
-        FullMultivector {
-            a0: 0.,
-            a1: self.a8 * r.a11 + self.a9 * r.a12 + self.a10 * r.a13,
-            a2: -self.a10 * r.a14,
-            a3: -self.a9 * r.a14,
-            a4: -self.a8 * r.a14,
-            a5: 0.,
-            a6: 0.,
-            a7: 0.,
-            a8: 0.,
-            a9: 0.,
-            a10: 0.,
-            a11: self.a0 * r.a11,
-            a12: self.a0 * r.a12,
-            a13: self.a0 * r.a13,
-            a14: self.a0 * r.a14,
-            a15: 0.,
-        }
-    }
-}
-
-impl BitOr<FullMultivector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn bitor(self, r: FullMultivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0 * r.a0 - self.a8 * r.a8 - self.a9 * r.a9 - self.a10 * r.a10,
-            a1: self.a0 * r.a1 + self.a5 * r.a2 + self.a6 * r.a3 + self.a7 * r.a4 + self.a8 * r.a11 + self.a9 * r.a12 + self.a10 * r.a13,
-            a2: self.a0 * r.a2 + self.a8 * r.a3 - self.a9 * r.a4 - self.a10 * r.a14,
-            a3: self.a0 * r.a3 - self.a8 * r.a2 - self.a9 * r.a14 + self.a10 * r.a4,
-            a4: self.a0 * r.a4 - self.a8 * r.a14 + self.a9 * r.a2 - self.a10 * r.a3,
-            a5: self.a0 * r.a5 + self.a5 * r.a0 - self.a10 * r.a15,
-            a6: self.a0 * r.a6 + self.a6 * r.a0 - self.a9 * r.a15,
-            a7: self.a0 * r.a7 + self.a7 * r.a0 - self.a8 * r.a15,
-            a8: self.a0 * r.a8 + self.a8 * r.a0,
-            a9: self.a0 * r.a9 + self.a9 * r.a0,
-            a10: self.a0 * r.a10 + self.a10 * r.a0,
-            a11: self.a0 * r.a11,
-            a12: self.a0 * r.a12,
-            a13: self.a0 * r.a13,
-            a14: self.a0 * r.a14,
-            a15: self.a0 * r.a15,
-        }
-    }
-}
-
-impl Transform<Float> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn transform(self, r: Float) -> FullMultivector {
-        FullMultivector {
-            a0: r * (self.a0.powi(2) + self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2)),
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: 0.,
-            a6: 0.,
-            a7: 0.,
-            a8: 0.,
-            a9: 0.,
-            a10: 0.,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: -2. * r * (self.a5 * self.a10 + self.a6 * self.a9 + self.a7 * self.a8),
-        }
-    }
-}
-
-impl Transform<Vector> for ScalarAndBivector {
-    type Output = Vector;
-
-    fn transform(self, r: Vector) -> Vector {
-        Vector {
-            a1: self.a0.powi(2) * r.a1 + 2. * self.a0 * self.a5 * r.a2 + 2. * self.a0 * self.a6 * r.a3 + 2. * self.a0 * self.a7 * r.a4 + 2. * self.a5 * self.a8 * r.a3 - 2. * self.a5 * self.a9 * r.a4 - 2. * self.a6 * self.a8 * r.a2 + 2. * self.a6 * self.a10 * r.a4 + 2. * self.a7 * self.a9 * r.a2 - 2. * self.a7 * self.a10 * r.a3 + self.a8.powi(2) * r.a1 + self.a9.powi(2) * r.a1 + self.a10.powi(2) * r.a1,
-            a2: self.a0 * (self.a0 * r.a2 + self.a8 * r.a3 - self.a9 * r.a4) + self.a8 * (self.a0 * r.a3 - self.a8 * r.a2 + self.a10 * r.a4) - self.a9 * (self.a0 * r.a4 + self.a9 * r.a2 - self.a10 * r.a3) + self.a10 * (self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2),
-            a3: self.a0 * (self.a0 * r.a3 - self.a8 * r.a2 + self.a10 * r.a4) - self.a8 * (self.a0 * r.a2 + self.a8 * r.a3 - self.a9 * r.a4) + self.a9 * (self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2) + self.a10 * (self.a0 * r.a4 + self.a9 * r.a2 - self.a10 * r.a3),
-            a4: self.a0 * (self.a0 * r.a4 + self.a9 * r.a2 - self.a10 * r.a3) + self.a8 * (self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2) + self.a9 * (self.a0 * r.a2 + self.a8 * r.a3 - self.a9 * r.a4) - self.a10 * (self.a0 * r.a3 - self.a8 * r.a2 + self.a10 * r.a4),
-        }
-    }
-}
-
-impl Transform<Bivector> for ScalarAndBivector {
-    type Output = Bivector;
-
-    fn transform(self, r: Bivector) -> Bivector {
+impl Reflect<Pseudoscalar> for Bivector {
+    fn reflect(self, _r: Pseudoscalar) -> Bivector {
         Bivector {
-            a5: self.a0.powi(2) * r.a5 - 2. * self.a0 * self.a6 * r.a8 + 2. * self.a0 * self.a7 * r.a9 + 2. * self.a0 * self.a8 * r.a6 - 2. * self.a0 * self.a9 * r.a7 + 2. * self.a5 * self.a8 * r.a8 + 2. * self.a5 * self.a9 * r.a9 + 2. * self.a5 * self.a10 * r.a10 - 2. * self.a6 * self.a9 * r.a10 + 2. * self.a6 * self.a10 * r.a9 - 2. * self.a7 * self.a8 * r.a10 + 2. * self.a7 * self.a10 * r.a8 - self.a8.powi(2) * r.a5 + 2. * self.a8 * self.a10 * r.a7 - self.a9.powi(2) * r.a5 + 2. * self.a9 * self.a10 * r.a6 + self.a10.powi(2) * r.a5,
-            a6: self.a0.powi(2) * r.a6 + 2. * self.a0 * self.a5 * r.a8 - 2. * self.a0 * self.a7 * r.a10 - 2. * self.a0 * self.a8 * r.a5 + 2. * self.a0 * self.a10 * r.a7 + 2. * self.a5 * self.a9 * r.a10 - 2. * self.a5 * self.a10 * r.a9 + 2. * self.a6 * self.a8 * r.a8 + 2. * self.a6 * self.a9 * r.a9 + 2. * self.a6 * self.a10 * r.a10 - 2. * self.a7 * self.a8 * r.a9 + 2. * self.a7 * self.a9 * r.a8 - self.a8.powi(2) * r.a6 + 2. * self.a8 * self.a9 * r.a7 + self.a9.powi(2) * r.a6 + 2. * self.a9 * self.a10 * r.a5 - self.a10.powi(2) * r.a6,
-            a7: self.a0.powi(2) * r.a7 - 2. * self.a0 * self.a5 * r.a9 + 2. * self.a0 * self.a6 * r.a10 + 2. * self.a0 * self.a9 * r.a5 - 2. * self.a0 * self.a10 * r.a6 + 2. * self.a5 * self.a8 * r.a10 - 2. * self.a5 * self.a10 * r.a8 + 2. * self.a6 * self.a8 * r.a9 - 2. * self.a6 * self.a9 * r.a8 + 2. * self.a7 * self.a8 * r.a8 + 2. * self.a7 * self.a9 * r.a9 + 2. * self.a7 * self.a10 * r.a10 + self.a8.powi(2) * r.a7 + 2. * self.a8 * self.a9 * r.a6 + 2. * self.a8 * self.a10 * r.a5 - self.a9.powi(2) * r.a7 - self.a10.powi(2) * r.a7,
-            a8: self.a0 * (self.a0 * r.a8 + self.a9 * r.a10 - self.a10 * r.a9) + self.a8 * (self.a8 * r.a8 + self.a9 * r.a9 + self.a10 * r.a10) + self.a9 * (self.a0 * r.a10 + self.a8 * r.a9 - self.a9 * r.a8) - self.a10 * (self.a0 * r.a9 - self.a8 * r.a10 + self.a10 * r.a8),
-            a9: self.a0 * (self.a0 * r.a9 - self.a8 * r.a10 + self.a10 * r.a8) - self.a8 * (self.a0 * r.a10 + self.a8 * r.a9 - self.a9 * r.a8) + self.a9 * (self.a8 * r.a8 + self.a9 * r.a9 + self.a10 * r.a10) + self.a10 * (self.a0 * r.a8 + self.a9 * r.a10 - self.a10 * r.a9),
-            a10: self.a0 * (self.a0 * r.a10 + self.a8 * r.a9 - self.a9 * r.a8) + self.a8 * (self.a0 * r.a9 - self.a8 * r.a10 + self.a10 * r.a8) - self.a9 * (self.a0 * r.a8 + self.a9 * r.a10 - self.a10 * r.a9) + self.a10 * (self.a8 * r.a8 + self.a9 * r.a9 + self.a10 * r.a10),
-        }
-    }
-}
-
-impl Transform<ScalarAndBivector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn transform(self, r: ScalarAndBivector) -> FullMultivector {
-        FullMultivector {
-            a0: r.a0 * (self.a0.powi(2) + self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2)),
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: self.a0.powi(2) * r.a5 - 2. * self.a0 * self.a6 * r.a8 + 2. * self.a0 * self.a7 * r.a9 + 2. * self.a0 * self.a8 * r.a6 - 2. * self.a0 * self.a9 * r.a7 + 2. * self.a5 * self.a8 * r.a8 + 2. * self.a5 * self.a9 * r.a9 + 2. * self.a5 * self.a10 * r.a10 - 2. * self.a6 * self.a9 * r.a10 + 2. * self.a6 * self.a10 * r.a9 - 2. * self.a7 * self.a8 * r.a10 + 2. * self.a7 * self.a10 * r.a8 - self.a8.powi(2) * r.a5 + 2. * self.a8 * self.a10 * r.a7 - self.a9.powi(2) * r.a5 + 2. * self.a9 * self.a10 * r.a6 + self.a10.powi(2) * r.a5,
-            a6: self.a0.powi(2) * r.a6 + 2. * self.a0 * self.a5 * r.a8 - 2. * self.a0 * self.a7 * r.a10 - 2. * self.a0 * self.a8 * r.a5 + 2. * self.a0 * self.a10 * r.a7 + 2. * self.a5 * self.a9 * r.a10 - 2. * self.a5 * self.a10 * r.a9 + 2. * self.a6 * self.a8 * r.a8 + 2. * self.a6 * self.a9 * r.a9 + 2. * self.a6 * self.a10 * r.a10 - 2. * self.a7 * self.a8 * r.a9 + 2. * self.a7 * self.a9 * r.a8 - self.a8.powi(2) * r.a6 + 2. * self.a8 * self.a9 * r.a7 + self.a9.powi(2) * r.a6 + 2. * self.a9 * self.a10 * r.a5 - self.a10.powi(2) * r.a6,
-            a7: self.a0.powi(2) * r.a7 - 2. * self.a0 * self.a5 * r.a9 + 2. * self.a0 * self.a6 * r.a10 + 2. * self.a0 * self.a9 * r.a5 - 2. * self.a0 * self.a10 * r.a6 + 2. * self.a5 * self.a8 * r.a10 - 2. * self.a5 * self.a10 * r.a8 + 2. * self.a6 * self.a8 * r.a9 - 2. * self.a6 * self.a9 * r.a8 + 2. * self.a7 * self.a8 * r.a8 + 2. * self.a7 * self.a9 * r.a9 + 2. * self.a7 * self.a10 * r.a10 + self.a8.powi(2) * r.a7 + 2. * self.a8 * self.a9 * r.a6 + 2. * self.a8 * self.a10 * r.a5 - self.a9.powi(2) * r.a7 - self.a10.powi(2) * r.a7,
-            a8: self.a0.powi(2) * r.a8 + 2. * self.a0 * self.a9 * r.a10 - 2. * self.a0 * self.a10 * r.a9 + self.a8.powi(2) * r.a8 + 2. * self.a8 * self.a9 * r.a9 + 2. * self.a8 * self.a10 * r.a10 - self.a9.powi(2) * r.a8 - self.a10.powi(2) * r.a8,
-            a9: self.a0.powi(2) * r.a9 - 2. * self.a0 * self.a8 * r.a10 + 2. * self.a0 * self.a10 * r.a8 - self.a8.powi(2) * r.a9 + 2. * self.a8 * self.a9 * r.a8 + self.a9.powi(2) * r.a9 + 2. * self.a9 * self.a10 * r.a10 - self.a10.powi(2) * r.a9,
-            a10: self.a0.powi(2) * r.a10 + 2. * self.a0 * self.a8 * r.a9 - 2. * self.a0 * self.a9 * r.a8 - self.a8.powi(2) * r.a10 + 2. * self.a8 * self.a10 * r.a8 - self.a9.powi(2) * r.a10 + 2. * self.a9 * self.a10 * r.a9 + self.a10.powi(2) * r.a10,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: -2. * r.a0 * (self.a5 * self.a10 + self.a6 * self.a9 + self.a7 * self.a8),
-        }
-    }
-}
-
-impl Transform<Trivector> for ScalarAndBivector {
-    type Output = Trivector;
-
-    fn transform(self, r: Trivector) -> Trivector {
-        Trivector {
-            a11: self.a0.powi(2) * r.a11 - 2. * self.a0 * self.a7 * r.a14 + 2. * self.a0 * self.a9 * r.a13 - 2. * self.a0 * self.a10 * r.a12 - 2. * self.a5 * self.a9 * r.a14 + 2. * self.a6 * self.a10 * r.a14 + self.a8.powi(2) * r.a11 + 2. * self.a8 * self.a9 * r.a12 + 2. * self.a8 * self.a10 * r.a13 - self.a9.powi(2) * r.a11 - self.a10.powi(2) * r.a11,
-            a12: self.a0.powi(2) * r.a12 - 2. * self.a0 * self.a6 * r.a14 - 2. * self.a0 * self.a8 * r.a13 + 2. * self.a0 * self.a10 * r.a11 + 2. * self.a5 * self.a8 * r.a14 - 2. * self.a7 * self.a10 * r.a14 - self.a8.powi(2) * r.a12 + 2. * self.a8 * self.a9 * r.a11 + self.a9.powi(2) * r.a12 + 2. * self.a9 * self.a10 * r.a13 - self.a10.powi(2) * r.a12,
-            a13: self.a0.powi(2) * r.a13 - 2. * self.a0 * self.a5 * r.a14 + 2. * self.a0 * self.a8 * r.a12 - 2. * self.a0 * self.a9 * r.a11 - 2. * self.a6 * self.a8 * r.a14 + 2. * self.a7 * self.a9 * r.a14 - self.a8.powi(2) * r.a13 + 2. * self.a8 * self.a10 * r.a11 - self.a9.powi(2) * r.a13 + 2. * self.a9 * self.a10 * r.a12 + self.a10.powi(2) * r.a13,
-            a14: r.a14 * (self.a0.powi(2) + self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2)),
-        }
-    }
-}
-
-impl Transform<FullMultivector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn transform(self, r: FullMultivector) -> FullMultivector {
-        FullMultivector {
-            a0: r.a0 * (self.a0.powi(2) + self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2)),
-            a1: self.a0.powi(2) * r.a1 + 2. * self.a0 * self.a5 * r.a2 + 2. * self.a0 * self.a6 * r.a3 + 2. * self.a0 * self.a7 * r.a4 + 2. * self.a5 * self.a8 * r.a3 - 2. * self.a5 * self.a9 * r.a4 - 2. * self.a6 * self.a8 * r.a2 + 2. * self.a6 * self.a10 * r.a4 + 2. * self.a7 * self.a9 * r.a2 - 2. * self.a7 * self.a10 * r.a3 + self.a8.powi(2) * r.a1 + self.a9.powi(2) * r.a1 + self.a10.powi(2) * r.a1,
-            a2: self.a0.powi(2) * r.a2 + 2. * self.a0 * self.a8 * r.a3 - 2. * self.a0 * self.a9 * r.a4 - self.a8.powi(2) * r.a2 + 2. * self.a8 * self.a10 * r.a4 - self.a9.powi(2) * r.a2 + 2. * self.a9 * self.a10 * r.a3 + self.a10.powi(2) * r.a2,
-            a3: self.a0.powi(2) * r.a3 - 2. * self.a0 * self.a8 * r.a2 + 2. * self.a0 * self.a10 * r.a4 - self.a8.powi(2) * r.a3 + 2. * self.a8 * self.a9 * r.a4 + self.a9.powi(2) * r.a3 + 2. * self.a9 * self.a10 * r.a2 - self.a10.powi(2) * r.a3,
-            a4: self.a0.powi(2) * r.a4 + 2. * self.a0 * self.a9 * r.a2 - 2. * self.a0 * self.a10 * r.a3 + self.a8.powi(2) * r.a4 + 2. * self.a8 * self.a9 * r.a3 + 2. * self.a8 * self.a10 * r.a2 - self.a9.powi(2) * r.a4 - self.a10.powi(2) * r.a4,
-            a5: self.a0.powi(2) * r.a5 - 2. * self.a0 * self.a6 * r.a8 + 2. * self.a0 * self.a7 * r.a9 + 2. * self.a0 * self.a8 * r.a6 - 2. * self.a0 * self.a9 * r.a7 + 2. * self.a5 * self.a8 * r.a8 + 2. * self.a5 * self.a9 * r.a9 + 2. * self.a5 * self.a10 * r.a10 - 2. * self.a6 * self.a9 * r.a10 + 2. * self.a6 * self.a10 * r.a9 - 2. * self.a7 * self.a8 * r.a10 + 2. * self.a7 * self.a10 * r.a8 - self.a8.powi(2) * r.a5 + 2. * self.a8 * self.a10 * r.a7 - self.a9.powi(2) * r.a5 + 2. * self.a9 * self.a10 * r.a6 + self.a10.powi(2) * r.a5,
-            a6: self.a0.powi(2) * r.a6 + 2. * self.a0 * self.a5 * r.a8 - 2. * self.a0 * self.a7 * r.a10 - 2. * self.a0 * self.a8 * r.a5 + 2. * self.a0 * self.a10 * r.a7 + 2. * self.a5 * self.a9 * r.a10 - 2. * self.a5 * self.a10 * r.a9 + 2. * self.a6 * self.a8 * r.a8 + 2. * self.a6 * self.a9 * r.a9 + 2. * self.a6 * self.a10 * r.a10 - 2. * self.a7 * self.a8 * r.a9 + 2. * self.a7 * self.a9 * r.a8 - self.a8.powi(2) * r.a6 + 2. * self.a8 * self.a9 * r.a7 + self.a9.powi(2) * r.a6 + 2. * self.a9 * self.a10 * r.a5 - self.a10.powi(2) * r.a6,
-            a7: self.a0.powi(2) * r.a7 - 2. * self.a0 * self.a5 * r.a9 + 2. * self.a0 * self.a6 * r.a10 + 2. * self.a0 * self.a9 * r.a5 - 2. * self.a0 * self.a10 * r.a6 + 2. * self.a5 * self.a8 * r.a10 - 2. * self.a5 * self.a10 * r.a8 + 2. * self.a6 * self.a8 * r.a9 - 2. * self.a6 * self.a9 * r.a8 + 2. * self.a7 * self.a8 * r.a8 + 2. * self.a7 * self.a9 * r.a9 + 2. * self.a7 * self.a10 * r.a10 + self.a8.powi(2) * r.a7 + 2. * self.a8 * self.a9 * r.a6 + 2. * self.a8 * self.a10 * r.a5 - self.a9.powi(2) * r.a7 - self.a10.powi(2) * r.a7,
-            a8: self.a0.powi(2) * r.a8 + 2. * self.a0 * self.a9 * r.a10 - 2. * self.a0 * self.a10 * r.a9 + self.a8.powi(2) * r.a8 + 2. * self.a8 * self.a9 * r.a9 + 2. * self.a8 * self.a10 * r.a10 - self.a9.powi(2) * r.a8 - self.a10.powi(2) * r.a8,
-            a9: self.a0.powi(2) * r.a9 - 2. * self.a0 * self.a8 * r.a10 + 2. * self.a0 * self.a10 * r.a8 - self.a8.powi(2) * r.a9 + 2. * self.a8 * self.a9 * r.a8 + self.a9.powi(2) * r.a9 + 2. * self.a9 * self.a10 * r.a10 - self.a10.powi(2) * r.a9,
-            a10: self.a0.powi(2) * r.a10 + 2. * self.a0 * self.a8 * r.a9 - 2. * self.a0 * self.a9 * r.a8 - self.a8.powi(2) * r.a10 + 2. * self.a8 * self.a10 * r.a8 - self.a9.powi(2) * r.a10 + 2. * self.a9 * self.a10 * r.a9 + self.a10.powi(2) * r.a10,
-            a11: self.a0.powi(2) * r.a11 - 2. * self.a0 * self.a7 * r.a14 + 2. * self.a0 * self.a9 * r.a13 - 2. * self.a0 * self.a10 * r.a12 - 2. * self.a5 * self.a9 * r.a14 + 2. * self.a6 * self.a10 * r.a14 + self.a8.powi(2) * r.a11 + 2. * self.a8 * self.a9 * r.a12 + 2. * self.a8 * self.a10 * r.a13 - self.a9.powi(2) * r.a11 - self.a10.powi(2) * r.a11,
-            a12: self.a0.powi(2) * r.a12 - 2. * self.a0 * self.a6 * r.a14 - 2. * self.a0 * self.a8 * r.a13 + 2. * self.a0 * self.a10 * r.a11 + 2. * self.a5 * self.a8 * r.a14 - 2. * self.a7 * self.a10 * r.a14 - self.a8.powi(2) * r.a12 + 2. * self.a8 * self.a9 * r.a11 + self.a9.powi(2) * r.a12 + 2. * self.a9 * self.a10 * r.a13 - self.a10.powi(2) * r.a12,
-            a13: self.a0.powi(2) * r.a13 - 2. * self.a0 * self.a5 * r.a14 + 2. * self.a0 * self.a8 * r.a12 - 2. * self.a0 * self.a9 * r.a11 - 2. * self.a6 * self.a8 * r.a14 + 2. * self.a7 * self.a9 * r.a14 - self.a8.powi(2) * r.a13 + 2. * self.a8 * self.a10 * r.a11 - self.a9.powi(2) * r.a13 + 2. * self.a9 * self.a10 * r.a12 + self.a10.powi(2) * r.a13,
-            a14: r.a14 * (self.a0.powi(2) + self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2)),
-            a15: self.a0.powi(2) * r.a15 - 2. * self.a5 * self.a10 * r.a0 - 2. * self.a6 * self.a9 * r.a0 - 2. * self.a7 * self.a8 * r.a0 + self.a8.powi(2) * r.a15 + self.a9.powi(2) * r.a15 + self.a10.powi(2) * r.a15,
-        }
-    }
-}
-
-impl Reflect<Float> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn reflect(self, r: Float) -> FullMultivector {
-        FullMultivector {
-            a0: r * (self.a0.powi(2) - self.a8.powi(2) - self.a9.powi(2) - self.a10.powi(2)),
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: 2. * self.a0 * self.a5 * r,
-            a6: 2. * self.a0 * self.a6 * r,
-            a7: 2. * self.a0 * self.a7 * r,
-            a8: 2. * self.a0 * self.a8 * r,
-            a9: 2. * self.a0 * self.a9 * r,
-            a10: 2. * self.a0 * self.a10 * r,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: 2. * r * (self.a5 * self.a10 + self.a6 * self.a9 + self.a7 * self.a8),
-        }
-    }
-}
-
-impl Reflect<Vector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn reflect(self, r: Vector) -> FullMultivector {
-        FullMultivector {
-            a0: 0.,
-            a1: self.a0.powi(2) * r.a1 - 2. * self.a5 * self.a8 * r.a3 + 2. * self.a5 * self.a9 * r.a4 + 2. * self.a6 * self.a8 * r.a2 - 2. * self.a6 * self.a10 * r.a4 - 2. * self.a7 * self.a9 * r.a2 + 2. * self.a7 * self.a10 * r.a3 - self.a8.powi(2) * r.a1 - self.a9.powi(2) * r.a1 - self.a10.powi(2) * r.a1,
-            a2: self.a0.powi(2) * r.a2 + self.a8.powi(2) * r.a2 - 2. * self.a8 * self.a10 * r.a4 + self.a9.powi(2) * r.a2 - 2. * self.a9 * self.a10 * r.a3 - self.a10.powi(2) * r.a2,
-            a3: self.a0.powi(2) * r.a3 + self.a8.powi(2) * r.a3 - 2. * self.a8 * self.a9 * r.a4 - self.a9.powi(2) * r.a3 - 2. * self.a9 * self.a10 * r.a2 + self.a10.powi(2) * r.a3,
-            a4: self.a0.powi(2) * r.a4 - self.a8.powi(2) * r.a4 - 2. * self.a8 * self.a9 * r.a3 - 2. * self.a8 * self.a10 * r.a2 + self.a9.powi(2) * r.a4 + self.a10.powi(2) * r.a4,
             a5: 0.,
             a6: 0.,
             a7: 0.,
             a8: 0.,
             a9: 0.,
             a10: 0.,
-            a11: 2. * self.a0 * (-self.a5 * r.a3 + self.a6 * r.a2 - self.a8 * r.a1),
-            a12: 2. * self.a0 * (self.a5 * r.a4 - self.a7 * r.a2 - self.a9 * r.a1),
-            a13: 2. * self.a0 * (-self.a6 * r.a4 + self.a7 * r.a3 - self.a10 * r.a1),
-            a14: 2. * self.a0 * (self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2),
-            a15: 0.,
-        }
-    }
-}
-
-impl Reflect<Bivector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn reflect(self, r: Bivector) -> FullMultivector {
-        FullMultivector {
-            a0: -2. * self.a0 * (self.a8 * r.a8 + self.a9 * r.a9 + self.a10 * r.a10),
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: self.a0.powi(2) * r.a5 - 2. * self.a5 * self.a8 * r.a8 - 2. * self.a5 * self.a9 * r.a9 - 2. * self.a5 * self.a10 * r.a10 + 2. * self.a6 * self.a9 * r.a10 - 2. * self.a6 * self.a10 * r.a9 + 2. * self.a7 * self.a8 * r.a10 - 2. * self.a7 * self.a10 * r.a8 + self.a8.powi(2) * r.a5 - 2. * self.a8 * self.a10 * r.a7 + self.a9.powi(2) * r.a5 - 2. * self.a9 * self.a10 * r.a6 - self.a10.powi(2) * r.a5,
-            a6: self.a0.powi(2) * r.a6 - 2. * self.a5 * self.a9 * r.a10 + 2. * self.a5 * self.a10 * r.a9 - 2. * self.a6 * self.a8 * r.a8 - 2. * self.a6 * self.a9 * r.a9 - 2. * self.a6 * self.a10 * r.a10 + 2. * self.a7 * self.a8 * r.a9 - 2. * self.a7 * self.a9 * r.a8 + self.a8.powi(2) * r.a6 - 2. * self.a8 * self.a9 * r.a7 - self.a9.powi(2) * r.a6 - 2. * self.a9 * self.a10 * r.a5 + self.a10.powi(2) * r.a6,
-            a7: self.a0.powi(2) * r.a7 - 2. * self.a5 * self.a8 * r.a10 + 2. * self.a5 * self.a10 * r.a8 - 2. * self.a6 * self.a8 * r.a9 + 2. * self.a6 * self.a9 * r.a8 - 2. * self.a7 * self.a8 * r.a8 - 2. * self.a7 * self.a9 * r.a9 - 2. * self.a7 * self.a10 * r.a10 - self.a8.powi(2) * r.a7 - 2. * self.a8 * self.a9 * r.a6 - 2. * self.a8 * self.a10 * r.a5 + self.a9.powi(2) * r.a7 + self.a10.powi(2) * r.a7,
-            a8: self.a0.powi(2) * r.a8 - self.a8.powi(2) * r.a8 - 2. * self.a8 * self.a9 * r.a9 - 2. * self.a8 * self.a10 * r.a10 + self.a9.powi(2) * r.a8 + self.a10.powi(2) * r.a8,
-            a9: self.a0.powi(2) * r.a9 + self.a8.powi(2) * r.a9 - 2. * self.a8 * self.a9 * r.a8 - self.a9.powi(2) * r.a9 - 2. * self.a9 * self.a10 * r.a10 + self.a10.powi(2) * r.a9,
-            a10: self.a0.powi(2) * r.a10 + self.a8.powi(2) * r.a10 - 2. * self.a8 * self.a10 * r.a8 + self.a9.powi(2) * r.a10 - 2. * self.a9 * self.a10 * r.a9 - self.a10.powi(2) * r.a10,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: 2. * self.a0 * (self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5),
-        }
-    }
-}
-
-impl Reflect<ScalarAndBivector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn reflect(self, r: ScalarAndBivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0.powi(2) * r.a0 - 2. * self.a0 * self.a8 * r.a8 - 2. * self.a0 * self.a9 * r.a9 - 2. * self.a0 * self.a10 * r.a10 - self.a8.powi(2) * r.a0 - self.a9.powi(2) * r.a0 - self.a10.powi(2) * r.a0,
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: self.a0.powi(2) * r.a5 + 2. * self.a0 * self.a5 * r.a0 - 2. * self.a5 * self.a8 * r.a8 - 2. * self.a5 * self.a9 * r.a9 - 2. * self.a5 * self.a10 * r.a10 + 2. * self.a6 * self.a9 * r.a10 - 2. * self.a6 * self.a10 * r.a9 + 2. * self.a7 * self.a8 * r.a10 - 2. * self.a7 * self.a10 * r.a8 + self.a8.powi(2) * r.a5 - 2. * self.a8 * self.a10 * r.a7 + self.a9.powi(2) * r.a5 - 2. * self.a9 * self.a10 * r.a6 - self.a10.powi(2) * r.a5,
-            a6: self.a0.powi(2) * r.a6 + 2. * self.a0 * self.a6 * r.a0 - 2. * self.a5 * self.a9 * r.a10 + 2. * self.a5 * self.a10 * r.a9 - 2. * self.a6 * self.a8 * r.a8 - 2. * self.a6 * self.a9 * r.a9 - 2. * self.a6 * self.a10 * r.a10 + 2. * self.a7 * self.a8 * r.a9 - 2. * self.a7 * self.a9 * r.a8 + self.a8.powi(2) * r.a6 - 2. * self.a8 * self.a9 * r.a7 - self.a9.powi(2) * r.a6 - 2. * self.a9 * self.a10 * r.a5 + self.a10.powi(2) * r.a6,
-            a7: self.a0.powi(2) * r.a7 + 2. * self.a0 * self.a7 * r.a0 - 2. * self.a5 * self.a8 * r.a10 + 2. * self.a5 * self.a10 * r.a8 - 2. * self.a6 * self.a8 * r.a9 + 2. * self.a6 * self.a9 * r.a8 - 2. * self.a7 * self.a8 * r.a8 - 2. * self.a7 * self.a9 * r.a9 - 2. * self.a7 * self.a10 * r.a10 - self.a8.powi(2) * r.a7 - 2. * self.a8 * self.a9 * r.a6 - 2. * self.a8 * self.a10 * r.a5 + self.a9.powi(2) * r.a7 + self.a10.powi(2) * r.a7,
-            a8: self.a0.powi(2) * r.a8 + 2. * self.a0 * self.a8 * r.a0 - self.a8.powi(2) * r.a8 - 2. * self.a8 * self.a9 * r.a9 - 2. * self.a8 * self.a10 * r.a10 + self.a9.powi(2) * r.a8 + self.a10.powi(2) * r.a8,
-            a9: self.a0.powi(2) * r.a9 + 2. * self.a0 * self.a9 * r.a0 + self.a8.powi(2) * r.a9 - 2. * self.a8 * self.a9 * r.a8 - self.a9.powi(2) * r.a9 - 2. * self.a9 * self.a10 * r.a10 + self.a10.powi(2) * r.a9,
-            a10: self.a0.powi(2) * r.a10 + 2. * self.a0 * self.a10 * r.a0 + self.a8.powi(2) * r.a10 - 2. * self.a8 * self.a10 * r.a8 + self.a9.powi(2) * r.a10 - 2. * self.a9 * self.a10 * r.a9 - self.a10.powi(2) * r.a10,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: 2. * self.a0 * self.a5 * r.a10 + 2. * self.a0 * self.a6 * r.a9 + 2. * self.a0 * self.a7 * r.a8 + 2. * self.a0 * self.a8 * r.a7 + 2. * self.a0 * self.a9 * r.a6 + 2. * self.a0 * self.a10 * r.a5 + 2. * self.a5 * self.a10 * r.a0 + 2. * self.a6 * self.a9 * r.a0 + 2. * self.a7 * self.a8 * r.a0,
-        }
-    }
-}
-
-impl Reflect<Trivector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn reflect(self, r: Trivector) -> FullMultivector {
-        FullMultivector {
-            a0: 0.,
-            a1: 2. * self.a0 * (self.a8 * r.a11 + self.a9 * r.a12 + self.a10 * r.a13),
-            a2: -2. * self.a0 * self.a10 * r.a14,
-            a3: -2. * self.a0 * self.a9 * r.a14,
-            a4: -2. * self.a0 * self.a8 * r.a14,
-            a5: 0.,
-            a6: 0.,
-            a7: 0.,
-            a8: 0.,
-            a9: 0.,
-            a10: 0.,
-            a11: self.a0.powi(2) * r.a11 + 2. * self.a5 * self.a9 * r.a14 - 2. * self.a6 * self.a10 * r.a14 - self.a8.powi(2) * r.a11 - 2. * self.a8 * self.a9 * r.a12 - 2. * self.a8 * self.a10 * r.a13 + self.a9.powi(2) * r.a11 + self.a10.powi(2) * r.a11,
-            a12: self.a0.powi(2) * r.a12 - 2. * self.a5 * self.a8 * r.a14 + 2. * self.a7 * self.a10 * r.a14 + self.a8.powi(2) * r.a12 - 2. * self.a8 * self.a9 * r.a11 - self.a9.powi(2) * r.a12 - 2. * self.a9 * self.a10 * r.a13 + self.a10.powi(2) * r.a12,
-            a13: self.a0.powi(2) * r.a13 + 2. * self.a6 * self.a8 * r.a14 - 2. * self.a7 * self.a9 * r.a14 + self.a8.powi(2) * r.a13 - 2. * self.a8 * self.a10 * r.a11 + self.a9.powi(2) * r.a13 - 2. * self.a9 * self.a10 * r.a12 - self.a10.powi(2) * r.a13,
-            a14: r.a14 * (self.a0.powi(2) - self.a8.powi(2) - self.a9.powi(2) - self.a10.powi(2)),
-            a15: 0.,
-        }
-    }
-}
-
-impl Reflect<FullMultivector> for ScalarAndBivector {
-    type Output = FullMultivector;
-
-    fn reflect(self, r: FullMultivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0.powi(2) * r.a0 - 2. * self.a0 * self.a8 * r.a8 - 2. * self.a0 * self.a9 * r.a9 - 2. * self.a0 * self.a10 * r.a10 - self.a8.powi(2) * r.a0 - self.a9.powi(2) * r.a0 - self.a10.powi(2) * r.a0,
-            a1: self.a0.powi(2) * r.a1 + 2. * self.a0 * self.a8 * r.a11 + 2. * self.a0 * self.a9 * r.a12 + 2. * self.a0 * self.a10 * r.a13 - 2. * self.a5 * self.a8 * r.a3 + 2. * self.a5 * self.a9 * r.a4 + 2. * self.a6 * self.a8 * r.a2 - 2. * self.a6 * self.a10 * r.a4 - 2. * self.a7 * self.a9 * r.a2 + 2. * self.a7 * self.a10 * r.a3 - self.a8.powi(2) * r.a1 - self.a9.powi(2) * r.a1 - self.a10.powi(2) * r.a1,
-            a2: self.a0.powi(2) * r.a2 - 2. * self.a0 * self.a10 * r.a14 + self.a8.powi(2) * r.a2 - 2. * self.a8 * self.a10 * r.a4 + self.a9.powi(2) * r.a2 - 2. * self.a9 * self.a10 * r.a3 - self.a10.powi(2) * r.a2,
-            a3: self.a0.powi(2) * r.a3 - 2. * self.a0 * self.a9 * r.a14 + self.a8.powi(2) * r.a3 - 2. * self.a8 * self.a9 * r.a4 - self.a9.powi(2) * r.a3 - 2. * self.a9 * self.a10 * r.a2 + self.a10.powi(2) * r.a3,
-            a4: self.a0.powi(2) * r.a4 - 2. * self.a0 * self.a8 * r.a14 - self.a8.powi(2) * r.a4 - 2. * self.a8 * self.a9 * r.a3 - 2. * self.a8 * self.a10 * r.a2 + self.a9.powi(2) * r.a4 + self.a10.powi(2) * r.a4,
-            a5: self.a0.powi(2) * r.a5 + 2. * self.a0 * self.a5 * r.a0 - 2. * self.a0 * self.a10 * r.a15 - 2. * self.a5 * self.a8 * r.a8 - 2. * self.a5 * self.a9 * r.a9 - 2. * self.a5 * self.a10 * r.a10 + 2. * self.a6 * self.a9 * r.a10 - 2. * self.a6 * self.a10 * r.a9 + 2. * self.a7 * self.a8 * r.a10 - 2. * self.a7 * self.a10 * r.a8 + self.a8.powi(2) * r.a5 - 2. * self.a8 * self.a10 * r.a7 + self.a9.powi(2) * r.a5 - 2. * self.a9 * self.a10 * r.a6 - self.a10.powi(2) * r.a5,
-            a6: self.a0.powi(2) * r.a6 + 2. * self.a0 * self.a6 * r.a0 - 2. * self.a0 * self.a9 * r.a15 - 2. * self.a5 * self.a9 * r.a10 + 2. * self.a5 * self.a10 * r.a9 - 2. * self.a6 * self.a8 * r.a8 - 2. * self.a6 * self.a9 * r.a9 - 2. * self.a6 * self.a10 * r.a10 + 2. * self.a7 * self.a8 * r.a9 - 2. * self.a7 * self.a9 * r.a8 + self.a8.powi(2) * r.a6 - 2. * self.a8 * self.a9 * r.a7 - self.a9.powi(2) * r.a6 - 2. * self.a9 * self.a10 * r.a5 + self.a10.powi(2) * r.a6,
-            a7: self.a0.powi(2) * r.a7 + 2. * self.a0 * self.a7 * r.a0 - 2. * self.a0 * self.a8 * r.a15 - 2. * self.a5 * self.a8 * r.a10 + 2. * self.a5 * self.a10 * r.a8 - 2. * self.a6 * self.a8 * r.a9 + 2. * self.a6 * self.a9 * r.a8 - 2. * self.a7 * self.a8 * r.a8 - 2. * self.a7 * self.a9 * r.a9 - 2. * self.a7 * self.a10 * r.a10 - self.a8.powi(2) * r.a7 - 2. * self.a8 * self.a9 * r.a6 - 2. * self.a8 * self.a10 * r.a5 + self.a9.powi(2) * r.a7 + self.a10.powi(2) * r.a7,
-            a8: self.a0.powi(2) * r.a8 + 2. * self.a0 * self.a8 * r.a0 - self.a8.powi(2) * r.a8 - 2. * self.a8 * self.a9 * r.a9 - 2. * self.a8 * self.a10 * r.a10 + self.a9.powi(2) * r.a8 + self.a10.powi(2) * r.a8,
-            a9: self.a0.powi(2) * r.a9 + 2. * self.a0 * self.a9 * r.a0 + self.a8.powi(2) * r.a9 - 2. * self.a8 * self.a9 * r.a8 - self.a9.powi(2) * r.a9 - 2. * self.a9 * self.a10 * r.a10 + self.a10.powi(2) * r.a9,
-            a10: self.a0.powi(2) * r.a10 + 2. * self.a0 * self.a10 * r.a0 + self.a8.powi(2) * r.a10 - 2. * self.a8 * self.a10 * r.a8 + self.a9.powi(2) * r.a10 - 2. * self.a9 * self.a10 * r.a9 - self.a10.powi(2) * r.a10,
-            a11: self.a0.powi(2) * r.a11 - 2. * self.a0 * self.a5 * r.a3 + 2. * self.a0 * self.a6 * r.a2 - 2. * self.a0 * self.a8 * r.a1 + 2. * self.a5 * self.a9 * r.a14 - 2. * self.a6 * self.a10 * r.a14 - self.a8.powi(2) * r.a11 - 2. * self.a8 * self.a9 * r.a12 - 2. * self.a8 * self.a10 * r.a13 + self.a9.powi(2) * r.a11 + self.a10.powi(2) * r.a11,
-            a12: self.a0.powi(2) * r.a12 + 2. * self.a0 * self.a5 * r.a4 - 2. * self.a0 * self.a7 * r.a2 - 2. * self.a0 * self.a9 * r.a1 - 2. * self.a5 * self.a8 * r.a14 + 2. * self.a7 * self.a10 * r.a14 + self.a8.powi(2) * r.a12 - 2. * self.a8 * self.a9 * r.a11 - self.a9.powi(2) * r.a12 - 2. * self.a9 * self.a10 * r.a13 + self.a10.powi(2) * r.a12,
-            a13: self.a0.powi(2) * r.a13 - 2. * self.a0 * self.a6 * r.a4 + 2. * self.a0 * self.a7 * r.a3 - 2. * self.a0 * self.a10 * r.a1 + 2. * self.a6 * self.a8 * r.a14 - 2. * self.a7 * self.a9 * r.a14 + self.a8.powi(2) * r.a13 - 2. * self.a8 * self.a10 * r.a11 + self.a9.powi(2) * r.a13 - 2. * self.a9 * self.a10 * r.a12 - self.a10.powi(2) * r.a13,
-            a14: self.a0.powi(2) * r.a14 + 2. * self.a0 * self.a8 * r.a4 + 2. * self.a0 * self.a9 * r.a3 + 2. * self.a0 * self.a10 * r.a2 - self.a8.powi(2) * r.a14 - self.a9.powi(2) * r.a14 - self.a10.powi(2) * r.a14,
-            a15: self.a0.powi(2) * r.a15 + 2. * self.a0 * self.a5 * r.a10 + 2. * self.a0 * self.a6 * r.a9 + 2. * self.a0 * self.a7 * r.a8 + 2. * self.a0 * self.a8 * r.a7 + 2. * self.a0 * self.a9 * r.a6 + 2. * self.a0 * self.a10 * r.a5 + 2. * self.a5 * self.a10 * r.a0 + 2. * self.a6 * self.a9 * r.a0 + 2. * self.a7 * self.a8 * r.a0 - self.a8.powi(2) * r.a15 - self.a9.powi(2) * r.a15 - self.a10.powi(2) * r.a15,
         }
     }
 }
@@ -3926,7 +2792,7 @@ impl Normalize for Trivector {
     }
 }
 
-impl NormalizeDual for Trivector {
+impl NormalizeInfinite for Trivector {
     fn inorm(self) -> Float {
         (self.a11.powi(2) + self.a12.powi(2) + self.a13.powi(2)).sqrt()
     }
@@ -4055,6 +2921,44 @@ impl Add<Bivector> for Trivector {
     }
 }
 
+impl Add<Trivector> for Trivector {
+    type Output = Trivector;
+
+    fn add(self, r: Trivector) -> Trivector {
+        Trivector {
+            a11: self.a11 + r.a11,
+            a12: self.a12 + r.a12,
+            a13: self.a13 + r.a13,
+            a14: self.a14 + r.a14,
+        }
+    }
+}
+
+impl Add<Pseudoscalar> for Trivector {
+    type Output = FullMultivector;
+
+    fn add(self, r: Pseudoscalar) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: self.a11,
+            a12: self.a12,
+            a13: self.a13,
+            a14: self.a14,
+            a15: r.a15,
+        }
+    }
+}
+
 impl Add<ScalarAndBivector> for Trivector {
     type Output = FullMultivector;
 
@@ -4076,19 +2980,6 @@ impl Add<ScalarAndBivector> for Trivector {
             a13: self.a13,
             a14: self.a14,
             a15: 0.,
-        }
-    }
-}
-
-impl Add<Trivector> for Trivector {
-    type Output = Trivector;
-
-    fn add(self, r: Trivector) -> Trivector {
-        Trivector {
-            a11: self.a11 + r.a11,
-            a12: self.a12 + r.a12,
-            a13: self.a13 + r.a13,
-            a14: self.a14 + r.a14,
         }
     }
 }
@@ -4193,6 +3084,44 @@ impl Sub<Bivector> for Trivector {
     }
 }
 
+impl Sub<Trivector> for Trivector {
+    type Output = Trivector;
+
+    fn sub(self, r: Trivector) -> Trivector {
+        Trivector {
+            a11: self.a11 - r.a11,
+            a12: self.a12 - r.a12,
+            a13: self.a13 - r.a13,
+            a14: self.a14 - r.a14,
+        }
+    }
+}
+
+impl Sub<Pseudoscalar> for Trivector {
+    type Output = FullMultivector;
+
+    fn sub(self, r: Pseudoscalar) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: self.a11,
+            a12: self.a12,
+            a13: self.a13,
+            a14: self.a14,
+            a15: -r.a15,
+        }
+    }
+}
+
 impl Sub<ScalarAndBivector> for Trivector {
     type Output = FullMultivector;
 
@@ -4214,19 +3143,6 @@ impl Sub<ScalarAndBivector> for Trivector {
             a13: self.a13,
             a14: self.a14,
             a15: 0.,
-        }
-    }
-}
-
-impl Sub<Trivector> for Trivector {
-    type Output = Trivector;
-
-    fn sub(self, r: Trivector) -> Trivector {
-        Trivector {
-            a11: self.a11 - r.a11,
-            a12: self.a12 - r.a12,
-            a13: self.a13 - r.a13,
-            a14: self.a14 - r.a14,
         }
     }
 }
@@ -4319,6 +3235,35 @@ impl Mul<Bivector> for Trivector {
     }
 }
 
+impl Mul<Trivector> for Trivector {
+    type Output = ScalarAndBivector;
+
+    fn mul(self, r: Trivector) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: -self.a14 * r.a14,
+            a5: self.a13 * r.a14 - self.a14 * r.a13,
+            a6: self.a12 * r.a14 - self.a14 * r.a12,
+            a7: self.a11 * r.a14 - self.a14 * r.a11,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+        }
+    }
+}
+
+impl Mul<Pseudoscalar> for Trivector {
+    type Output = Vector;
+
+    fn mul(self, r: Pseudoscalar) -> Vector {
+        Vector {
+            a1: self.a14 * r.a15,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+        }
+    }
+}
+
 impl Mul<ScalarAndBivector> for Trivector {
     type Output = FullMultivector;
 
@@ -4340,22 +3285,6 @@ impl Mul<ScalarAndBivector> for Trivector {
             a13: self.a11 * r.a9 - self.a12 * r.a8 + self.a13 * r.a0 + self.a14 * r.a5,
             a14: self.a14 * r.a0,
             a15: 0.,
-        }
-    }
-}
-
-impl Mul<Trivector> for Trivector {
-    type Output = ScalarAndBivector;
-
-    fn mul(self, r: Trivector) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: -self.a14 * r.a14,
-            a5: self.a13 * r.a14 - self.a14 * r.a13,
-            a6: self.a12 * r.a14 - self.a14 * r.a12,
-            a7: self.a11 * r.a14 - self.a14 * r.a11,
-            a8: 0.,
-            a9: 0.,
-            a10: 0.,
         }
     }
 }
@@ -4399,25 +3328,10 @@ impl BitXor<Float> for Trivector {
 }
 
 impl BitXor<Vector> for Trivector {
-    type Output = FullMultivector;
+    type Output = Pseudoscalar;
 
-    fn bitxor(self, r: Vector) -> FullMultivector {
-        FullMultivector {
-            a0: 0.,
-            a1: 0.,
-            a2: 0.,
-            a3: 0.,
-            a4: 0.,
-            a5: 0.,
-            a6: 0.,
-            a7: 0.,
-            a8: 0.,
-            a9: 0.,
-            a10: 0.,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
+    fn bitxor(self, r: Vector) -> Pseudoscalar {
+        Pseudoscalar {
             a15: -self.a11 * r.a4 - self.a12 * r.a3 - self.a13 * r.a2 - self.a14 * r.a1,
         }
     }
@@ -4427,6 +3341,22 @@ impl BitXor<Bivector> for Trivector {
     type Output = Float;
 
     fn bitxor(self, _r: Bivector) -> Float {
+        0.
+    }
+}
+
+impl BitXor<Trivector> for Trivector {
+    type Output = Float;
+
+    fn bitxor(self, _r: Trivector) -> Float {
+        0.
+    }
+}
+
+impl BitXor<Pseudoscalar> for Trivector {
+    type Output = Float;
+
+    fn bitxor(self, _r: Pseudoscalar) -> Float {
         0.
     }
 }
@@ -4441,14 +3371,6 @@ impl BitXor<ScalarAndBivector> for Trivector {
             a13: self.a13 * r.a0,
             a14: self.a14 * r.a0,
         }
-    }
-}
-
-impl BitXor<Trivector> for Trivector {
-    type Output = Float;
-
-    fn bitxor(self, _r: Trivector) -> Float {
-        0.
     }
 }
 
@@ -4506,19 +3428,6 @@ impl BitAnd<Bivector> for Trivector {
     }
 }
 
-impl BitAnd<ScalarAndBivector> for Trivector {
-    type Output = Vector;
-
-    fn bitand(self, r: ScalarAndBivector) -> Vector {
-        Vector {
-            a1: self.a11 * r.a7 + self.a12 * r.a6 + self.a13 * r.a5,
-            a2: -self.a11 * r.a9 + self.a12 * r.a8 - self.a14 * r.a5,
-            a3: self.a11 * r.a10 - self.a13 * r.a8 - self.a14 * r.a6,
-            a4: -self.a12 * r.a10 + self.a13 * r.a9 - self.a14 * r.a7,
-        }
-    }
-}
-
 impl BitAnd<Trivector> for Trivector {
     type Output = Bivector;
 
@@ -4530,6 +3439,32 @@ impl BitAnd<Trivector> for Trivector {
             a8: -self.a11 * r.a14 + self.a14 * r.a11,
             a9: -self.a12 * r.a14 + self.a14 * r.a12,
             a10: -self.a13 * r.a14 + self.a14 * r.a13,
+        }
+    }
+}
+
+impl BitAnd<Pseudoscalar> for Trivector {
+    type Output = Trivector;
+
+    fn bitand(self, r: Pseudoscalar) -> Trivector {
+        Trivector {
+            a11: self.a11 * r.a15,
+            a12: self.a12 * r.a15,
+            a13: self.a13 * r.a15,
+            a14: self.a14 * r.a15,
+        }
+    }
+}
+
+impl BitAnd<ScalarAndBivector> for Trivector {
+    type Output = Vector;
+
+    fn bitand(self, r: ScalarAndBivector) -> Vector {
+        Vector {
+            a1: self.a11 * r.a7 + self.a12 * r.a6 + self.a13 * r.a5,
+            a2: -self.a11 * r.a9 + self.a12 * r.a8 - self.a14 * r.a5,
+            a3: self.a11 * r.a10 - self.a13 * r.a8 - self.a14 * r.a6,
+            a4: -self.a12 * r.a10 + self.a13 * r.a9 - self.a14 * r.a7,
         }
     }
 }
@@ -4600,6 +3535,27 @@ impl BitOr<Bivector> for Trivector {
     }
 }
 
+impl BitOr<Trivector> for Trivector {
+    type Output = Float;
+
+    fn bitor(self, r: Trivector) -> Float {
+        -self.a14 * r.a14
+    }
+}
+
+impl BitOr<Pseudoscalar> for Trivector {
+    type Output = Vector;
+
+    fn bitor(self, r: Pseudoscalar) -> Vector {
+        Vector {
+            a1: self.a14 * r.a15,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+        }
+    }
+}
+
 impl BitOr<ScalarAndBivector> for Trivector {
     type Output = FullMultivector;
 
@@ -4622,14 +3578,6 @@ impl BitOr<ScalarAndBivector> for Trivector {
             a14: self.a14 * r.a0,
             a15: 0.,
         }
-    }
-}
-
-impl BitOr<Trivector> for Trivector {
-    type Output = Float;
-
-    fn bitor(self, r: Trivector) -> Float {
-        -self.a14 * r.a14
     }
 }
 
@@ -4659,181 +3607,2083 @@ impl BitOr<FullMultivector> for Trivector {
 }
 
 impl Transform<Float> for Trivector {
-    type Output = Float;
-
-    fn transform(self, r: Float) -> Float {
-        self.a14.powi(2) * r
+    fn transform(self, r: Float) -> Trivector {
+        Trivector {
+            a11: self.a11 * r.powi(2),
+            a12: self.a12 * r.powi(2),
+            a13: self.a13 * r.powi(2),
+            a14: self.a14 * r.powi(2),
+        }
     }
 }
 
 impl Transform<Vector> for Trivector {
-    type Output = Vector;
-
-    fn transform(self, r: Vector) -> Vector {
-        Vector {
-            a1: -self.a14 * (2. * self.a11 * r.a4 + 2. * self.a12 * r.a3 + 2. * self.a13 * r.a2 + self.a14 * r.a1),
-            a2: self.a14.powi(2) * r.a2,
-            a3: self.a14.powi(2) * r.a3,
-            a4: self.a14.powi(2) * r.a4,
+    fn transform(self, r: Vector) -> Trivector {
+        Trivector {
+            a11: self.a11 * r.a2.powi(2) + self.a11 * r.a3.powi(2) - self.a11 * r.a4.powi(2) - 2. * self.a12 * r.a3 * r.a4 - 2. * self.a13 * r.a2 * r.a4 - 2. * self.a14 * r.a1 * r.a4,
+            a12: -2. * self.a11 * r.a3 * r.a4 + self.a12 * r.a2.powi(2) - self.a12 * r.a3.powi(2) + self.a12 * r.a4.powi(2) - 2. * self.a13 * r.a2 * r.a3 - 2. * self.a14 * r.a1 * r.a3,
+            a13: -2. * self.a11 * r.a2 * r.a4 - 2. * self.a12 * r.a2 * r.a3 - self.a13 * r.a2.powi(2) + self.a13 * r.a3.powi(2) + self.a13 * r.a4.powi(2) - 2. * self.a14 * r.a1 * r.a2,
+            a14: self.a14 * (r.a2.powi(2) + r.a3.powi(2) + r.a4.powi(2)),
         }
     }
 }
 
 impl Transform<Bivector> for Trivector {
-    type Output = Bivector;
-
-    fn transform(self, r: Bivector) -> Bivector {
-        Bivector {
-            a5: self.a14 * (-2. * self.a11 * r.a9 + 2. * self.a12 * r.a8 - self.a14 * r.a5),
-            a6: self.a14 * (2. * self.a11 * r.a10 - 2. * self.a13 * r.a8 - self.a14 * r.a6),
-            a7: self.a14 * (-2. * self.a12 * r.a10 + 2. * self.a13 * r.a9 - self.a14 * r.a7),
-            a8: self.a14.powi(2) * r.a8,
-            a9: self.a14.powi(2) * r.a9,
-            a10: self.a14.powi(2) * r.a10,
-        }
-    }
-}
-
-impl Transform<ScalarAndBivector> for Trivector {
-    type Output = ScalarAndBivector;
-
-    fn transform(self, r: ScalarAndBivector) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: self.a14.powi(2) * r.a0,
-            a5: self.a14 * (-2. * self.a11 * r.a9 + 2. * self.a12 * r.a8 - self.a14 * r.a5),
-            a6: self.a14 * (2. * self.a11 * r.a10 - 2. * self.a13 * r.a8 - self.a14 * r.a6),
-            a7: self.a14 * (-2. * self.a12 * r.a10 + 2. * self.a13 * r.a9 - self.a14 * r.a7),
-            a8: self.a14.powi(2) * r.a8,
-            a9: self.a14.powi(2) * r.a9,
-            a10: self.a14.powi(2) * r.a10,
+    fn transform(self, r: Bivector) -> Trivector {
+        Trivector {
+            a11: self.a11 * r.a8.powi(2) - self.a11 * r.a9.powi(2) - self.a11 * r.a10.powi(2) + 2. * self.a12 * r.a8 * r.a9 + 2. * self.a13 * r.a8 * r.a10 - 2. * self.a14 * r.a5 * r.a9 + 2. * self.a14 * r.a6 * r.a10,
+            a12: 2. * self.a11 * r.a8 * r.a9 - self.a12 * r.a8.powi(2) + self.a12 * r.a9.powi(2) - self.a12 * r.a10.powi(2) + 2. * self.a13 * r.a9 * r.a10 + 2. * self.a14 * r.a5 * r.a8 - 2. * self.a14 * r.a7 * r.a10,
+            a13: 2. * self.a11 * r.a8 * r.a10 + 2. * self.a12 * r.a9 * r.a10 - self.a13 * r.a8.powi(2) - self.a13 * r.a9.powi(2) + self.a13 * r.a10.powi(2) - 2. * self.a14 * r.a6 * r.a8 + 2. * self.a14 * r.a7 * r.a9,
+            a14: self.a14 * (r.a8.powi(2) + r.a9.powi(2) + r.a10.powi(2)),
         }
     }
 }
 
 impl Transform<Trivector> for Trivector {
-    type Output = Trivector;
-
     fn transform(self, r: Trivector) -> Trivector {
         Trivector {
-            a11: self.a14 * (2. * self.a11 * r.a14 - self.a14 * r.a11),
-            a12: self.a14 * (2. * self.a12 * r.a14 - self.a14 * r.a12),
-            a13: self.a14 * (2. * self.a13 * r.a14 - self.a14 * r.a13),
-            a14: self.a14.powi(2) * r.a14,
+            a11: r.a14 * (-self.a11 * r.a14 + 2. * self.a14 * r.a11),
+            a12: r.a14 * (-self.a12 * r.a14 + 2. * self.a14 * r.a12),
+            a13: r.a14 * (-self.a13 * r.a14 + 2. * self.a14 * r.a13),
+            a14: self.a14 * r.a14.powi(2),
         }
     }
 }
 
-impl Transform<FullMultivector> for Trivector {
-    type Output = FullMultivector;
+impl Transform<Pseudoscalar> for Trivector {
+    fn transform(self, _r: Pseudoscalar) -> Trivector {
+        Trivector {
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+        }
+    }
+}
 
-    fn transform(self, r: FullMultivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a14.powi(2) * r.a0,
-            a1: -self.a14 * (2. * self.a11 * r.a4 + 2. * self.a12 * r.a3 + 2. * self.a13 * r.a2 + self.a14 * r.a1),
-            a2: self.a14.powi(2) * r.a2,
-            a3: self.a14.powi(2) * r.a3,
-            a4: self.a14.powi(2) * r.a4,
-            a5: self.a14 * (-2. * self.a11 * r.a9 + 2. * self.a12 * r.a8 - self.a14 * r.a5),
-            a6: self.a14 * (2. * self.a11 * r.a10 - 2. * self.a13 * r.a8 - self.a14 * r.a6),
-            a7: self.a14 * (-2. * self.a12 * r.a10 + 2. * self.a13 * r.a9 - self.a14 * r.a7),
-            a8: self.a14.powi(2) * r.a8,
-            a9: self.a14.powi(2) * r.a9,
-            a10: self.a14.powi(2) * r.a10,
-            a11: self.a14 * (2. * self.a11 * r.a14 - self.a14 * r.a11),
-            a12: self.a14 * (2. * self.a12 * r.a14 - self.a14 * r.a12),
-            a13: self.a14 * (2. * self.a13 * r.a14 - self.a14 * r.a13),
-            a14: self.a14.powi(2) * r.a14,
-            a15: -self.a14.powi(2) * r.a15,
+impl Transform<ScalarAndBivector> for Trivector {
+    fn transform(self, r: ScalarAndBivector) -> Trivector {
+        Trivector {
+            a11: self.a11 * r.a0.powi(2) + self.a11 * r.a8.powi(2) - self.a11 * r.a9.powi(2) - self.a11 * r.a10.powi(2) - 2. * self.a12 * r.a0 * r.a10 + 2. * self.a12 * r.a8 * r.a9 + 2. * self.a13 * r.a0 * r.a9 + 2. * self.a13 * r.a8 * r.a10 - 2. * self.a14 * r.a0 * r.a7 - 2. * self.a14 * r.a5 * r.a9 + 2. * self.a14 * r.a6 * r.a10,
+            a12: 2. * self.a11 * r.a0 * r.a10 + 2. * self.a11 * r.a8 * r.a9 + self.a12 * r.a0.powi(2) - self.a12 * r.a8.powi(2) + self.a12 * r.a9.powi(2) - self.a12 * r.a10.powi(2) - 2. * self.a13 * r.a0 * r.a8 + 2. * self.a13 * r.a9 * r.a10 - 2. * self.a14 * r.a0 * r.a6 + 2. * self.a14 * r.a5 * r.a8 - 2. * self.a14 * r.a7 * r.a10,
+            a13: -2. * self.a11 * r.a0 * r.a9 + 2. * self.a11 * r.a8 * r.a10 + 2. * self.a12 * r.a0 * r.a8 + 2. * self.a12 * r.a9 * r.a10 + self.a13 * r.a0.powi(2) - self.a13 * r.a8.powi(2) - self.a13 * r.a9.powi(2) + self.a13 * r.a10.powi(2) - 2. * self.a14 * r.a0 * r.a5 - 2. * self.a14 * r.a6 * r.a8 + 2. * self.a14 * r.a7 * r.a9,
+            a14: self.a14 * (r.a0.powi(2) + r.a8.powi(2) + r.a9.powi(2) + r.a10.powi(2)),
         }
     }
 }
 
 impl Reflect<Float> for Trivector {
-    type Output = Float;
-
-    fn reflect(self, r: Float) -> Float {
-        -self.a14.powi(2) * r
+    fn reflect(self, r: Float) -> Trivector {
+        Trivector {
+            a11: self.a11 * r.powi(2),
+            a12: self.a12 * r.powi(2),
+            a13: self.a13 * r.powi(2),
+            a14: self.a14 * r.powi(2),
+        }
     }
 }
 
 impl Reflect<Vector> for Trivector {
-    type Output = Vector;
-
-    fn reflect(self, r: Vector) -> Vector {
-        Vector {
-            a1: self.a14 * (2. * self.a11 * r.a4 + 2. * self.a12 * r.a3 + 2. * self.a13 * r.a2 + self.a14 * r.a1),
-            a2: -self.a14.powi(2) * r.a2,
-            a3: -self.a14.powi(2) * r.a3,
-            a4: -self.a14.powi(2) * r.a4,
+    fn reflect(self, r: Vector) -> Trivector {
+        Trivector {
+            a11: self.a11 * r.a2.powi(2) + self.a11 * r.a3.powi(2) - self.a11 * r.a4.powi(2) - 2. * self.a12 * r.a3 * r.a4 - 2. * self.a13 * r.a2 * r.a4 - 2. * self.a14 * r.a1 * r.a4,
+            a12: -2. * self.a11 * r.a3 * r.a4 + self.a12 * r.a2.powi(2) - self.a12 * r.a3.powi(2) + self.a12 * r.a4.powi(2) - 2. * self.a13 * r.a2 * r.a3 - 2. * self.a14 * r.a1 * r.a3,
+            a13: -2. * self.a11 * r.a2 * r.a4 - 2. * self.a12 * r.a2 * r.a3 - self.a13 * r.a2.powi(2) + self.a13 * r.a3.powi(2) + self.a13 * r.a4.powi(2) - 2. * self.a14 * r.a1 * r.a2,
+            a14: self.a14 * (r.a2.powi(2) + r.a3.powi(2) + r.a4.powi(2)),
         }
     }
 }
 
 impl Reflect<Bivector> for Trivector {
-    type Output = Bivector;
-
-    fn reflect(self, r: Bivector) -> Bivector {
-        Bivector {
-            a5: self.a14 * (2. * self.a11 * r.a9 - 2. * self.a12 * r.a8 + self.a14 * r.a5),
-            a6: self.a14 * (-2. * self.a11 * r.a10 + 2. * self.a13 * r.a8 + self.a14 * r.a6),
-            a7: self.a14 * (2. * self.a12 * r.a10 - 2. * self.a13 * r.a9 + self.a14 * r.a7),
-            a8: -self.a14.powi(2) * r.a8,
-            a9: -self.a14.powi(2) * r.a9,
-            a10: -self.a14.powi(2) * r.a10,
-        }
-    }
-}
-
-impl Reflect<ScalarAndBivector> for Trivector {
-    type Output = ScalarAndBivector;
-
-    fn reflect(self, r: ScalarAndBivector) -> ScalarAndBivector {
-        ScalarAndBivector {
-            a0: -self.a14.powi(2) * r.a0,
-            a5: self.a14 * (2. * self.a11 * r.a9 - 2. * self.a12 * r.a8 + self.a14 * r.a5),
-            a6: self.a14 * (-2. * self.a11 * r.a10 + 2. * self.a13 * r.a8 + self.a14 * r.a6),
-            a7: self.a14 * (2. * self.a12 * r.a10 - 2. * self.a13 * r.a9 + self.a14 * r.a7),
-            a8: -self.a14.powi(2) * r.a8,
-            a9: -self.a14.powi(2) * r.a9,
-            a10: -self.a14.powi(2) * r.a10,
+    fn reflect(self, r: Bivector) -> Trivector {
+        Trivector {
+            a11: -self.a11 * r.a8.powi(2) + self.a11 * r.a9.powi(2) + self.a11 * r.a10.powi(2) - 2. * self.a12 * r.a8 * r.a9 - 2. * self.a13 * r.a8 * r.a10 + 2. * self.a14 * r.a5 * r.a9 - 2. * self.a14 * r.a6 * r.a10,
+            a12: -2. * self.a11 * r.a8 * r.a9 + self.a12 * r.a8.powi(2) - self.a12 * r.a9.powi(2) + self.a12 * r.a10.powi(2) - 2. * self.a13 * r.a9 * r.a10 - 2. * self.a14 * r.a5 * r.a8 + 2. * self.a14 * r.a7 * r.a10,
+            a13: -2. * self.a11 * r.a8 * r.a10 - 2. * self.a12 * r.a9 * r.a10 + self.a13 * r.a8.powi(2) + self.a13 * r.a9.powi(2) - self.a13 * r.a10.powi(2) + 2. * self.a14 * r.a6 * r.a8 - 2. * self.a14 * r.a7 * r.a9,
+            a14: -self.a14 * (r.a8.powi(2) + r.a9.powi(2) + r.a10.powi(2)),
         }
     }
 }
 
 impl Reflect<Trivector> for Trivector {
-    type Output = Trivector;
-
     fn reflect(self, r: Trivector) -> Trivector {
         Trivector {
-            a11: self.a14 * (-2. * self.a11 * r.a14 + self.a14 * r.a11),
-            a12: self.a14 * (-2. * self.a12 * r.a14 + self.a14 * r.a12),
-            a13: self.a14 * (-2. * self.a13 * r.a14 + self.a14 * r.a13),
-            a14: -self.a14.powi(2) * r.a14,
+            a11: r.a14 * (self.a11 * r.a14 - 2. * self.a14 * r.a11),
+            a12: r.a14 * (self.a12 * r.a14 - 2. * self.a14 * r.a12),
+            a13: r.a14 * (self.a13 * r.a14 - 2. * self.a14 * r.a13),
+            a14: -self.a14 * r.a14.powi(2),
         }
     }
 }
 
-impl Reflect<FullMultivector> for Trivector {
+impl Reflect<Pseudoscalar> for Trivector {
+    fn reflect(self, _r: Pseudoscalar) -> Trivector {
+        Trivector {
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+        }
+    }
+}
+
+// ===========================================================================
+// Pseudoscalar
+// ===========================================================================
+
+
+#[derive(Default,Debug,Clone,Copy,PartialEq)]
+pub struct Pseudoscalar {
+    a15: Float,
+}
+
+impl Reverse for Pseudoscalar {
+    fn reverse(self) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self.a15,
+        }
+    }
+}
+
+impl Dual for Pseudoscalar {
+    type Output = Float;
+
+    fn dual(self) -> Float {
+        self.a15
+    }
+}
+
+impl Conjugate for Pseudoscalar {
+    fn conjugate(self) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self.a15,
+        }
+    }
+}
+
+impl Normalize for Pseudoscalar {
+    fn norm(self) -> Float {
+        0.
+    }
+}
+
+impl NormalizeInfinite for Pseudoscalar {
+    fn inorm(self) -> Float {
+        self.a15.abs()
+    }
+}
+
+impl Pseudoscalar {
+    pub fn new(a15: Float) -> Pseudoscalar {
+        Pseudoscalar {a15}
+    }
+
+    pub fn zero() -> Pseudoscalar {
+        Default::default()
+    }
+
+    pub fn as_tuple(&self) -> Float {
+        self.a15
+    }
+
+    pub fn full_multivector(self) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: self.a15,
+        }
+    }
+}
+
+impl Neg for Pseudoscalar {
+    type Output = Pseudoscalar;
+
+    fn neg(self) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: -self.a15,
+        }
+    }
+}
+
+impl Add<Float> for Pseudoscalar {
     type Output = FullMultivector;
 
-    fn reflect(self, r: FullMultivector) -> FullMultivector {
+    fn add(self, r: Float) -> FullMultivector {
         FullMultivector {
-            a0: -self.a14.powi(2) * r.a0,
-            a1: self.a14 * (2. * self.a11 * r.a4 + 2. * self.a12 * r.a3 + 2. * self.a13 * r.a2 + self.a14 * r.a1),
-            a2: -self.a14.powi(2) * r.a2,
-            a3: -self.a14.powi(2) * r.a3,
-            a4: -self.a14.powi(2) * r.a4,
-            a5: self.a14 * (2. * self.a11 * r.a9 - 2. * self.a12 * r.a8 + self.a14 * r.a5),
-            a6: self.a14 * (-2. * self.a11 * r.a10 + 2. * self.a13 * r.a8 + self.a14 * r.a6),
-            a7: self.a14 * (2. * self.a12 * r.a10 - 2. * self.a13 * r.a9 + self.a14 * r.a7),
-            a8: -self.a14.powi(2) * r.a8,
-            a9: -self.a14.powi(2) * r.a9,
-            a10: -self.a14.powi(2) * r.a10,
-            a11: self.a14 * (-2. * self.a11 * r.a14 + self.a14 * r.a11),
-            a12: self.a14 * (-2. * self.a12 * r.a14 + self.a14 * r.a12),
-            a13: self.a14 * (-2. * self.a13 * r.a14 + self.a14 * r.a13),
-            a14: -self.a14.powi(2) * r.a14,
-            a15: self.a14.powi(2) * r.a15,
+            a0: r,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: self.a15,
+        }
+    }
+}
+
+impl Add<Vector> for Pseudoscalar {
+    type Output = FullMultivector;
+
+    fn add(self, r: Vector) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: r.a1,
+            a2: r.a2,
+            a3: r.a3,
+            a4: r.a4,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: self.a15,
+        }
+    }
+}
+
+impl Add<Bivector> for Pseudoscalar {
+    type Output = FullMultivector;
+
+    fn add(self, r: Bivector) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: r.a5,
+            a6: r.a6,
+            a7: r.a7,
+            a8: r.a8,
+            a9: r.a9,
+            a10: r.a10,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: self.a15,
+        }
+    }
+}
+
+impl Add<Trivector> for Pseudoscalar {
+    type Output = FullMultivector;
+
+    fn add(self, r: Trivector) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: r.a11,
+            a12: r.a12,
+            a13: r.a13,
+            a14: r.a14,
+            a15: self.a15,
+        }
+    }
+}
+
+impl Add<Pseudoscalar> for Pseudoscalar {
+    type Output = Pseudoscalar;
+
+    fn add(self, r: Pseudoscalar) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self.a15 + r.a15,
+        }
+    }
+}
+
+impl Add<ScalarAndBivector> for Pseudoscalar {
+    type Output = FullMultivector;
+
+    fn add(self, r: ScalarAndBivector) -> FullMultivector {
+        FullMultivector {
+            a0: r.a0,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: r.a5,
+            a6: r.a6,
+            a7: r.a7,
+            a8: r.a8,
+            a9: r.a9,
+            a10: r.a10,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: self.a15,
+        }
+    }
+}
+
+impl Add<FullMultivector> for Pseudoscalar {
+    type Output = FullMultivector;
+
+    fn add(self, r: FullMultivector) -> FullMultivector {
+        FullMultivector {
+            a0: r.a0,
+            a1: r.a1,
+            a2: r.a2,
+            a3: r.a3,
+            a4: r.a4,
+            a5: r.a5,
+            a6: r.a6,
+            a7: r.a7,
+            a8: r.a8,
+            a9: r.a9,
+            a10: r.a10,
+            a11: r.a11,
+            a12: r.a12,
+            a13: r.a13,
+            a14: r.a14,
+            a15: self.a15 + r.a15,
+        }
+    }
+}
+
+impl Sub<Float> for Pseudoscalar {
+    type Output = FullMultivector;
+
+    fn sub(self, r: Float) -> FullMultivector {
+        FullMultivector {
+            a0: -r,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: self.a15,
+        }
+    }
+}
+
+impl Sub<Vector> for Pseudoscalar {
+    type Output = FullMultivector;
+
+    fn sub(self, r: Vector) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: -r.a1,
+            a2: -r.a2,
+            a3: -r.a3,
+            a4: -r.a4,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: self.a15,
+        }
+    }
+}
+
+impl Sub<Bivector> for Pseudoscalar {
+    type Output = FullMultivector;
+
+    fn sub(self, r: Bivector) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: -r.a5,
+            a6: -r.a6,
+            a7: -r.a7,
+            a8: -r.a8,
+            a9: -r.a9,
+            a10: -r.a10,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: self.a15,
+        }
+    }
+}
+
+impl Sub<Trivector> for Pseudoscalar {
+    type Output = FullMultivector;
+
+    fn sub(self, r: Trivector) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: -r.a11,
+            a12: -r.a12,
+            a13: -r.a13,
+            a14: -r.a14,
+            a15: self.a15,
+        }
+    }
+}
+
+impl Sub<Pseudoscalar> for Pseudoscalar {
+    type Output = Pseudoscalar;
+
+    fn sub(self, r: Pseudoscalar) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self.a15 - r.a15,
+        }
+    }
+}
+
+impl Sub<ScalarAndBivector> for Pseudoscalar {
+    type Output = FullMultivector;
+
+    fn sub(self, r: ScalarAndBivector) -> FullMultivector {
+        FullMultivector {
+            a0: -r.a0,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: -r.a5,
+            a6: -r.a6,
+            a7: -r.a7,
+            a8: -r.a8,
+            a9: -r.a9,
+            a10: -r.a10,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: self.a15,
+        }
+    }
+}
+
+impl Sub<FullMultivector> for Pseudoscalar {
+    type Output = FullMultivector;
+
+    fn sub(self, r: FullMultivector) -> FullMultivector {
+        FullMultivector {
+            a0: -r.a0,
+            a1: -r.a1,
+            a2: -r.a2,
+            a3: -r.a3,
+            a4: -r.a4,
+            a5: -r.a5,
+            a6: -r.a6,
+            a7: -r.a7,
+            a8: -r.a8,
+            a9: -r.a9,
+            a10: -r.a10,
+            a11: -r.a11,
+            a12: -r.a12,
+            a13: -r.a13,
+            a14: -r.a14,
+            a15: self.a15 - r.a15,
+        }
+    }
+}
+
+impl Mul<Float> for Pseudoscalar {
+    type Output = Pseudoscalar;
+
+    fn mul(self, r: Float) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self.a15 * r,
+        }
+    }
+}
+
+impl Mul<Vector> for Pseudoscalar {
+    type Output = Trivector;
+
+    fn mul(self, r: Vector) -> Trivector {
+        Trivector {
+            a11: -self.a15 * r.a4,
+            a12: -self.a15 * r.a3,
+            a13: -self.a15 * r.a2,
+            a14: 0.,
+        }
+    }
+}
+
+impl Mul<Bivector> for Pseudoscalar {
+    type Output = Bivector;
+
+    fn mul(self, r: Bivector) -> Bivector {
+        Bivector {
+            a5: -self.a15 * r.a10,
+            a6: -self.a15 * r.a9,
+            a7: -self.a15 * r.a8,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+        }
+    }
+}
+
+impl Mul<Trivector> for Pseudoscalar {
+    type Output = Vector;
+
+    fn mul(self, r: Trivector) -> Vector {
+        Vector {
+            a1: -self.a15 * r.a14,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+        }
+    }
+}
+
+impl Mul<Pseudoscalar> for Pseudoscalar {
+    type Output = Float;
+
+    fn mul(self, _r: Pseudoscalar) -> Float {
+        0.
+    }
+}
+
+impl Mul<ScalarAndBivector> for Pseudoscalar {
+    type Output = FullMultivector;
+
+    fn mul(self, r: ScalarAndBivector) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: -self.a15 * r.a10,
+            a6: -self.a15 * r.a9,
+            a7: -self.a15 * r.a8,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: self.a15 * r.a0,
+        }
+    }
+}
+
+impl Mul<FullMultivector> for Pseudoscalar {
+    type Output = FullMultivector;
+
+    fn mul(self, r: FullMultivector) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: -self.a15 * r.a14,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: -self.a15 * r.a10,
+            a6: -self.a15 * r.a9,
+            a7: -self.a15 * r.a8,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: -self.a15 * r.a4,
+            a12: -self.a15 * r.a3,
+            a13: -self.a15 * r.a2,
+            a14: 0.,
+            a15: self.a15 * r.a0,
+        }
+    }
+}
+
+impl BitXor<Float> for Pseudoscalar {
+    type Output = Pseudoscalar;
+
+    fn bitxor(self, r: Float) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self.a15 * r,
+        }
+    }
+}
+
+impl BitXor<Vector> for Pseudoscalar {
+    type Output = Float;
+
+    fn bitxor(self, _r: Vector) -> Float {
+        0.
+    }
+}
+
+impl BitXor<Bivector> for Pseudoscalar {
+    type Output = Float;
+
+    fn bitxor(self, _r: Bivector) -> Float {
+        0.
+    }
+}
+
+impl BitXor<Trivector> for Pseudoscalar {
+    type Output = Float;
+
+    fn bitxor(self, _r: Trivector) -> Float {
+        0.
+    }
+}
+
+impl BitXor<Pseudoscalar> for Pseudoscalar {
+    type Output = Float;
+
+    fn bitxor(self, _r: Pseudoscalar) -> Float {
+        0.
+    }
+}
+
+impl BitXor<ScalarAndBivector> for Pseudoscalar {
+    type Output = Pseudoscalar;
+
+    fn bitxor(self, r: ScalarAndBivector) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self.a15 * r.a0,
+        }
+    }
+}
+
+impl BitXor<FullMultivector> for Pseudoscalar {
+    type Output = Pseudoscalar;
+
+    fn bitxor(self, r: FullMultivector) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self.a15 * r.a0,
+        }
+    }
+}
+
+impl BitAnd<Float> for Pseudoscalar {
+    type Output = Float;
+
+    fn bitand(self, r: Float) -> Float {
+        self.a15 * r
+    }
+}
+
+impl BitAnd<Vector> for Pseudoscalar {
+    type Output = Vector;
+
+    fn bitand(self, r: Vector) -> Vector {
+        Vector {
+            a1: self.a15 * r.a1,
+            a2: self.a15 * r.a2,
+            a3: self.a15 * r.a3,
+            a4: self.a15 * r.a4,
+        }
+    }
+}
+
+impl BitAnd<Bivector> for Pseudoscalar {
+    type Output = Bivector;
+
+    fn bitand(self, r: Bivector) -> Bivector {
+        Bivector {
+            a5: self.a15 * r.a5,
+            a6: self.a15 * r.a6,
+            a7: self.a15 * r.a7,
+            a8: self.a15 * r.a8,
+            a9: self.a15 * r.a9,
+            a10: self.a15 * r.a10,
+        }
+    }
+}
+
+impl BitAnd<Trivector> for Pseudoscalar {
+    type Output = Trivector;
+
+    fn bitand(self, r: Trivector) -> Trivector {
+        Trivector {
+            a11: self.a15 * r.a11,
+            a12: self.a15 * r.a12,
+            a13: self.a15 * r.a13,
+            a14: self.a15 * r.a14,
+        }
+    }
+}
+
+impl BitAnd<Pseudoscalar> for Pseudoscalar {
+    type Output = Pseudoscalar;
+
+    fn bitand(self, r: Pseudoscalar) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self.a15 * r.a15,
+        }
+    }
+}
+
+impl BitAnd<ScalarAndBivector> for Pseudoscalar {
+    type Output = ScalarAndBivector;
+
+    fn bitand(self, r: ScalarAndBivector) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self.a15 * r.a0,
+            a5: self.a15 * r.a5,
+            a6: self.a15 * r.a6,
+            a7: self.a15 * r.a7,
+            a8: self.a15 * r.a8,
+            a9: self.a15 * r.a9,
+            a10: self.a15 * r.a10,
+        }
+    }
+}
+
+impl BitAnd<FullMultivector> for Pseudoscalar {
+    type Output = FullMultivector;
+
+    fn bitand(self, r: FullMultivector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a15 * r.a0,
+            a1: self.a15 * r.a1,
+            a2: self.a15 * r.a2,
+            a3: self.a15 * r.a3,
+            a4: self.a15 * r.a4,
+            a5: self.a15 * r.a5,
+            a6: self.a15 * r.a6,
+            a7: self.a15 * r.a7,
+            a8: self.a15 * r.a8,
+            a9: self.a15 * r.a9,
+            a10: self.a15 * r.a10,
+            a11: self.a15 * r.a11,
+            a12: self.a15 * r.a12,
+            a13: self.a15 * r.a13,
+            a14: self.a15 * r.a14,
+            a15: self.a15 * r.a15,
+        }
+    }
+}
+
+impl BitOr<Float> for Pseudoscalar {
+    type Output = Pseudoscalar;
+
+    fn bitor(self, r: Float) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self.a15 * r,
+        }
+    }
+}
+
+impl BitOr<Vector> for Pseudoscalar {
+    type Output = Trivector;
+
+    fn bitor(self, r: Vector) -> Trivector {
+        Trivector {
+            a11: -self.a15 * r.a4,
+            a12: -self.a15 * r.a3,
+            a13: -self.a15 * r.a2,
+            a14: 0.,
+        }
+    }
+}
+
+impl BitOr<Bivector> for Pseudoscalar {
+    type Output = Bivector;
+
+    fn bitor(self, r: Bivector) -> Bivector {
+        Bivector {
+            a5: -self.a15 * r.a10,
+            a6: -self.a15 * r.a9,
+            a7: -self.a15 * r.a8,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+        }
+    }
+}
+
+impl BitOr<Trivector> for Pseudoscalar {
+    type Output = Vector;
+
+    fn bitor(self, r: Trivector) -> Vector {
+        Vector {
+            a1: -self.a15 * r.a14,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+        }
+    }
+}
+
+impl BitOr<Pseudoscalar> for Pseudoscalar {
+    type Output = Float;
+
+    fn bitor(self, _r: Pseudoscalar) -> Float {
+        0.
+    }
+}
+
+impl BitOr<ScalarAndBivector> for Pseudoscalar {
+    type Output = FullMultivector;
+
+    fn bitor(self, r: ScalarAndBivector) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: -self.a15 * r.a10,
+            a6: -self.a15 * r.a9,
+            a7: -self.a15 * r.a8,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: self.a15 * r.a0,
+        }
+    }
+}
+
+impl BitOr<FullMultivector> for Pseudoscalar {
+    type Output = FullMultivector;
+
+    fn bitor(self, r: FullMultivector) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: -self.a15 * r.a14,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: -self.a15 * r.a10,
+            a6: -self.a15 * r.a9,
+            a7: -self.a15 * r.a8,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: -self.a15 * r.a4,
+            a12: -self.a15 * r.a3,
+            a13: -self.a15 * r.a2,
+            a14: 0.,
+            a15: self.a15 * r.a0,
+        }
+    }
+}
+
+impl Transform<Float> for Pseudoscalar {
+    fn transform(self, r: Float) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self.a15 * r.powi(2),
+        }
+    }
+}
+
+impl Transform<Vector> for Pseudoscalar {
+    fn transform(self, r: Vector) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: -self.a15 * (r.a2.powi(2) + r.a3.powi(2) + r.a4.powi(2)),
+        }
+    }
+}
+
+impl Transform<Bivector> for Pseudoscalar {
+    fn transform(self, r: Bivector) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self.a15 * (r.a8.powi(2) + r.a9.powi(2) + r.a10.powi(2)),
+        }
+    }
+}
+
+impl Transform<Trivector> for Pseudoscalar {
+    fn transform(self, r: Trivector) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: -self.a15 * r.a14.powi(2),
+        }
+    }
+}
+
+impl Transform<Pseudoscalar> for Pseudoscalar {
+    fn transform(self, _r: Pseudoscalar) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: 0.,
+        }
+    }
+}
+
+impl Transform<ScalarAndBivector> for Pseudoscalar {
+    fn transform(self, r: ScalarAndBivector) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self.a15 * (r.a0.powi(2) + r.a8.powi(2) + r.a9.powi(2) + r.a10.powi(2)),
+        }
+    }
+}
+
+impl Reflect<Float> for Pseudoscalar {
+    fn reflect(self, r: Float) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self.a15 * r.powi(2),
+        }
+    }
+}
+
+impl Reflect<Vector> for Pseudoscalar {
+    fn reflect(self, r: Vector) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: -self.a15 * (r.a2.powi(2) + r.a3.powi(2) + r.a4.powi(2)),
+        }
+    }
+}
+
+impl Reflect<Bivector> for Pseudoscalar {
+    fn reflect(self, r: Bivector) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: -self.a15 * (r.a8.powi(2) + r.a9.powi(2) + r.a10.powi(2)),
+        }
+    }
+}
+
+impl Reflect<Trivector> for Pseudoscalar {
+    fn reflect(self, r: Trivector) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self.a15 * r.a14.powi(2),
+        }
+    }
+}
+
+impl Reflect<Pseudoscalar> for Pseudoscalar {
+    fn reflect(self, _r: Pseudoscalar) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: 0.,
+        }
+    }
+}
+
+// ===========================================================================
+// ScalarAndBivector
+// ===========================================================================
+
+
+#[derive(Default,Debug,Clone,Copy,PartialEq)]
+pub struct ScalarAndBivector {
+    a0: Float,
+    a5: Float,
+    a6: Float,
+    a7: Float,
+    a8: Float,
+    a9: Float,
+    a10: Float,
+}
+
+impl Reverse for ScalarAndBivector {
+    fn reverse(self) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self.a0,
+            a5: -self.a5,
+            a6: -self.a6,
+            a7: -self.a7,
+            a8: -self.a8,
+            a9: -self.a9,
+            a10: -self.a10,
+        }
+    }
+}
+
+impl Dual for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn dual(self) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: self.a10,
+            a6: self.a9,
+            a7: self.a8,
+            a8: self.a7,
+            a9: self.a6,
+            a10: self.a5,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: self.a0,
+        }
+    }
+}
+
+impl Conjugate for ScalarAndBivector {
+    fn conjugate(self) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self.a0,
+            a5: -self.a5,
+            a6: -self.a6,
+            a7: -self.a7,
+            a8: -self.a8,
+            a9: -self.a9,
+            a10: -self.a10,
+        }
+    }
+}
+
+impl Normalize for ScalarAndBivector {
+    fn norm(self) -> Float {
+        (self.a0.powi(2) + self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2)).sqrt()
+    }
+}
+
+impl NormalizeInfinite for ScalarAndBivector {
+    fn inorm(self) -> Float {
+        (self.a5.powi(2) + self.a6.powi(2) + self.a7.powi(2)).sqrt()
+    }
+}
+
+impl ScalarAndBivector {
+    pub fn new(a0: Float, a5: Float, a6: Float, a7: Float, a8: Float, a9: Float, a10: Float) -> ScalarAndBivector {
+        ScalarAndBivector {a0, a5, a6, a7, a8, a9, a10}
+    }
+
+    pub fn zero() -> ScalarAndBivector {
+        Default::default()
+    }
+
+    pub fn as_tuple(&self) -> (Float, Float, Float, Float, Float, Float, Float) {
+        (self.a0, self.a5, self.a6, self.a7, self.a8, self.a9, self.a10)
+    }
+
+    pub fn scalar(self) -> Float {
+        self.a0
+    }
+
+    pub fn bivector(self) -> Bivector {
+        Bivector {
+            a5: self.a5,
+            a6: self.a6,
+            a7: self.a7,
+            a8: self.a8,
+            a9: self.a9,
+            a10: self.a10,
+        }
+    }
+
+    pub fn full_multivector(self) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: self.a5,
+            a6: self.a6,
+            a7: self.a7,
+            a8: self.a8,
+            a9: self.a9,
+            a10: self.a10,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: 0.,
+        }
+    }
+}
+
+impl Neg for ScalarAndBivector {
+    type Output = ScalarAndBivector;
+
+    fn neg(self) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: -self.a0,
+            a5: -self.a5,
+            a6: -self.a6,
+            a7: -self.a7,
+            a8: -self.a8,
+            a9: -self.a9,
+            a10: -self.a10,
+        }
+    }
+}
+
+impl Add<Float> for ScalarAndBivector {
+    type Output = ScalarAndBivector;
+
+    fn add(self, r: Float) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self.a0 + r,
+            a5: self.a5,
+            a6: self.a6,
+            a7: self.a7,
+            a8: self.a8,
+            a9: self.a9,
+            a10: self.a10,
+        }
+    }
+}
+
+impl Add<Vector> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn add(self, r: Vector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0,
+            a1: r.a1,
+            a2: r.a2,
+            a3: r.a3,
+            a4: r.a4,
+            a5: self.a5,
+            a6: self.a6,
+            a7: self.a7,
+            a8: self.a8,
+            a9: self.a9,
+            a10: self.a10,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: 0.,
+        }
+    }
+}
+
+impl Add<Bivector> for ScalarAndBivector {
+    type Output = ScalarAndBivector;
+
+    fn add(self, r: Bivector) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self.a0,
+            a5: self.a5 + r.a5,
+            a6: self.a6 + r.a6,
+            a7: self.a7 + r.a7,
+            a8: self.a8 + r.a8,
+            a9: self.a9 + r.a9,
+            a10: self.a10 + r.a10,
+        }
+    }
+}
+
+impl Add<Trivector> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn add(self, r: Trivector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: self.a5,
+            a6: self.a6,
+            a7: self.a7,
+            a8: self.a8,
+            a9: self.a9,
+            a10: self.a10,
+            a11: r.a11,
+            a12: r.a12,
+            a13: r.a13,
+            a14: r.a14,
+            a15: 0.,
+        }
+    }
+}
+
+impl Add<Pseudoscalar> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn add(self, r: Pseudoscalar) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: self.a5,
+            a6: self.a6,
+            a7: self.a7,
+            a8: self.a8,
+            a9: self.a9,
+            a10: self.a10,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: r.a15,
+        }
+    }
+}
+
+impl Add<ScalarAndBivector> for ScalarAndBivector {
+    type Output = ScalarAndBivector;
+
+    fn add(self, r: ScalarAndBivector) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self.a0 + r.a0,
+            a5: self.a5 + r.a5,
+            a6: self.a6 + r.a6,
+            a7: self.a7 + r.a7,
+            a8: self.a8 + r.a8,
+            a9: self.a9 + r.a9,
+            a10: self.a10 + r.a10,
+        }
+    }
+}
+
+impl Add<FullMultivector> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn add(self, r: FullMultivector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0 + r.a0,
+            a1: r.a1,
+            a2: r.a2,
+            a3: r.a3,
+            a4: r.a4,
+            a5: self.a5 + r.a5,
+            a6: self.a6 + r.a6,
+            a7: self.a7 + r.a7,
+            a8: self.a8 + r.a8,
+            a9: self.a9 + r.a9,
+            a10: self.a10 + r.a10,
+            a11: r.a11,
+            a12: r.a12,
+            a13: r.a13,
+            a14: r.a14,
+            a15: r.a15,
+        }
+    }
+}
+
+impl Sub<Float> for ScalarAndBivector {
+    type Output = ScalarAndBivector;
+
+    fn sub(self, r: Float) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self.a0 - r,
+            a5: self.a5,
+            a6: self.a6,
+            a7: self.a7,
+            a8: self.a8,
+            a9: self.a9,
+            a10: self.a10,
+        }
+    }
+}
+
+impl Sub<Vector> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn sub(self, r: Vector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0,
+            a1: -r.a1,
+            a2: -r.a2,
+            a3: -r.a3,
+            a4: -r.a4,
+            a5: self.a5,
+            a6: self.a6,
+            a7: self.a7,
+            a8: self.a8,
+            a9: self.a9,
+            a10: self.a10,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: 0.,
+        }
+    }
+}
+
+impl Sub<Bivector> for ScalarAndBivector {
+    type Output = ScalarAndBivector;
+
+    fn sub(self, r: Bivector) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self.a0,
+            a5: self.a5 - r.a5,
+            a6: self.a6 - r.a6,
+            a7: self.a7 - r.a7,
+            a8: self.a8 - r.a8,
+            a9: self.a9 - r.a9,
+            a10: self.a10 - r.a10,
+        }
+    }
+}
+
+impl Sub<Trivector> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn sub(self, r: Trivector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: self.a5,
+            a6: self.a6,
+            a7: self.a7,
+            a8: self.a8,
+            a9: self.a9,
+            a10: self.a10,
+            a11: -r.a11,
+            a12: -r.a12,
+            a13: -r.a13,
+            a14: -r.a14,
+            a15: 0.,
+        }
+    }
+}
+
+impl Sub<Pseudoscalar> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn sub(self, r: Pseudoscalar) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: self.a5,
+            a6: self.a6,
+            a7: self.a7,
+            a8: self.a8,
+            a9: self.a9,
+            a10: self.a10,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: -r.a15,
+        }
+    }
+}
+
+impl Sub<ScalarAndBivector> for ScalarAndBivector {
+    type Output = ScalarAndBivector;
+
+    fn sub(self, r: ScalarAndBivector) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self.a0 - r.a0,
+            a5: self.a5 - r.a5,
+            a6: self.a6 - r.a6,
+            a7: self.a7 - r.a7,
+            a8: self.a8 - r.a8,
+            a9: self.a9 - r.a9,
+            a10: self.a10 - r.a10,
+        }
+    }
+}
+
+impl Sub<FullMultivector> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn sub(self, r: FullMultivector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0 - r.a0,
+            a1: -r.a1,
+            a2: -r.a2,
+            a3: -r.a3,
+            a4: -r.a4,
+            a5: self.a5 - r.a5,
+            a6: self.a6 - r.a6,
+            a7: self.a7 - r.a7,
+            a8: self.a8 - r.a8,
+            a9: self.a9 - r.a9,
+            a10: self.a10 - r.a10,
+            a11: -r.a11,
+            a12: -r.a12,
+            a13: -r.a13,
+            a14: -r.a14,
+            a15: -r.a15,
+        }
+    }
+}
+
+impl Mul<Float> for ScalarAndBivector {
+    type Output = ScalarAndBivector;
+
+    fn mul(self, r: Float) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self.a0 * r,
+            a5: self.a5 * r,
+            a6: self.a6 * r,
+            a7: self.a7 * r,
+            a8: self.a8 * r,
+            a9: self.a9 * r,
+            a10: self.a10 * r,
+        }
+    }
+}
+
+impl Mul<Vector> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn mul(self, r: Vector) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: self.a0 * r.a1 + self.a5 * r.a2 + self.a6 * r.a3 + self.a7 * r.a4,
+            a2: self.a0 * r.a2 + self.a8 * r.a3 - self.a9 * r.a4,
+            a3: self.a0 * r.a3 - self.a8 * r.a2 + self.a10 * r.a4,
+            a4: self.a0 * r.a4 + self.a9 * r.a2 - self.a10 * r.a3,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: -self.a5 * r.a3 + self.a6 * r.a2 - self.a8 * r.a1,
+            a12: self.a5 * r.a4 - self.a7 * r.a2 - self.a9 * r.a1,
+            a13: -self.a6 * r.a4 + self.a7 * r.a3 - self.a10 * r.a1,
+            a14: self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2,
+            a15: 0.,
+        }
+    }
+}
+
+impl Mul<Bivector> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn mul(self, r: Bivector) -> FullMultivector {
+        FullMultivector {
+            a0: -self.a8 * r.a8 - self.a9 * r.a9 - self.a10 * r.a10,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: self.a0 * r.a5 - self.a6 * r.a8 + self.a7 * r.a9 + self.a8 * r.a6 - self.a9 * r.a7,
+            a6: self.a0 * r.a6 + self.a5 * r.a8 - self.a7 * r.a10 - self.a8 * r.a5 + self.a10 * r.a7,
+            a7: self.a0 * r.a7 - self.a5 * r.a9 + self.a6 * r.a10 + self.a9 * r.a5 - self.a10 * r.a6,
+            a8: self.a0 * r.a8 + self.a9 * r.a10 - self.a10 * r.a9,
+            a9: self.a0 * r.a9 - self.a8 * r.a10 + self.a10 * r.a8,
+            a10: self.a0 * r.a10 + self.a8 * r.a9 - self.a9 * r.a8,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5,
+        }
+    }
+}
+
+impl Mul<Trivector> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn mul(self, r: Trivector) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: self.a8 * r.a11 + self.a9 * r.a12 + self.a10 * r.a13,
+            a2: -self.a10 * r.a14,
+            a3: -self.a9 * r.a14,
+            a4: -self.a8 * r.a14,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: self.a0 * r.a11 - self.a7 * r.a14 + self.a9 * r.a13 - self.a10 * r.a12,
+            a12: self.a0 * r.a12 - self.a6 * r.a14 - self.a8 * r.a13 + self.a10 * r.a11,
+            a13: self.a0 * r.a13 - self.a5 * r.a14 + self.a8 * r.a12 - self.a9 * r.a11,
+            a14: self.a0 * r.a14,
+            a15: 0.,
+        }
+    }
+}
+
+impl Mul<Pseudoscalar> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn mul(self, r: Pseudoscalar) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: -self.a10 * r.a15,
+            a6: -self.a9 * r.a15,
+            a7: -self.a8 * r.a15,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: self.a0 * r.a15,
+        }
+    }
+}
+
+impl Mul<ScalarAndBivector> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn mul(self, r: ScalarAndBivector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0 * r.a0 - self.a8 * r.a8 - self.a9 * r.a9 - self.a10 * r.a10,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: self.a0 * r.a5 + self.a5 * r.a0 - self.a6 * r.a8 + self.a7 * r.a9 + self.a8 * r.a6 - self.a9 * r.a7,
+            a6: self.a0 * r.a6 + self.a5 * r.a8 + self.a6 * r.a0 - self.a7 * r.a10 - self.a8 * r.a5 + self.a10 * r.a7,
+            a7: self.a0 * r.a7 - self.a5 * r.a9 + self.a6 * r.a10 + self.a7 * r.a0 + self.a9 * r.a5 - self.a10 * r.a6,
+            a8: self.a0 * r.a8 + self.a8 * r.a0 + self.a9 * r.a10 - self.a10 * r.a9,
+            a9: self.a0 * r.a9 - self.a8 * r.a10 + self.a9 * r.a0 + self.a10 * r.a8,
+            a10: self.a0 * r.a10 + self.a8 * r.a9 - self.a9 * r.a8 + self.a10 * r.a0,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5,
+        }
+    }
+}
+
+impl Mul<FullMultivector> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn mul(self, r: FullMultivector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0 * r.a0 - self.a8 * r.a8 - self.a9 * r.a9 - self.a10 * r.a10,
+            a1: self.a0 * r.a1 + self.a5 * r.a2 + self.a6 * r.a3 + self.a7 * r.a4 + self.a8 * r.a11 + self.a9 * r.a12 + self.a10 * r.a13,
+            a2: self.a0 * r.a2 + self.a8 * r.a3 - self.a9 * r.a4 - self.a10 * r.a14,
+            a3: self.a0 * r.a3 - self.a8 * r.a2 - self.a9 * r.a14 + self.a10 * r.a4,
+            a4: self.a0 * r.a4 - self.a8 * r.a14 + self.a9 * r.a2 - self.a10 * r.a3,
+            a5: self.a0 * r.a5 + self.a5 * r.a0 - self.a6 * r.a8 + self.a7 * r.a9 + self.a8 * r.a6 - self.a9 * r.a7 - self.a10 * r.a15,
+            a6: self.a0 * r.a6 + self.a5 * r.a8 + self.a6 * r.a0 - self.a7 * r.a10 - self.a8 * r.a5 - self.a9 * r.a15 + self.a10 * r.a7,
+            a7: self.a0 * r.a7 - self.a5 * r.a9 + self.a6 * r.a10 + self.a7 * r.a0 - self.a8 * r.a15 + self.a9 * r.a5 - self.a10 * r.a6,
+            a8: self.a0 * r.a8 + self.a8 * r.a0 + self.a9 * r.a10 - self.a10 * r.a9,
+            a9: self.a0 * r.a9 - self.a8 * r.a10 + self.a9 * r.a0 + self.a10 * r.a8,
+            a10: self.a0 * r.a10 + self.a8 * r.a9 - self.a9 * r.a8 + self.a10 * r.a0,
+            a11: self.a0 * r.a11 - self.a5 * r.a3 + self.a6 * r.a2 - self.a7 * r.a14 - self.a8 * r.a1 + self.a9 * r.a13 - self.a10 * r.a12,
+            a12: self.a0 * r.a12 + self.a5 * r.a4 - self.a6 * r.a14 - self.a7 * r.a2 - self.a8 * r.a13 - self.a9 * r.a1 + self.a10 * r.a11,
+            a13: self.a0 * r.a13 - self.a5 * r.a14 - self.a6 * r.a4 + self.a7 * r.a3 + self.a8 * r.a12 - self.a9 * r.a11 - self.a10 * r.a1,
+            a14: self.a0 * r.a14 + self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2,
+            a15: self.a0 * r.a15 + self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5,
+        }
+    }
+}
+
+impl BitXor<Float> for ScalarAndBivector {
+    type Output = ScalarAndBivector;
+
+    fn bitxor(self, r: Float) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self.a0 * r,
+            a5: self.a5 * r,
+            a6: self.a6 * r,
+            a7: self.a7 * r,
+            a8: self.a8 * r,
+            a9: self.a9 * r,
+            a10: self.a10 * r,
+        }
+    }
+}
+
+impl BitXor<Vector> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn bitxor(self, r: Vector) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: self.a0 * r.a1,
+            a2: self.a0 * r.a2,
+            a3: self.a0 * r.a3,
+            a4: self.a0 * r.a4,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: -self.a5 * r.a3 + self.a6 * r.a2 - self.a8 * r.a1,
+            a12: self.a5 * r.a4 - self.a7 * r.a2 - self.a9 * r.a1,
+            a13: -self.a6 * r.a4 + self.a7 * r.a3 - self.a10 * r.a1,
+            a14: self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2,
+            a15: 0.,
+        }
+    }
+}
+
+impl BitXor<Bivector> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn bitxor(self, r: Bivector) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: self.a0 * r.a5,
+            a6: self.a0 * r.a6,
+            a7: self.a0 * r.a7,
+            a8: self.a0 * r.a8,
+            a9: self.a0 * r.a9,
+            a10: self.a0 * r.a10,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5,
+        }
+    }
+}
+
+impl BitXor<Trivector> for ScalarAndBivector {
+    type Output = Trivector;
+
+    fn bitxor(self, r: Trivector) -> Trivector {
+        Trivector {
+            a11: self.a0 * r.a11,
+            a12: self.a0 * r.a12,
+            a13: self.a0 * r.a13,
+            a14: self.a0 * r.a14,
+        }
+    }
+}
+
+impl BitXor<Pseudoscalar> for ScalarAndBivector {
+    type Output = Pseudoscalar;
+
+    fn bitxor(self, r: Pseudoscalar) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self.a0 * r.a15,
+        }
+    }
+}
+
+impl BitXor<ScalarAndBivector> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn bitxor(self, r: ScalarAndBivector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0 * r.a0,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: self.a0 * r.a5 + self.a5 * r.a0,
+            a6: self.a0 * r.a6 + self.a6 * r.a0,
+            a7: self.a0 * r.a7 + self.a7 * r.a0,
+            a8: self.a0 * r.a8 + self.a8 * r.a0,
+            a9: self.a0 * r.a9 + self.a9 * r.a0,
+            a10: self.a0 * r.a10 + self.a10 * r.a0,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5,
+        }
+    }
+}
+
+impl BitXor<FullMultivector> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn bitxor(self, r: FullMultivector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0 * r.a0,
+            a1: self.a0 * r.a1,
+            a2: self.a0 * r.a2,
+            a3: self.a0 * r.a3,
+            a4: self.a0 * r.a4,
+            a5: self.a0 * r.a5 + self.a5 * r.a0,
+            a6: self.a0 * r.a6 + self.a6 * r.a0,
+            a7: self.a0 * r.a7 + self.a7 * r.a0,
+            a8: self.a0 * r.a8 + self.a8 * r.a0,
+            a9: self.a0 * r.a9 + self.a9 * r.a0,
+            a10: self.a0 * r.a10 + self.a10 * r.a0,
+            a11: self.a0 * r.a11 - self.a5 * r.a3 + self.a6 * r.a2 - self.a8 * r.a1,
+            a12: self.a0 * r.a12 + self.a5 * r.a4 - self.a7 * r.a2 - self.a9 * r.a1,
+            a13: self.a0 * r.a13 - self.a6 * r.a4 + self.a7 * r.a3 - self.a10 * r.a1,
+            a14: self.a0 * r.a14 + self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2,
+            a15: self.a0 * r.a15 + self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5,
+        }
+    }
+}
+
+impl BitAnd<Float> for ScalarAndBivector {
+    type Output = Float;
+
+    fn bitand(self, _r: Float) -> Float {
+        0.
+    }
+}
+
+impl BitAnd<Vector> for ScalarAndBivector {
+    type Output = Float;
+
+    fn bitand(self, _r: Vector) -> Float {
+        0.
+    }
+}
+
+impl BitAnd<Bivector> for ScalarAndBivector {
+    type Output = Float;
+
+    fn bitand(self, r: Bivector) -> Float {
+        self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5
+    }
+}
+
+impl BitAnd<Trivector> for ScalarAndBivector {
+    type Output = Vector;
+
+    fn bitand(self, r: Trivector) -> Vector {
+        Vector {
+            a1: self.a5 * r.a13 + self.a6 * r.a12 + self.a7 * r.a11,
+            a2: -self.a5 * r.a14 + self.a8 * r.a12 - self.a9 * r.a11,
+            a3: -self.a6 * r.a14 - self.a8 * r.a13 + self.a10 * r.a11,
+            a4: -self.a7 * r.a14 + self.a9 * r.a13 - self.a10 * r.a12,
+        }
+    }
+}
+
+impl BitAnd<Pseudoscalar> for ScalarAndBivector {
+    type Output = ScalarAndBivector;
+
+    fn bitand(self, r: Pseudoscalar) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self.a0 * r.a15,
+            a5: self.a5 * r.a15,
+            a6: self.a6 * r.a15,
+            a7: self.a7 * r.a15,
+            a8: self.a8 * r.a15,
+            a9: self.a9 * r.a15,
+            a10: self.a10 * r.a15,
+        }
+    }
+}
+
+impl BitAnd<ScalarAndBivector> for ScalarAndBivector {
+    type Output = Float;
+
+    fn bitand(self, r: ScalarAndBivector) -> Float {
+        self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5
+    }
+}
+
+impl BitAnd<FullMultivector> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn bitand(self, r: FullMultivector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0 * r.a15 + self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5,
+            a1: self.a5 * r.a13 + self.a6 * r.a12 + self.a7 * r.a11,
+            a2: -self.a5 * r.a14 + self.a8 * r.a12 - self.a9 * r.a11,
+            a3: -self.a6 * r.a14 - self.a8 * r.a13 + self.a10 * r.a11,
+            a4: -self.a7 * r.a14 + self.a9 * r.a13 - self.a10 * r.a12,
+            a5: self.a5 * r.a15,
+            a6: self.a6 * r.a15,
+            a7: self.a7 * r.a15,
+            a8: self.a8 * r.a15,
+            a9: self.a9 * r.a15,
+            a10: self.a10 * r.a15,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: 0.,
+        }
+    }
+}
+
+impl BitOr<Float> for ScalarAndBivector {
+    type Output = ScalarAndBivector;
+
+    fn bitor(self, r: Float) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self.a0 * r,
+            a5: self.a5 * r,
+            a6: self.a6 * r,
+            a7: self.a7 * r,
+            a8: self.a8 * r,
+            a9: self.a9 * r,
+            a10: self.a10 * r,
+        }
+    }
+}
+
+impl BitOr<Vector> for ScalarAndBivector {
+    type Output = Vector;
+
+    fn bitor(self, r: Vector) -> Vector {
+        Vector {
+            a1: self.a0 * r.a1 + self.a5 * r.a2 + self.a6 * r.a3 + self.a7 * r.a4,
+            a2: self.a0 * r.a2 + self.a8 * r.a3 - self.a9 * r.a4,
+            a3: self.a0 * r.a3 - self.a8 * r.a2 + self.a10 * r.a4,
+            a4: self.a0 * r.a4 + self.a9 * r.a2 - self.a10 * r.a3,
+        }
+    }
+}
+
+impl BitOr<Bivector> for ScalarAndBivector {
+    type Output = ScalarAndBivector;
+
+    fn bitor(self, r: Bivector) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: -self.a8 * r.a8 - self.a9 * r.a9 - self.a10 * r.a10,
+            a5: self.a0 * r.a5,
+            a6: self.a0 * r.a6,
+            a7: self.a0 * r.a7,
+            a8: self.a0 * r.a8,
+            a9: self.a0 * r.a9,
+            a10: self.a0 * r.a10,
+        }
+    }
+}
+
+impl BitOr<Trivector> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn bitor(self, r: Trivector) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: self.a8 * r.a11 + self.a9 * r.a12 + self.a10 * r.a13,
+            a2: -self.a10 * r.a14,
+            a3: -self.a9 * r.a14,
+            a4: -self.a8 * r.a14,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: self.a0 * r.a11,
+            a12: self.a0 * r.a12,
+            a13: self.a0 * r.a13,
+            a14: self.a0 * r.a14,
+            a15: 0.,
+        }
+    }
+}
+
+impl BitOr<Pseudoscalar> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn bitor(self, r: Pseudoscalar) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: 0.,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: -self.a10 * r.a15,
+            a6: -self.a9 * r.a15,
+            a7: -self.a8 * r.a15,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
+            a15: self.a0 * r.a15,
+        }
+    }
+}
+
+impl BitOr<ScalarAndBivector> for ScalarAndBivector {
+    type Output = ScalarAndBivector;
+
+    fn bitor(self, r: ScalarAndBivector) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self.a0 * r.a0 - self.a8 * r.a8 - self.a9 * r.a9 - self.a10 * r.a10,
+            a5: self.a0 * r.a5 + self.a5 * r.a0,
+            a6: self.a0 * r.a6 + self.a6 * r.a0,
+            a7: self.a0 * r.a7 + self.a7 * r.a0,
+            a8: self.a0 * r.a8 + self.a8 * r.a0,
+            a9: self.a0 * r.a9 + self.a9 * r.a0,
+            a10: self.a0 * r.a10 + self.a10 * r.a0,
+        }
+    }
+}
+
+impl BitOr<FullMultivector> for ScalarAndBivector {
+    type Output = FullMultivector;
+
+    fn bitor(self, r: FullMultivector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0 * r.a0 - self.a8 * r.a8 - self.a9 * r.a9 - self.a10 * r.a10,
+            a1: self.a0 * r.a1 + self.a5 * r.a2 + self.a6 * r.a3 + self.a7 * r.a4 + self.a8 * r.a11 + self.a9 * r.a12 + self.a10 * r.a13,
+            a2: self.a0 * r.a2 + self.a8 * r.a3 - self.a9 * r.a4 - self.a10 * r.a14,
+            a3: self.a0 * r.a3 - self.a8 * r.a2 - self.a9 * r.a14 + self.a10 * r.a4,
+            a4: self.a0 * r.a4 - self.a8 * r.a14 + self.a9 * r.a2 - self.a10 * r.a3,
+            a5: self.a0 * r.a5 + self.a5 * r.a0 - self.a10 * r.a15,
+            a6: self.a0 * r.a6 + self.a6 * r.a0 - self.a9 * r.a15,
+            a7: self.a0 * r.a7 + self.a7 * r.a0 - self.a8 * r.a15,
+            a8: self.a0 * r.a8 + self.a8 * r.a0,
+            a9: self.a0 * r.a9 + self.a9 * r.a0,
+            a10: self.a0 * r.a10 + self.a10 * r.a0,
+            a11: self.a0 * r.a11,
+            a12: self.a0 * r.a12,
+            a13: self.a0 * r.a13,
+            a14: self.a0 * r.a14,
+            a15: self.a0 * r.a15,
+        }
+    }
+}
+
+impl Transform<Float> for ScalarAndBivector {
+    fn transform(self, r: Float) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self.a0 * r.powi(2),
+            a5: self.a5 * r.powi(2),
+            a6: self.a6 * r.powi(2),
+            a7: self.a7 * r.powi(2),
+            a8: self.a8 * r.powi(2),
+            a9: self.a9 * r.powi(2),
+            a10: self.a10 * r.powi(2),
+        }
+    }
+}
+
+impl Transform<Vector> for ScalarAndBivector {
+    fn transform(self, r: Vector) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self.a0 * (r.a2.powi(2) + r.a3.powi(2) + r.a4.powi(2)),
+            a5: -self.a5 * r.a2.powi(2) + self.a5 * r.a3.powi(2) + self.a5 * r.a4.powi(2) - 2. * self.a6 * r.a2 * r.a3 - 2. * self.a7 * r.a2 * r.a4 + 2. * self.a8 * r.a1 * r.a3 - 2. * self.a9 * r.a1 * r.a4,
+            a6: -2. * self.a5 * r.a2 * r.a3 + self.a6 * r.a2.powi(2) - self.a6 * r.a3.powi(2) + self.a6 * r.a4.powi(2) - 2. * self.a7 * r.a3 * r.a4 - 2. * self.a8 * r.a1 * r.a2 + 2. * self.a10 * r.a1 * r.a4,
+            a7: -2. * self.a5 * r.a2 * r.a4 - 2. * self.a6 * r.a3 * r.a4 + self.a7 * r.a2.powi(2) + self.a7 * r.a3.powi(2) - self.a7 * r.a4.powi(2) + 2. * self.a9 * r.a1 * r.a2 - 2. * self.a10 * r.a1 * r.a3,
+            a8: -self.a8 * r.a2.powi(2) - self.a8 * r.a3.powi(2) + self.a8 * r.a4.powi(2) + 2. * self.a9 * r.a3 * r.a4 + 2. * self.a10 * r.a2 * r.a4,
+            a9: 2. * self.a8 * r.a3 * r.a4 - self.a9 * r.a2.powi(2) + self.a9 * r.a3.powi(2) - self.a9 * r.a4.powi(2) + 2. * self.a10 * r.a2 * r.a3,
+            a10: 2. * self.a8 * r.a2 * r.a4 + 2. * self.a9 * r.a2 * r.a3 + self.a10 * r.a2.powi(2) - self.a10 * r.a3.powi(2) - self.a10 * r.a4.powi(2),
+        }
+    }
+}
+
+impl Transform<Trivector> for ScalarAndBivector {
+    fn transform(self, r: Trivector) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self.a0 * r.a14.powi(2),
+            a5: r.a14 * (-self.a5 * r.a14 + 2. * self.a8 * r.a12 - 2. * self.a9 * r.a11),
+            a6: r.a14 * (-self.a6 * r.a14 - 2. * self.a8 * r.a13 + 2. * self.a10 * r.a11),
+            a7: r.a14 * (-self.a7 * r.a14 + 2. * self.a9 * r.a13 - 2. * self.a10 * r.a12),
+            a8: self.a8 * r.a14.powi(2),
+            a9: self.a9 * r.a14.powi(2),
+            a10: self.a10 * r.a14.powi(2),
+        }
+    }
+}
+
+impl Transform<Pseudoscalar> for ScalarAndBivector {
+    fn transform(self, _r: Pseudoscalar) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: 0.,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+        }
+    }
+}
+
+impl Reflect<Float> for ScalarAndBivector {
+    fn reflect(self, r: Float) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self.a0 * r.powi(2),
+            a5: self.a5 * r.powi(2),
+            a6: self.a6 * r.powi(2),
+            a7: self.a7 * r.powi(2),
+            a8: self.a8 * r.powi(2),
+            a9: self.a9 * r.powi(2),
+            a10: self.a10 * r.powi(2),
+        }
+    }
+}
+
+impl Reflect<Vector> for ScalarAndBivector {
+    fn reflect(self, r: Vector) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: self.a0 * (r.a2.powi(2) + r.a3.powi(2) + r.a4.powi(2)),
+            a5: -self.a5 * r.a2.powi(2) + self.a5 * r.a3.powi(2) + self.a5 * r.a4.powi(2) - 2. * self.a6 * r.a2 * r.a3 - 2. * self.a7 * r.a2 * r.a4 + 2. * self.a8 * r.a1 * r.a3 - 2. * self.a9 * r.a1 * r.a4,
+            a6: -2. * self.a5 * r.a2 * r.a3 + self.a6 * r.a2.powi(2) - self.a6 * r.a3.powi(2) + self.a6 * r.a4.powi(2) - 2. * self.a7 * r.a3 * r.a4 - 2. * self.a8 * r.a1 * r.a2 + 2. * self.a10 * r.a1 * r.a4,
+            a7: -2. * self.a5 * r.a2 * r.a4 - 2. * self.a6 * r.a3 * r.a4 + self.a7 * r.a2.powi(2) + self.a7 * r.a3.powi(2) - self.a7 * r.a4.powi(2) + 2. * self.a9 * r.a1 * r.a2 - 2. * self.a10 * r.a1 * r.a3,
+            a8: -self.a8 * r.a2.powi(2) - self.a8 * r.a3.powi(2) + self.a8 * r.a4.powi(2) + 2. * self.a9 * r.a3 * r.a4 + 2. * self.a10 * r.a2 * r.a4,
+            a9: 2. * self.a8 * r.a3 * r.a4 - self.a9 * r.a2.powi(2) + self.a9 * r.a3.powi(2) - self.a9 * r.a4.powi(2) + 2. * self.a10 * r.a2 * r.a3,
+            a10: 2. * self.a8 * r.a2 * r.a4 + 2. * self.a9 * r.a2 * r.a3 + self.a10 * r.a2.powi(2) - self.a10 * r.a3.powi(2) - self.a10 * r.a4.powi(2),
+        }
+    }
+}
+
+impl Reflect<Trivector> for ScalarAndBivector {
+    fn reflect(self, r: Trivector) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: -self.a0 * r.a14.powi(2),
+            a5: r.a14 * (self.a5 * r.a14 - 2. * self.a8 * r.a12 + 2. * self.a9 * r.a11),
+            a6: r.a14 * (self.a6 * r.a14 + 2. * self.a8 * r.a13 - 2. * self.a10 * r.a11),
+            a7: r.a14 * (self.a7 * r.a14 - 2. * self.a9 * r.a13 + 2. * self.a10 * r.a12),
+            a8: -self.a8 * r.a14.powi(2),
+            a9: -self.a9 * r.a14.powi(2),
+            a10: -self.a10 * r.a14.powi(2),
+        }
+    }
+}
+
+impl Reflect<Pseudoscalar> for ScalarAndBivector {
+    fn reflect(self, _r: Pseudoscalar) -> ScalarAndBivector {
+        ScalarAndBivector {
+            a0: 0.,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
         }
     }
 }
@@ -4940,7 +5790,7 @@ impl Normalize for FullMultivector {
     }
 }
 
-impl NormalizeDual for FullMultivector {
+impl NormalizeInfinite for FullMultivector {
     fn inorm(self) -> Float {
         (self.a1.powi(2) + self.a5.powi(2) + self.a6.powi(2) + self.a7.powi(2) + self.a11.powi(2) + self.a12.powi(2) + self.a13.powi(2) + self.a15.powi(2)).sqrt()
     }
@@ -5093,31 +5943,6 @@ impl Add<Bivector> for FullMultivector {
     }
 }
 
-impl Add<ScalarAndBivector> for FullMultivector {
-    type Output = FullMultivector;
-
-    fn add(self, r: ScalarAndBivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0 + r.a0,
-            a1: self.a1,
-            a2: self.a2,
-            a3: self.a3,
-            a4: self.a4,
-            a5: self.a5 + r.a5,
-            a6: self.a6 + r.a6,
-            a7: self.a7 + r.a7,
-            a8: self.a8 + r.a8,
-            a9: self.a9 + r.a9,
-            a10: self.a10 + r.a10,
-            a11: self.a11,
-            a12: self.a12,
-            a13: self.a13,
-            a14: self.a14,
-            a15: self.a15,
-        }
-    }
-}
-
 impl Add<Trivector> for FullMultivector {
     type Output = FullMultivector;
 
@@ -5138,6 +5963,56 @@ impl Add<Trivector> for FullMultivector {
             a12: self.a12 + r.a12,
             a13: self.a13 + r.a13,
             a14: self.a14 + r.a14,
+            a15: self.a15,
+        }
+    }
+}
+
+impl Add<Pseudoscalar> for FullMultivector {
+    type Output = FullMultivector;
+
+    fn add(self, r: Pseudoscalar) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0,
+            a1: self.a1,
+            a2: self.a2,
+            a3: self.a3,
+            a4: self.a4,
+            a5: self.a5,
+            a6: self.a6,
+            a7: self.a7,
+            a8: self.a8,
+            a9: self.a9,
+            a10: self.a10,
+            a11: self.a11,
+            a12: self.a12,
+            a13: self.a13,
+            a14: self.a14,
+            a15: self.a15 + r.a15,
+        }
+    }
+}
+
+impl Add<ScalarAndBivector> for FullMultivector {
+    type Output = FullMultivector;
+
+    fn add(self, r: ScalarAndBivector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0 + r.a0,
+            a1: self.a1,
+            a2: self.a2,
+            a3: self.a3,
+            a4: self.a4,
+            a5: self.a5 + r.a5,
+            a6: self.a6 + r.a6,
+            a7: self.a7 + r.a7,
+            a8: self.a8 + r.a8,
+            a9: self.a9 + r.a9,
+            a10: self.a10 + r.a10,
+            a11: self.a11,
+            a12: self.a12,
+            a13: self.a13,
+            a14: self.a14,
             a15: self.a15,
         }
     }
@@ -5243,31 +6118,6 @@ impl Sub<Bivector> for FullMultivector {
     }
 }
 
-impl Sub<ScalarAndBivector> for FullMultivector {
-    type Output = FullMultivector;
-
-    fn sub(self, r: ScalarAndBivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0 - r.a0,
-            a1: self.a1,
-            a2: self.a2,
-            a3: self.a3,
-            a4: self.a4,
-            a5: self.a5 - r.a5,
-            a6: self.a6 - r.a6,
-            a7: self.a7 - r.a7,
-            a8: self.a8 - r.a8,
-            a9: self.a9 - r.a9,
-            a10: self.a10 - r.a10,
-            a11: self.a11,
-            a12: self.a12,
-            a13: self.a13,
-            a14: self.a14,
-            a15: self.a15,
-        }
-    }
-}
-
 impl Sub<Trivector> for FullMultivector {
     type Output = FullMultivector;
 
@@ -5288,6 +6138,56 @@ impl Sub<Trivector> for FullMultivector {
             a12: self.a12 - r.a12,
             a13: self.a13 - r.a13,
             a14: self.a14 - r.a14,
+            a15: self.a15,
+        }
+    }
+}
+
+impl Sub<Pseudoscalar> for FullMultivector {
+    type Output = FullMultivector;
+
+    fn sub(self, r: Pseudoscalar) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0,
+            a1: self.a1,
+            a2: self.a2,
+            a3: self.a3,
+            a4: self.a4,
+            a5: self.a5,
+            a6: self.a6,
+            a7: self.a7,
+            a8: self.a8,
+            a9: self.a9,
+            a10: self.a10,
+            a11: self.a11,
+            a12: self.a12,
+            a13: self.a13,
+            a14: self.a14,
+            a15: self.a15 - r.a15,
+        }
+    }
+}
+
+impl Sub<ScalarAndBivector> for FullMultivector {
+    type Output = FullMultivector;
+
+    fn sub(self, r: ScalarAndBivector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0 - r.a0,
+            a1: self.a1,
+            a2: self.a2,
+            a3: self.a3,
+            a4: self.a4,
+            a5: self.a5 - r.a5,
+            a6: self.a6 - r.a6,
+            a7: self.a7 - r.a7,
+            a8: self.a8 - r.a8,
+            a9: self.a9 - r.a9,
+            a10: self.a10 - r.a10,
+            a11: self.a11,
+            a12: self.a12,
+            a13: self.a13,
+            a14: self.a14,
             a15: self.a15,
         }
     }
@@ -5393,31 +6293,6 @@ impl Mul<Bivector> for FullMultivector {
     }
 }
 
-impl Mul<ScalarAndBivector> for FullMultivector {
-    type Output = FullMultivector;
-
-    fn mul(self, r: ScalarAndBivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0 * r.a0 - self.a8 * r.a8 - self.a9 * r.a9 - self.a10 * r.a10,
-            a1: self.a1 * r.a0 - self.a2 * r.a5 - self.a3 * r.a6 - self.a4 * r.a7 + self.a11 * r.a8 + self.a12 * r.a9 + self.a13 * r.a10,
-            a2: self.a2 * r.a0 - self.a3 * r.a8 + self.a4 * r.a9 - self.a14 * r.a10,
-            a3: self.a2 * r.a8 + self.a3 * r.a0 - self.a4 * r.a10 - self.a14 * r.a9,
-            a4: -self.a2 * r.a9 + self.a3 * r.a10 + self.a4 * r.a0 - self.a14 * r.a8,
-            a5: self.a0 * r.a5 + self.a5 * r.a0 - self.a6 * r.a8 + self.a7 * r.a9 + self.a8 * r.a6 - self.a9 * r.a7 - self.a15 * r.a10,
-            a6: self.a0 * r.a6 + self.a5 * r.a8 + self.a6 * r.a0 - self.a7 * r.a10 - self.a8 * r.a5 + self.a10 * r.a7 - self.a15 * r.a9,
-            a7: self.a0 * r.a7 - self.a5 * r.a9 + self.a6 * r.a10 + self.a7 * r.a0 + self.a9 * r.a5 - self.a10 * r.a6 - self.a15 * r.a8,
-            a8: self.a0 * r.a8 + self.a8 * r.a0 + self.a9 * r.a10 - self.a10 * r.a9,
-            a9: self.a0 * r.a9 - self.a8 * r.a10 + self.a9 * r.a0 + self.a10 * r.a8,
-            a10: self.a0 * r.a10 + self.a8 * r.a9 - self.a9 * r.a8 + self.a10 * r.a0,
-            a11: -self.a1 * r.a8 + self.a2 * r.a6 - self.a3 * r.a5 + self.a11 * r.a0 + self.a12 * r.a10 - self.a13 * r.a9 + self.a14 * r.a7,
-            a12: -self.a1 * r.a9 - self.a2 * r.a7 + self.a4 * r.a5 - self.a11 * r.a10 + self.a12 * r.a0 + self.a13 * r.a8 + self.a14 * r.a6,
-            a13: -self.a1 * r.a10 + self.a3 * r.a7 - self.a4 * r.a6 + self.a11 * r.a9 - self.a12 * r.a8 + self.a13 * r.a0 + self.a14 * r.a5,
-            a14: self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8 + self.a14 * r.a0,
-            a15: self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5 + self.a15 * r.a0,
-        }
-    }
-}
-
 impl Mul<Trivector> for FullMultivector {
     type Output = FullMultivector;
 
@@ -5439,6 +6314,56 @@ impl Mul<Trivector> for FullMultivector {
             a13: self.a0 * r.a13 - self.a5 * r.a14 + self.a8 * r.a12 - self.a9 * r.a11,
             a14: self.a0 * r.a14,
             a15: self.a1 * r.a14 + self.a2 * r.a13 + self.a3 * r.a12 + self.a4 * r.a11,
+        }
+    }
+}
+
+impl Mul<Pseudoscalar> for FullMultivector {
+    type Output = FullMultivector;
+
+    fn mul(self, r: Pseudoscalar) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: self.a14 * r.a15,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: -self.a10 * r.a15,
+            a6: -self.a9 * r.a15,
+            a7: -self.a8 * r.a15,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: self.a4 * r.a15,
+            a12: self.a3 * r.a15,
+            a13: self.a2 * r.a15,
+            a14: 0.,
+            a15: self.a0 * r.a15,
+        }
+    }
+}
+
+impl Mul<ScalarAndBivector> for FullMultivector {
+    type Output = FullMultivector;
+
+    fn mul(self, r: ScalarAndBivector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0 * r.a0 - self.a8 * r.a8 - self.a9 * r.a9 - self.a10 * r.a10,
+            a1: self.a1 * r.a0 - self.a2 * r.a5 - self.a3 * r.a6 - self.a4 * r.a7 + self.a11 * r.a8 + self.a12 * r.a9 + self.a13 * r.a10,
+            a2: self.a2 * r.a0 - self.a3 * r.a8 + self.a4 * r.a9 - self.a14 * r.a10,
+            a3: self.a2 * r.a8 + self.a3 * r.a0 - self.a4 * r.a10 - self.a14 * r.a9,
+            a4: -self.a2 * r.a9 + self.a3 * r.a10 + self.a4 * r.a0 - self.a14 * r.a8,
+            a5: self.a0 * r.a5 + self.a5 * r.a0 - self.a6 * r.a8 + self.a7 * r.a9 + self.a8 * r.a6 - self.a9 * r.a7 - self.a15 * r.a10,
+            a6: self.a0 * r.a6 + self.a5 * r.a8 + self.a6 * r.a0 - self.a7 * r.a10 - self.a8 * r.a5 + self.a10 * r.a7 - self.a15 * r.a9,
+            a7: self.a0 * r.a7 - self.a5 * r.a9 + self.a6 * r.a10 + self.a7 * r.a0 + self.a9 * r.a5 - self.a10 * r.a6 - self.a15 * r.a8,
+            a8: self.a0 * r.a8 + self.a8 * r.a0 + self.a9 * r.a10 - self.a10 * r.a9,
+            a9: self.a0 * r.a9 - self.a8 * r.a10 + self.a9 * r.a0 + self.a10 * r.a8,
+            a10: self.a0 * r.a10 + self.a8 * r.a9 - self.a9 * r.a8 + self.a10 * r.a0,
+            a11: -self.a1 * r.a8 + self.a2 * r.a6 - self.a3 * r.a5 + self.a11 * r.a0 + self.a12 * r.a10 - self.a13 * r.a9 + self.a14 * r.a7,
+            a12: -self.a1 * r.a9 - self.a2 * r.a7 + self.a4 * r.a5 - self.a11 * r.a10 + self.a12 * r.a0 + self.a13 * r.a8 + self.a14 * r.a6,
+            a13: -self.a1 * r.a10 + self.a3 * r.a7 - self.a4 * r.a6 + self.a11 * r.a9 - self.a12 * r.a8 + self.a13 * r.a0 + self.a14 * r.a5,
+            a14: self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8 + self.a14 * r.a0,
+            a15: self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5 + self.a15 * r.a0,
         }
     }
 }
@@ -5543,31 +6468,6 @@ impl BitXor<Bivector> for FullMultivector {
     }
 }
 
-impl BitXor<ScalarAndBivector> for FullMultivector {
-    type Output = FullMultivector;
-
-    fn bitxor(self, r: ScalarAndBivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0 * r.a0,
-            a1: self.a1 * r.a0,
-            a2: self.a2 * r.a0,
-            a3: self.a3 * r.a0,
-            a4: self.a4 * r.a0,
-            a5: self.a0 * r.a5 + self.a5 * r.a0,
-            a6: self.a0 * r.a6 + self.a6 * r.a0,
-            a7: self.a0 * r.a7 + self.a7 * r.a0,
-            a8: self.a0 * r.a8 + self.a8 * r.a0,
-            a9: self.a0 * r.a9 + self.a9 * r.a0,
-            a10: self.a0 * r.a10 + self.a10 * r.a0,
-            a11: -self.a1 * r.a8 + self.a2 * r.a6 - self.a3 * r.a5 + self.a11 * r.a0,
-            a12: -self.a1 * r.a9 - self.a2 * r.a7 + self.a4 * r.a5 + self.a12 * r.a0,
-            a13: -self.a1 * r.a10 + self.a3 * r.a7 - self.a4 * r.a6 + self.a13 * r.a0,
-            a14: self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8 + self.a14 * r.a0,
-            a15: self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5 + self.a15 * r.a0,
-        }
-    }
-}
-
 impl BitXor<Trivector> for FullMultivector {
     type Output = FullMultivector;
 
@@ -5589,6 +6489,41 @@ impl BitXor<Trivector> for FullMultivector {
             a13: self.a0 * r.a13,
             a14: self.a0 * r.a14,
             a15: self.a1 * r.a14 + self.a2 * r.a13 + self.a3 * r.a12 + self.a4 * r.a11,
+        }
+    }
+}
+
+impl BitXor<Pseudoscalar> for FullMultivector {
+    type Output = Pseudoscalar;
+
+    fn bitxor(self, r: Pseudoscalar) -> Pseudoscalar {
+        Pseudoscalar {
+            a15: self.a0 * r.a15,
+        }
+    }
+}
+
+impl BitXor<ScalarAndBivector> for FullMultivector {
+    type Output = FullMultivector;
+
+    fn bitxor(self, r: ScalarAndBivector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0 * r.a0,
+            a1: self.a1 * r.a0,
+            a2: self.a2 * r.a0,
+            a3: self.a3 * r.a0,
+            a4: self.a4 * r.a0,
+            a5: self.a0 * r.a5 + self.a5 * r.a0,
+            a6: self.a0 * r.a6 + self.a6 * r.a0,
+            a7: self.a0 * r.a7 + self.a7 * r.a0,
+            a8: self.a0 * r.a8 + self.a8 * r.a0,
+            a9: self.a0 * r.a9 + self.a9 * r.a0,
+            a10: self.a0 * r.a10 + self.a10 * r.a0,
+            a11: -self.a1 * r.a8 + self.a2 * r.a6 - self.a3 * r.a5 + self.a11 * r.a0,
+            a12: -self.a1 * r.a9 - self.a2 * r.a7 + self.a4 * r.a5 + self.a12 * r.a0,
+            a13: -self.a1 * r.a10 + self.a3 * r.a7 - self.a4 * r.a6 + self.a13 * r.a0,
+            a14: self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8 + self.a14 * r.a0,
+            a15: self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5 + self.a15 * r.a0,
         }
     }
 }
@@ -5676,31 +6611,6 @@ impl BitAnd<Bivector> for FullMultivector {
     }
 }
 
-impl BitAnd<ScalarAndBivector> for FullMultivector {
-    type Output = FullMultivector;
-
-    fn bitand(self, r: ScalarAndBivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5 + self.a15 * r.a0,
-            a1: self.a11 * r.a7 + self.a12 * r.a6 + self.a13 * r.a5,
-            a2: -self.a11 * r.a9 + self.a12 * r.a8 - self.a14 * r.a5,
-            a3: self.a11 * r.a10 - self.a13 * r.a8 - self.a14 * r.a6,
-            a4: -self.a12 * r.a10 + self.a13 * r.a9 - self.a14 * r.a7,
-            a5: self.a15 * r.a5,
-            a6: self.a15 * r.a6,
-            a7: self.a15 * r.a7,
-            a8: self.a15 * r.a8,
-            a9: self.a15 * r.a9,
-            a10: self.a15 * r.a10,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: 0.,
-        }
-    }
-}
-
 impl BitAnd<Trivector> for FullMultivector {
     type Output = FullMultivector;
 
@@ -5721,6 +6631,56 @@ impl BitAnd<Trivector> for FullMultivector {
             a12: self.a15 * r.a12,
             a13: self.a15 * r.a13,
             a14: self.a15 * r.a14,
+            a15: 0.,
+        }
+    }
+}
+
+impl BitAnd<Pseudoscalar> for FullMultivector {
+    type Output = FullMultivector;
+
+    fn bitand(self, r: Pseudoscalar) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0 * r.a15,
+            a1: self.a1 * r.a15,
+            a2: self.a2 * r.a15,
+            a3: self.a3 * r.a15,
+            a4: self.a4 * r.a15,
+            a5: self.a5 * r.a15,
+            a6: self.a6 * r.a15,
+            a7: self.a7 * r.a15,
+            a8: self.a8 * r.a15,
+            a9: self.a9 * r.a15,
+            a10: self.a10 * r.a15,
+            a11: self.a11 * r.a15,
+            a12: self.a12 * r.a15,
+            a13: self.a13 * r.a15,
+            a14: self.a14 * r.a15,
+            a15: self.a15 * r.a15,
+        }
+    }
+}
+
+impl BitAnd<ScalarAndBivector> for FullMultivector {
+    type Output = FullMultivector;
+
+    fn bitand(self, r: ScalarAndBivector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a5 * r.a10 + self.a6 * r.a9 + self.a7 * r.a8 + self.a8 * r.a7 + self.a9 * r.a6 + self.a10 * r.a5 + self.a15 * r.a0,
+            a1: self.a11 * r.a7 + self.a12 * r.a6 + self.a13 * r.a5,
+            a2: -self.a11 * r.a9 + self.a12 * r.a8 - self.a14 * r.a5,
+            a3: self.a11 * r.a10 - self.a13 * r.a8 - self.a14 * r.a6,
+            a4: -self.a12 * r.a10 + self.a13 * r.a9 - self.a14 * r.a7,
+            a5: self.a15 * r.a5,
+            a6: self.a15 * r.a6,
+            a7: self.a15 * r.a7,
+            a8: self.a15 * r.a8,
+            a9: self.a15 * r.a9,
+            a10: self.a15 * r.a10,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
             a15: 0.,
         }
     }
@@ -5826,31 +6786,6 @@ impl BitOr<Bivector> for FullMultivector {
     }
 }
 
-impl BitOr<ScalarAndBivector> for FullMultivector {
-    type Output = FullMultivector;
-
-    fn bitor(self, r: ScalarAndBivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0 * r.a0 - self.a8 * r.a8 - self.a9 * r.a9 - self.a10 * r.a10,
-            a1: self.a1 * r.a0 - self.a2 * r.a5 - self.a3 * r.a6 - self.a4 * r.a7 + self.a11 * r.a8 + self.a12 * r.a9 + self.a13 * r.a10,
-            a2: self.a2 * r.a0 - self.a3 * r.a8 + self.a4 * r.a9 - self.a14 * r.a10,
-            a3: self.a2 * r.a8 + self.a3 * r.a0 - self.a4 * r.a10 - self.a14 * r.a9,
-            a4: -self.a2 * r.a9 + self.a3 * r.a10 + self.a4 * r.a0 - self.a14 * r.a8,
-            a5: self.a0 * r.a5 + self.a5 * r.a0 - self.a15 * r.a10,
-            a6: self.a0 * r.a6 + self.a6 * r.a0 - self.a15 * r.a9,
-            a7: self.a0 * r.a7 + self.a7 * r.a0 - self.a15 * r.a8,
-            a8: self.a0 * r.a8 + self.a8 * r.a0,
-            a9: self.a0 * r.a9 + self.a9 * r.a0,
-            a10: self.a0 * r.a10 + self.a10 * r.a0,
-            a11: self.a11 * r.a0,
-            a12: self.a12 * r.a0,
-            a13: self.a13 * r.a0,
-            a14: self.a14 * r.a0,
-            a15: self.a15 * r.a0,
-        }
-    }
-}
-
 impl BitOr<Trivector> for FullMultivector {
     type Output = FullMultivector;
 
@@ -5872,6 +6807,56 @@ impl BitOr<Trivector> for FullMultivector {
             a13: self.a0 * r.a13,
             a14: self.a0 * r.a14,
             a15: 0.,
+        }
+    }
+}
+
+impl BitOr<Pseudoscalar> for FullMultivector {
+    type Output = FullMultivector;
+
+    fn bitor(self, r: Pseudoscalar) -> FullMultivector {
+        FullMultivector {
+            a0: 0.,
+            a1: self.a14 * r.a15,
+            a2: 0.,
+            a3: 0.,
+            a4: 0.,
+            a5: -self.a10 * r.a15,
+            a6: -self.a9 * r.a15,
+            a7: -self.a8 * r.a15,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: self.a4 * r.a15,
+            a12: self.a3 * r.a15,
+            a13: self.a2 * r.a15,
+            a14: 0.,
+            a15: self.a0 * r.a15,
+        }
+    }
+}
+
+impl BitOr<ScalarAndBivector> for FullMultivector {
+    type Output = FullMultivector;
+
+    fn bitor(self, r: ScalarAndBivector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0 * r.a0 - self.a8 * r.a8 - self.a9 * r.a9 - self.a10 * r.a10,
+            a1: self.a1 * r.a0 - self.a2 * r.a5 - self.a3 * r.a6 - self.a4 * r.a7 + self.a11 * r.a8 + self.a12 * r.a9 + self.a13 * r.a10,
+            a2: self.a2 * r.a0 - self.a3 * r.a8 + self.a4 * r.a9 - self.a14 * r.a10,
+            a3: self.a2 * r.a8 + self.a3 * r.a0 - self.a4 * r.a10 - self.a14 * r.a9,
+            a4: -self.a2 * r.a9 + self.a3 * r.a10 + self.a4 * r.a0 - self.a14 * r.a8,
+            a5: self.a0 * r.a5 + self.a5 * r.a0 - self.a15 * r.a10,
+            a6: self.a0 * r.a6 + self.a6 * r.a0 - self.a15 * r.a9,
+            a7: self.a0 * r.a7 + self.a7 * r.a0 - self.a15 * r.a8,
+            a8: self.a0 * r.a8 + self.a8 * r.a0,
+            a9: self.a0 * r.a9 + self.a9 * r.a0,
+            a10: self.a0 * r.a10 + self.a10 * r.a0,
+            a11: self.a11 * r.a0,
+            a12: self.a12 * r.a0,
+            a13: self.a13 * r.a0,
+            a14: self.a14 * r.a0,
+            a15: self.a15 * r.a0,
         }
     }
 }
@@ -5902,301 +6887,323 @@ impl BitOr<FullMultivector> for FullMultivector {
 }
 
 impl Transform<Float> for FullMultivector {
-    type Output = FullMultivector;
-
     fn transform(self, r: Float) -> FullMultivector {
         FullMultivector {
-            a0: r * (self.a0.powi(2) + self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2) + self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2) + self.a14.powi(2)),
-            a1: 2. * r * (self.a0 * self.a1 + self.a2 * self.a5 + self.a3 * self.a6 + self.a4 * self.a7 - self.a8 * self.a11 - self.a9 * self.a12 - self.a10 * self.a13 + self.a14 * self.a15),
-            a2: 2. * r * (self.a0 * self.a2 + self.a3 * self.a8 - self.a4 * self.a9 + self.a10 * self.a14),
-            a3: 2. * r * (self.a0 * self.a3 - self.a2 * self.a8 + self.a4 * self.a10 + self.a9 * self.a14),
-            a4: 2. * r * (self.a0 * self.a4 + self.a2 * self.a9 - self.a3 * self.a10 + self.a8 * self.a14),
-            a5: 0.,
-            a6: 0.,
-            a7: 0.,
-            a8: 0.,
-            a9: 0.,
-            a10: 0.,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: 2. * r * (self.a0 * self.a15 - self.a1 * self.a14 - self.a2 * self.a13 - self.a3 * self.a12 - self.a4 * self.a11 - self.a5 * self.a10 - self.a6 * self.a9 - self.a7 * self.a8),
+            a0: self.a0 * r.powi(2),
+            a1: self.a1 * r.powi(2),
+            a2: self.a2 * r.powi(2),
+            a3: self.a3 * r.powi(2),
+            a4: self.a4 * r.powi(2),
+            a5: self.a5 * r.powi(2),
+            a6: self.a6 * r.powi(2),
+            a7: self.a7 * r.powi(2),
+            a8: self.a8 * r.powi(2),
+            a9: self.a9 * r.powi(2),
+            a10: self.a10 * r.powi(2),
+            a11: self.a11 * r.powi(2),
+            a12: self.a12 * r.powi(2),
+            a13: self.a13 * r.powi(2),
+            a14: self.a14 * r.powi(2),
+            a15: self.a15 * r.powi(2),
         }
     }
 }
 
 impl Transform<Vector> for FullMultivector {
-    type Output = FullMultivector;
-
     fn transform(self, r: Vector) -> FullMultivector {
         FullMultivector {
-            a0: 2. * self.a0 * self.a2 * r.a2 + 2. * self.a0 * self.a3 * r.a3 + 2. * self.a0 * self.a4 * r.a4 + 2. * self.a2 * self.a8 * r.a3 - 2. * self.a2 * self.a9 * r.a4 - 2. * self.a3 * self.a8 * r.a2 + 2. * self.a3 * self.a10 * r.a4 + 2. * self.a4 * self.a9 * r.a2 - 2. * self.a4 * self.a10 * r.a3 + 2. * self.a8 * self.a14 * r.a4 + 2. * self.a9 * self.a14 * r.a3 + 2. * self.a10 * self.a14 * r.a2,
-            a1: self.a0.powi(2) * r.a1 + 2. * self.a0 * self.a5 * r.a2 + 2. * self.a0 * self.a6 * r.a3 + 2. * self.a0 * self.a7 * r.a4 + 2. * self.a1 * self.a2 * r.a2 + 2. * self.a1 * self.a3 * r.a3 + 2. * self.a1 * self.a4 * r.a4 - self.a2.powi(2) * r.a1 - 2. * self.a2 * self.a11 * r.a3 + 2. * self.a2 * self.a12 * r.a4 - self.a3.powi(2) * r.a1 + 2. * self.a3 * self.a11 * r.a2 - 2. * self.a3 * self.a13 * r.a4 - self.a4.powi(2) * r.a1 - 2. * self.a4 * self.a12 * r.a2 + 2. * self.a4 * self.a13 * r.a3 + 2. * self.a5 * self.a8 * r.a3 - 2. * self.a5 * self.a9 * r.a4 - 2. * self.a6 * self.a8 * r.a2 + 2. * self.a6 * self.a10 * r.a4 + 2. * self.a7 * self.a9 * r.a2 - 2. * self.a7 * self.a10 * r.a3 + self.a8.powi(2) * r.a1 + 2. * self.a8 * self.a15 * r.a4 + self.a9.powi(2) * r.a1 + 2. * self.a9 * self.a15 * r.a3 + self.a10.powi(2) * r.a1 + 2. * self.a10 * self.a15 * r.a2 - 2. * self.a11 * self.a14 * r.a4 - 2. * self.a12 * self.a14 * r.a3 - 2. * self.a13 * self.a14 * r.a2 - self.a14.powi(2) * r.a1,
-            a2: self.a0 * (self.a0 * r.a2 + self.a8 * r.a3 - self.a9 * r.a4) + self.a2 * (self.a2 * r.a2 + self.a3 * r.a3 + self.a4 * r.a4) + self.a3 * (self.a2 * r.a3 - self.a3 * r.a2 + self.a14 * r.a4) - self.a4 * (-self.a2 * r.a4 + self.a4 * r.a2 + self.a14 * r.a3) + self.a8 * (self.a0 * r.a3 - self.a8 * r.a2 + self.a10 * r.a4) - self.a9 * (self.a0 * r.a4 + self.a9 * r.a2 - self.a10 * r.a3) + self.a10 * (self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2) + self.a14 * (self.a3 * r.a4 - self.a4 * r.a3 + self.a14 * r.a2),
-            a3: self.a0 * (self.a0 * r.a3 - self.a8 * r.a2 + self.a10 * r.a4) - self.a2 * (self.a2 * r.a3 - self.a3 * r.a2 + self.a14 * r.a4) + self.a3 * (self.a2 * r.a2 + self.a3 * r.a3 + self.a4 * r.a4) + self.a4 * (self.a3 * r.a4 - self.a4 * r.a3 + self.a14 * r.a2) - self.a8 * (self.a0 * r.a2 + self.a8 * r.a3 - self.a9 * r.a4) + self.a9 * (self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2) + self.a10 * (self.a0 * r.a4 + self.a9 * r.a2 - self.a10 * r.a3) + self.a14 * (-self.a2 * r.a4 + self.a4 * r.a2 + self.a14 * r.a3),
-            a4: self.a0 * (self.a0 * r.a4 + self.a9 * r.a2 - self.a10 * r.a3) + self.a2 * (-self.a2 * r.a4 + self.a4 * r.a2 + self.a14 * r.a3) - self.a3 * (self.a3 * r.a4 - self.a4 * r.a3 + self.a14 * r.a2) + self.a4 * (self.a2 * r.a2 + self.a3 * r.a3 + self.a4 * r.a4) + self.a8 * (self.a8 * r.a4 + self.a9 * r.a3 + self.a10 * r.a2) + self.a9 * (self.a0 * r.a2 + self.a8 * r.a3 - self.a9 * r.a4) - self.a10 * (self.a0 * r.a3 - self.a8 * r.a2 + self.a10 * r.a4) + self.a14 * (self.a2 * r.a3 - self.a3 * r.a2 + self.a14 * r.a4),
-            a5: 0.,
-            a6: 0.,
-            a7: 0.,
-            a8: 0.,
-            a9: 0.,
-            a10: 0.,
-            a11: 0.,
-            a12: 0.,
-            a13: 0.,
-            a14: 0.,
-            a15: -2. * self.a0 * self.a11 * r.a4 - 2. * self.a0 * self.a12 * r.a3 - 2. * self.a0 * self.a13 * r.a2 - 2. * self.a0 * self.a14 * r.a1 - 2. * self.a1 * self.a8 * r.a4 - 2. * self.a1 * self.a9 * r.a3 - 2. * self.a1 * self.a10 * r.a2 + 2. * self.a2 * self.a6 * r.a4 - 2. * self.a2 * self.a7 * r.a3 + 2. * self.a2 * self.a10 * r.a1 + 2. * self.a2 * self.a15 * r.a2 - 2. * self.a3 * self.a5 * r.a4 + 2. * self.a3 * self.a7 * r.a2 + 2. * self.a3 * self.a9 * r.a1 + 2. * self.a3 * self.a15 * r.a3 + 2. * self.a4 * self.a5 * r.a3 - 2. * self.a4 * self.a6 * r.a2 + 2. * self.a4 * self.a8 * r.a1 + 2. * self.a4 * self.a15 * r.a4 - 2. * self.a5 * self.a14 * r.a2 - 2. * self.a6 * self.a14 * r.a3 - 2. * self.a7 * self.a14 * r.a4 + 2. * self.a8 * self.a12 * r.a2 - 2. * self.a8 * self.a13 * r.a3 - 2. * self.a9 * self.a11 * r.a2 + 2. * self.a9 * self.a13 * r.a4 + 2. * self.a10 * self.a11 * r.a3 - 2. * self.a10 * self.a12 * r.a4,
+            a0: self.a0 * (r.a2.powi(2) + r.a3.powi(2) + r.a4.powi(2)),
+            a1: -self.a1 * r.a2.powi(2) - self.a1 * r.a3.powi(2) - self.a1 * r.a4.powi(2) + 2. * self.a2 * r.a1 * r.a2 + 2. * self.a3 * r.a1 * r.a3 + 2. * self.a4 * r.a1 * r.a4,
+            a2: self.a2 * r.a2.powi(2) - self.a2 * r.a3.powi(2) - self.a2 * r.a4.powi(2) + 2. * self.a3 * r.a2 * r.a3 + 2. * self.a4 * r.a2 * r.a4,
+            a3: 2. * self.a2 * r.a2 * r.a3 - self.a3 * r.a2.powi(2) + self.a3 * r.a3.powi(2) - self.a3 * r.a4.powi(2) + 2. * self.a4 * r.a3 * r.a4,
+            a4: 2. * self.a2 * r.a2 * r.a4 + 2. * self.a3 * r.a3 * r.a4 - self.a4 * r.a2.powi(2) - self.a4 * r.a3.powi(2) + self.a4 * r.a4.powi(2),
+            a5: -self.a5 * r.a2.powi(2) + self.a5 * r.a3.powi(2) + self.a5 * r.a4.powi(2) - 2. * self.a6 * r.a2 * r.a3 - 2. * self.a7 * r.a2 * r.a4 + 2. * self.a8 * r.a1 * r.a3 - 2. * self.a9 * r.a1 * r.a4,
+            a6: -2. * self.a5 * r.a2 * r.a3 + self.a6 * r.a2.powi(2) - self.a6 * r.a3.powi(2) + self.a6 * r.a4.powi(2) - 2. * self.a7 * r.a3 * r.a4 - 2. * self.a8 * r.a1 * r.a2 + 2. * self.a10 * r.a1 * r.a4,
+            a7: -2. * self.a5 * r.a2 * r.a4 - 2. * self.a6 * r.a3 * r.a4 + self.a7 * r.a2.powi(2) + self.a7 * r.a3.powi(2) - self.a7 * r.a4.powi(2) + 2. * self.a9 * r.a1 * r.a2 - 2. * self.a10 * r.a1 * r.a3,
+            a8: -self.a8 * r.a2.powi(2) - self.a8 * r.a3.powi(2) + self.a8 * r.a4.powi(2) + 2. * self.a9 * r.a3 * r.a4 + 2. * self.a10 * r.a2 * r.a4,
+            a9: 2. * self.a8 * r.a3 * r.a4 - self.a9 * r.a2.powi(2) + self.a9 * r.a3.powi(2) - self.a9 * r.a4.powi(2) + 2. * self.a10 * r.a2 * r.a3,
+            a10: 2. * self.a8 * r.a2 * r.a4 + 2. * self.a9 * r.a2 * r.a3 + self.a10 * r.a2.powi(2) - self.a10 * r.a3.powi(2) - self.a10 * r.a4.powi(2),
+            a11: self.a11 * r.a2.powi(2) + self.a11 * r.a3.powi(2) - self.a11 * r.a4.powi(2) - 2. * self.a12 * r.a3 * r.a4 - 2. * self.a13 * r.a2 * r.a4 - 2. * self.a14 * r.a1 * r.a4,
+            a12: -2. * self.a11 * r.a3 * r.a4 + self.a12 * r.a2.powi(2) - self.a12 * r.a3.powi(2) + self.a12 * r.a4.powi(2) - 2. * self.a13 * r.a2 * r.a3 - 2. * self.a14 * r.a1 * r.a3,
+            a13: -2. * self.a11 * r.a2 * r.a4 - 2. * self.a12 * r.a2 * r.a3 - self.a13 * r.a2.powi(2) + self.a13 * r.a3.powi(2) + self.a13 * r.a4.powi(2) - 2. * self.a14 * r.a1 * r.a2,
+            a14: self.a14 * (r.a2.powi(2) + r.a3.powi(2) + r.a4.powi(2)),
+            a15: -self.a15 * (r.a2.powi(2) + r.a3.powi(2) + r.a4.powi(2)),
         }
     }
 }
 
 impl Transform<Bivector> for FullMultivector {
-    type Output = FullMultivector;
-
     fn transform(self, r: Bivector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0 * (r.a8.powi(2) + r.a9.powi(2) + r.a10.powi(2)),
+            a1: self.a1 * r.a8.powi(2) + self.a1 * r.a9.powi(2) + self.a1 * r.a10.powi(2) - 2. * self.a2 * r.a6 * r.a8 + 2. * self.a2 * r.a7 * r.a9 + 2. * self.a3 * r.a5 * r.a8 - 2. * self.a3 * r.a7 * r.a10 - 2. * self.a4 * r.a5 * r.a9 + 2. * self.a4 * r.a6 * r.a10,
+            a2: -self.a2 * r.a8.powi(2) - self.a2 * r.a9.powi(2) + self.a2 * r.a10.powi(2) + 2. * self.a3 * r.a9 * r.a10 + 2. * self.a4 * r.a8 * r.a10,
+            a3: 2. * self.a2 * r.a9 * r.a10 - self.a3 * r.a8.powi(2) + self.a3 * r.a9.powi(2) - self.a3 * r.a10.powi(2) + 2. * self.a4 * r.a8 * r.a9,
+            a4: 2. * self.a2 * r.a8 * r.a10 + 2. * self.a3 * r.a8 * r.a9 + self.a4 * r.a8.powi(2) - self.a4 * r.a9.powi(2) - self.a4 * r.a10.powi(2),
+            a5: -self.a5 * r.a8.powi(2) - self.a5 * r.a9.powi(2) + self.a5 * r.a10.powi(2) + 2. * self.a6 * r.a9 * r.a10 + 2. * self.a7 * r.a8 * r.a10 + 2. * self.a8 * r.a5 * r.a8 + 2. * self.a8 * r.a7 * r.a10 + 2. * self.a9 * r.a5 * r.a9 + 2. * self.a9 * r.a6 * r.a10 + 2. * self.a10 * r.a5 * r.a10 - 2. * self.a10 * r.a6 * r.a9 - 2. * self.a10 * r.a7 * r.a8,
+            a6: 2. * self.a5 * r.a9 * r.a10 - self.a6 * r.a8.powi(2) + self.a6 * r.a9.powi(2) - self.a6 * r.a10.powi(2) + 2. * self.a7 * r.a8 * r.a9 + 2. * self.a8 * r.a6 * r.a8 + 2. * self.a8 * r.a7 * r.a9 - 2. * self.a9 * r.a5 * r.a10 + 2. * self.a9 * r.a6 * r.a9 - 2. * self.a9 * r.a7 * r.a8 + 2. * self.a10 * r.a5 * r.a9 + 2. * self.a10 * r.a6 * r.a10,
+            a7: 2. * self.a5 * r.a8 * r.a10 + 2. * self.a6 * r.a8 * r.a9 + self.a7 * r.a8.powi(2) - self.a7 * r.a9.powi(2) - self.a7 * r.a10.powi(2) - 2. * self.a8 * r.a5 * r.a10 - 2. * self.a8 * r.a6 * r.a9 + 2. * self.a8 * r.a7 * r.a8 + 2. * self.a9 * r.a6 * r.a8 + 2. * self.a9 * r.a7 * r.a9 + 2. * self.a10 * r.a5 * r.a8 + 2. * self.a10 * r.a7 * r.a10,
+            a8: self.a8 * r.a8.powi(2) - self.a8 * r.a9.powi(2) - self.a8 * r.a10.powi(2) + 2. * self.a9 * r.a8 * r.a9 + 2. * self.a10 * r.a8 * r.a10,
+            a9: 2. * self.a8 * r.a8 * r.a9 - self.a9 * r.a8.powi(2) + self.a9 * r.a9.powi(2) - self.a9 * r.a10.powi(2) + 2. * self.a10 * r.a9 * r.a10,
+            a10: 2. * self.a8 * r.a8 * r.a10 + 2. * self.a9 * r.a9 * r.a10 - self.a10 * r.a8.powi(2) - self.a10 * r.a9.powi(2) + self.a10 * r.a10.powi(2),
+            a11: self.a11 * r.a8.powi(2) - self.a11 * r.a9.powi(2) - self.a11 * r.a10.powi(2) + 2. * self.a12 * r.a8 * r.a9 + 2. * self.a13 * r.a8 * r.a10 - 2. * self.a14 * r.a5 * r.a9 + 2. * self.a14 * r.a6 * r.a10,
+            a12: 2. * self.a11 * r.a8 * r.a9 - self.a12 * r.a8.powi(2) + self.a12 * r.a9.powi(2) - self.a12 * r.a10.powi(2) + 2. * self.a13 * r.a9 * r.a10 + 2. * self.a14 * r.a5 * r.a8 - 2. * self.a14 * r.a7 * r.a10,
+            a13: 2. * self.a11 * r.a8 * r.a10 + 2. * self.a12 * r.a9 * r.a10 - self.a13 * r.a8.powi(2) - self.a13 * r.a9.powi(2) + self.a13 * r.a10.powi(2) - 2. * self.a14 * r.a6 * r.a8 + 2. * self.a14 * r.a7 * r.a9,
+            a14: self.a14 * (r.a8.powi(2) + r.a9.powi(2) + r.a10.powi(2)),
+            a15: -2. * self.a0 * r.a5 * r.a10 - 2. * self.a0 * r.a6 * r.a9 - 2. * self.a0 * r.a7 * r.a8 + self.a15 * r.a8.powi(2) + self.a15 * r.a9.powi(2) + self.a15 * r.a10.powi(2),
+        }
+    }
+}
+
+impl Transform<Trivector> for FullMultivector {
+    fn transform(self, r: Trivector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0 * r.a14.powi(2),
+            a1: -r.a14 * (self.a1 * r.a14 + 2. * self.a2 * r.a13 + 2. * self.a3 * r.a12 + 2. * self.a4 * r.a11),
+            a2: self.a2 * r.a14.powi(2),
+            a3: self.a3 * r.a14.powi(2),
+            a4: self.a4 * r.a14.powi(2),
+            a5: r.a14 * (-self.a5 * r.a14 + 2. * self.a8 * r.a12 - 2. * self.a9 * r.a11),
+            a6: r.a14 * (-self.a6 * r.a14 - 2. * self.a8 * r.a13 + 2. * self.a10 * r.a11),
+            a7: r.a14 * (-self.a7 * r.a14 + 2. * self.a9 * r.a13 - 2. * self.a10 * r.a12),
+            a8: self.a8 * r.a14.powi(2),
+            a9: self.a9 * r.a14.powi(2),
+            a10: self.a10 * r.a14.powi(2),
+            a11: r.a14 * (-self.a11 * r.a14 + 2. * self.a14 * r.a11),
+            a12: r.a14 * (-self.a12 * r.a14 + 2. * self.a14 * r.a12),
+            a13: r.a14 * (-self.a13 * r.a14 + 2. * self.a14 * r.a13),
+            a14: self.a14 * r.a14.powi(2),
+            a15: -self.a15 * r.a14.powi(2),
+        }
+    }
+}
+
+impl Transform<Pseudoscalar> for FullMultivector {
+    fn transform(self, _r: Pseudoscalar) -> FullMultivector {
         FullMultivector {
             a0: 0.,
             a1: 0.,
             a2: 0.,
             a3: 0.,
             a4: 0.,
-            a5: self.a0.powi(2) * r.a5 - 2. * self.a0 * self.a6 * r.a8 + 2. * self.a0 * self.a7 * r.a9 + 2. * self.a0 * self.a8 * r.a6 - 2. * self.a0 * self.a9 * r.a7 - 2. * self.a0 * self.a15 * r.a10 + 2. * self.a1 * self.a3 * r.a8 - 2. * self.a1 * self.a4 * r.a9 + 2. * self.a1 * self.a14 * r.a10 - self.a2.powi(2) * r.a5 - 2. * self.a2 * self.a3 * r.a6 - 2. * self.a2 * self.a4 * r.a7 + 2. * self.a2 * self.a11 * r.a8 + 2. * self.a2 * self.a12 * r.a9 + 2. * self.a2 * self.a13 * r.a10 + self.a3.powi(2) * r.a5 - 2. * self.a3 * self.a12 * r.a10 + 2. * self.a3 * self.a13 * r.a9 - 2. * self.a3 * self.a14 * r.a7 + self.a4.powi(2) * r.a5 - 2. * self.a4 * self.a11 * r.a10 + 2. * self.a4 * self.a13 * r.a8 + 2. * self.a4 * self.a14 * r.a6 + 2. * self.a5 * self.a8 * r.a8 + 2. * self.a5 * self.a9 * r.a9 + 2. * self.a5 * self.a10 * r.a10 - 2. * self.a6 * self.a9 * r.a10 + 2. * self.a6 * self.a10 * r.a9 - 2. * self.a7 * self.a8 * r.a10 + 2. * self.a7 * self.a10 * r.a8 - self.a8.powi(2) * r.a5 + 2. * self.a8 * self.a10 * r.a7 - 2. * self.a8 * self.a15 * r.a9 - self.a9.powi(2) * r.a5 + 2. * self.a9 * self.a10 * r.a6 + 2. * self.a9 * self.a15 * r.a8 + self.a10.powi(2) * r.a5 - 2. * self.a11 * self.a14 * r.a9 + 2. * self.a12 * self.a14 * r.a8 - self.a14.powi(2) * r.a5,
-            a6: self.a0.powi(2) * r.a6 + 2. * self.a0 * self.a5 * r.a8 - 2. * self.a0 * self.a7 * r.a10 - 2. * self.a0 * self.a8 * r.a5 + 2. * self.a0 * self.a10 * r.a7 - 2. * self.a0 * self.a15 * r.a9 - 2. * self.a1 * self.a2 * r.a8 + 2. * self.a1 * self.a4 * r.a10 + 2. * self.a1 * self.a14 * r.a9 + self.a2.powi(2) * r.a6 - 2. * self.a2 * self.a3 * r.a5 + 2. * self.a2 * self.a12 * r.a10 - 2. * self.a2 * self.a13 * r.a9 + 2. * self.a2 * self.a14 * r.a7 - self.a3.powi(2) * r.a6 - 2. * self.a3 * self.a4 * r.a7 + 2. * self.a3 * self.a11 * r.a8 + 2. * self.a3 * self.a12 * r.a9 + 2. * self.a3 * self.a13 * r.a10 + self.a4.powi(2) * r.a6 - 2. * self.a4 * self.a11 * r.a9 + 2. * self.a4 * self.a12 * r.a8 - 2. * self.a4 * self.a14 * r.a5 + 2. * self.a5 * self.a9 * r.a10 - 2. * self.a5 * self.a10 * r.a9 + 2. * self.a6 * self.a8 * r.a8 + 2. * self.a6 * self.a9 * r.a9 + 2. * self.a6 * self.a10 * r.a10 - 2. * self.a7 * self.a8 * r.a9 + 2. * self.a7 * self.a9 * r.a8 - self.a8.powi(2) * r.a6 + 2. * self.a8 * self.a9 * r.a7 + 2. * self.a8 * self.a15 * r.a10 + self.a9.powi(2) * r.a6 + 2. * self.a9 * self.a10 * r.a5 - self.a10.powi(2) * r.a6 - 2. * self.a10 * self.a15 * r.a8 + 2. * self.a11 * self.a14 * r.a10 - 2. * self.a13 * self.a14 * r.a8 - self.a14.powi(2) * r.a6,
-            a7: self.a0.powi(2) * r.a7 - 2. * self.a0 * self.a5 * r.a9 + 2. * self.a0 * self.a6 * r.a10 + 2. * self.a0 * self.a9 * r.a5 - 2. * self.a0 * self.a10 * r.a6 - 2. * self.a0 * self.a15 * r.a8 + 2. * self.a1 * self.a2 * r.a9 - 2. * self.a1 * self.a3 * r.a10 + 2. * self.a1 * self.a14 * r.a8 + self.a2.powi(2) * r.a7 - 2. * self.a2 * self.a4 * r.a5 + 2. * self.a2 * self.a11 * r.a10 - 2. * self.a2 * self.a13 * r.a8 - 2. * self.a2 * self.a14 * r.a6 + self.a3.powi(2) * r.a7 - 2. * self.a3 * self.a4 * r.a6 + 2. * self.a3 * self.a11 * r.a9 - 2. * self.a3 * self.a12 * r.a8 + 2. * self.a3 * self.a14 * r.a5 - self.a4.powi(2) * r.a7 + 2. * self.a4 * self.a11 * r.a8 + 2. * self.a4 * self.a12 * r.a9 + 2. * self.a4 * self.a13 * r.a10 + 2. * self.a5 * self.a8 * r.a10 - 2. * self.a5 * self.a10 * r.a8 + 2. * self.a6 * self.a8 * r.a9 - 2. * self.a6 * self.a9 * r.a8 + 2. * self.a7 * self.a8 * r.a8 + 2. * self.a7 * self.a9 * r.a9 + 2. * self.a7 * self.a10 * r.a10 + self.a8.powi(2) * r.a7 + 2. * self.a8 * self.a9 * r.a6 + 2. * self.a8 * self.a10 * r.a5 - self.a9.powi(2) * r.a7 - 2. * self.a9 * self.a15 * r.a10 - self.a10.powi(2) * r.a7 + 2. * self.a10 * self.a15 * r.a9 - 2. * self.a12 * self.a14 * r.a10 + 2. * self.a13 * self.a14 * r.a9 - self.a14.powi(2) * r.a7,
-            a8: self.a0 * (self.a0 * r.a8 + self.a9 * r.a10 - self.a10 * r.a9) + self.a2 * (-self.a2 * r.a8 + self.a4 * r.a10 + self.a14 * r.a9) - self.a3 * (self.a3 * r.a8 - self.a4 * r.a9 + self.a14 * r.a10) + self.a4 * (self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8) + self.a8 * (self.a8 * r.a8 + self.a9 * r.a9 + self.a10 * r.a10) + self.a9 * (self.a0 * r.a10 + self.a8 * r.a9 - self.a9 * r.a8) - self.a10 * (self.a0 * r.a9 - self.a8 * r.a10 + self.a10 * r.a8) + self.a14 * (self.a2 * r.a9 - self.a3 * r.a10 + self.a14 * r.a8),
-            a9: self.a0 * (self.a0 * r.a9 - self.a8 * r.a10 + self.a10 * r.a8) - self.a2 * (self.a2 * r.a9 - self.a3 * r.a10 + self.a14 * r.a8) + self.a3 * (self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8) + self.a4 * (self.a3 * r.a8 - self.a4 * r.a9 + self.a14 * r.a10) - self.a8 * (self.a0 * r.a10 + self.a8 * r.a9 - self.a9 * r.a8) + self.a9 * (self.a8 * r.a8 + self.a9 * r.a9 + self.a10 * r.a10) + self.a10 * (self.a0 * r.a8 + self.a9 * r.a10 - self.a10 * r.a9) + self.a14 * (-self.a2 * r.a8 + self.a4 * r.a10 + self.a14 * r.a9),
-            a10: self.a0 * (self.a0 * r.a10 + self.a8 * r.a9 - self.a9 * r.a8) + self.a2 * (self.a2 * r.a10 + self.a3 * r.a9 + self.a4 * r.a8) + self.a3 * (self.a2 * r.a9 - self.a3 * r.a10 + self.a14 * r.a8) - self.a4 * (-self.a2 * r.a8 + self.a4 * r.a10 + self.a14 * r.a9) + self.a8 * (self.a0 * r.a9 - self.a8 * r.a10 + self.a10 * r.a8) - self.a9 * (self.a0 * r.a8 + self.a9 * r.a10 - self.a10 * r.a9) + self.a10 * (self.a8 * r.a8 + self.a9 * r.a9 + self.a10 * r.a10) + self.a14 * (self.a3 * r.a8 - self.a4 * r.a9 + self.a14 * r.a10),
-            a11: -2. * self.a0 * self.a1 * r.a8 + 2. * self.a0 * self.a2 * r.a6 - 2. * self.a0 * self.a3 * r.a5 + 2. * self.a0 * self.a12 * r.a10 - 2. * self.a0 * self.a13 * r.a9 + 2. * self.a0 * self.a14 * r.a7 - 2. * self.a1 * self.a9 * r.a10 + 2. * self.a1 * self.a10 * r.a9 + 2. * self.a2 * self.a5 * r.a8 - 2. * self.a2 * self.a7 * r.a10 - 2. * self.a2 * self.a8 * r.a5 + 2. * self.a2 * self.a10 * r.a7 - 2. * self.a2 * self.a15 * r.a9 + 2. * self.a3 * self.a6 * r.a8 - 2. * self.a3 * self.a7 * r.a9 - 2. * self.a3 * self.a8 * r.a6 + 2. * self.a3 * self.a9 * r.a7 + 2. * self.a3 * self.a15 * r.a10 - 2. * self.a4 * self.a5 * r.a10 - 2. * self.a4 * self.a6 * r.a9 - 2. * self.a4 * self.a7 * r.a8 - 2. * self.a4 * self.a8 * r.a7 - 2. * self.a4 * self.a9 * r.a6 - 2. * self.a4 * self.a10 * r.a5 - 2. * self.a5 * self.a14 * r.a9 + 2. * self.a6 * self.a14 * r.a10 + 2. * self.a8 * self.a11 * r.a8 + 2. * self.a8 * self.a12 * r.a9 + 2. * self.a8 * self.a13 * r.a10 + 2. * self.a9 * self.a11 * r.a9 - 2. * self.a9 * self.a12 * r.a8 + 2. * self.a9 * self.a14 * r.a5 + 2. * self.a10 * self.a11 * r.a10 - 2. * self.a10 * self.a13 * r.a8 - 2. * self.a10 * self.a14 * r.a6 - 2. * self.a14 * self.a15 * r.a8,
-            a12: -2. * self.a0 * self.a1 * r.a9 - 2. * self.a0 * self.a2 * r.a7 + 2. * self.a0 * self.a4 * r.a5 - 2. * self.a0 * self.a11 * r.a10 + 2. * self.a0 * self.a13 * r.a8 + 2. * self.a0 * self.a14 * r.a6 + 2. * self.a1 * self.a8 * r.a10 - 2. * self.a1 * self.a10 * r.a8 + 2. * self.a2 * self.a5 * r.a9 - 2. * self.a2 * self.a6 * r.a10 - 2. * self.a2 * self.a9 * r.a5 + 2. * self.a2 * self.a10 * r.a6 + 2. * self.a2 * self.a15 * r.a8 - 2. * self.a3 * self.a5 * r.a10 - 2. * self.a3 * self.a6 * r.a9 - 2. * self.a3 * self.a7 * r.a8 - 2. * self.a3 * self.a8 * r.a7 - 2. * self.a3 * self.a9 * r.a6 - 2. * self.a3 * self.a10 * r.a5 - 2. * self.a4 * self.a6 * r.a8 + 2. * self.a4 * self.a7 * r.a9 + 2. * self.a4 * self.a8 * r.a6 - 2. * self.a4 * self.a9 * r.a7 - 2. * self.a4 * self.a15 * r.a10 + 2. * self.a5 * self.a14 * r.a8 - 2. * self.a7 * self.a14 * r.a10 - 2. * self.a8 * self.a11 * r.a9 + 2. * self.a8 * self.a12 * r.a8 - 2. * self.a8 * self.a14 * r.a5 + 2. * self.a9 * self.a11 * r.a8 + 2. * self.a9 * self.a12 * r.a9 + 2. * self.a9 * self.a13 * r.a10 + 2. * self.a10 * self.a12 * r.a10 - 2. * self.a10 * self.a13 * r.a9 + 2. * self.a10 * self.a14 * r.a7 - 2. * self.a14 * self.a15 * r.a9,
-            a13: -2. * self.a0 * self.a1 * r.a10 + 2. * self.a0 * self.a3 * r.a7 - 2. * self.a0 * self.a4 * r.a6 + 2. * self.a0 * self.a11 * r.a9 - 2. * self.a0 * self.a12 * r.a8 + 2. * self.a0 * self.a14 * r.a5 - 2. * self.a1 * self.a8 * r.a9 + 2. * self.a1 * self.a9 * r.a8 - 2. * self.a2 * self.a5 * r.a10 - 2. * self.a2 * self.a6 * r.a9 - 2. * self.a2 * self.a7 * r.a8 - 2. * self.a2 * self.a8 * r.a7 - 2. * self.a2 * self.a9 * r.a6 - 2. * self.a2 * self.a10 * r.a5 - 2. * self.a3 * self.a5 * r.a9 + 2. * self.a3 * self.a6 * r.a10 + 2. * self.a3 * self.a9 * r.a5 - 2. * self.a3 * self.a10 * r.a6 - 2. * self.a3 * self.a15 * r.a8 - 2. * self.a4 * self.a5 * r.a8 + 2. * self.a4 * self.a7 * r.a10 + 2. * self.a4 * self.a8 * r.a5 - 2. * self.a4 * self.a10 * r.a7 + 2. * self.a4 * self.a15 * r.a9 - 2. * self.a6 * self.a14 * r.a8 + 2. * self.a7 * self.a14 * r.a9 - 2. * self.a8 * self.a11 * r.a10 + 2. * self.a8 * self.a13 * r.a8 + 2. * self.a8 * self.a14 * r.a6 - 2. * self.a9 * self.a12 * r.a10 + 2. * self.a9 * self.a13 * r.a9 - 2. * self.a9 * self.a14 * r.a7 + 2. * self.a10 * self.a11 * r.a8 + 2. * self.a10 * self.a12 * r.a9 + 2. * self.a10 * self.a13 * r.a10 - 2. * self.a14 * self.a15 * r.a10,
-            a14: 2. * self.a0 * self.a2 * r.a10 + 2. * self.a0 * self.a3 * r.a9 + 2. * self.a0 * self.a4 * r.a8 + 2. * self.a2 * self.a8 * r.a9 - 2. * self.a2 * self.a9 * r.a8 - 2. * self.a3 * self.a8 * r.a10 + 2. * self.a3 * self.a10 * r.a8 + 2. * self.a4 * self.a9 * r.a10 - 2. * self.a4 * self.a10 * r.a9 + 2. * self.a8 * self.a14 * r.a8 + 2. * self.a9 * self.a14 * r.a9 + 2. * self.a10 * self.a14 * r.a10,
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
             a15: 0.,
         }
     }
 }
 
 impl Transform<ScalarAndBivector> for FullMultivector {
-    type Output = FullMultivector;
-
     fn transform(self, r: ScalarAndBivector) -> FullMultivector {
         FullMultivector {
-            a0: r.a0 * (self.a0.powi(2) + self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2) + self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2) + self.a14.powi(2)),
-            a1: 2. * r.a0 * (self.a0 * self.a1 + self.a2 * self.a5 + self.a3 * self.a6 + self.a4 * self.a7 - self.a8 * self.a11 - self.a9 * self.a12 - self.a10 * self.a13 + self.a14 * self.a15),
-            a2: 2. * r.a0 * (self.a0 * self.a2 + self.a3 * self.a8 - self.a4 * self.a9 + self.a10 * self.a14),
-            a3: 2. * r.a0 * (self.a0 * self.a3 - self.a2 * self.a8 + self.a4 * self.a10 + self.a9 * self.a14),
-            a4: 2. * r.a0 * (self.a0 * self.a4 + self.a2 * self.a9 - self.a3 * self.a10 + self.a8 * self.a14),
-            a5: self.a0.powi(2) * r.a5 - 2. * self.a0 * self.a6 * r.a8 + 2. * self.a0 * self.a7 * r.a9 + 2. * self.a0 * self.a8 * r.a6 - 2. * self.a0 * self.a9 * r.a7 - 2. * self.a0 * self.a15 * r.a10 + 2. * self.a1 * self.a3 * r.a8 - 2. * self.a1 * self.a4 * r.a9 + 2. * self.a1 * self.a14 * r.a10 - self.a2.powi(2) * r.a5 - 2. * self.a2 * self.a3 * r.a6 - 2. * self.a2 * self.a4 * r.a7 + 2. * self.a2 * self.a11 * r.a8 + 2. * self.a2 * self.a12 * r.a9 + 2. * self.a2 * self.a13 * r.a10 + self.a3.powi(2) * r.a5 - 2. * self.a3 * self.a12 * r.a10 + 2. * self.a3 * self.a13 * r.a9 - 2. * self.a3 * self.a14 * r.a7 + self.a4.powi(2) * r.a5 - 2. * self.a4 * self.a11 * r.a10 + 2. * self.a4 * self.a13 * r.a8 + 2. * self.a4 * self.a14 * r.a6 + 2. * self.a5 * self.a8 * r.a8 + 2. * self.a5 * self.a9 * r.a9 + 2. * self.a5 * self.a10 * r.a10 - 2. * self.a6 * self.a9 * r.a10 + 2. * self.a6 * self.a10 * r.a9 - 2. * self.a7 * self.a8 * r.a10 + 2. * self.a7 * self.a10 * r.a8 - self.a8.powi(2) * r.a5 + 2. * self.a8 * self.a10 * r.a7 - 2. * self.a8 * self.a15 * r.a9 - self.a9.powi(2) * r.a5 + 2. * self.a9 * self.a10 * r.a6 + 2. * self.a9 * self.a15 * r.a8 + self.a10.powi(2) * r.a5 - 2. * self.a11 * self.a14 * r.a9 + 2. * self.a12 * self.a14 * r.a8 - self.a14.powi(2) * r.a5,
-            a6: self.a0.powi(2) * r.a6 + 2. * self.a0 * self.a5 * r.a8 - 2. * self.a0 * self.a7 * r.a10 - 2. * self.a0 * self.a8 * r.a5 + 2. * self.a0 * self.a10 * r.a7 - 2. * self.a0 * self.a15 * r.a9 - 2. * self.a1 * self.a2 * r.a8 + 2. * self.a1 * self.a4 * r.a10 + 2. * self.a1 * self.a14 * r.a9 + self.a2.powi(2) * r.a6 - 2. * self.a2 * self.a3 * r.a5 + 2. * self.a2 * self.a12 * r.a10 - 2. * self.a2 * self.a13 * r.a9 + 2. * self.a2 * self.a14 * r.a7 - self.a3.powi(2) * r.a6 - 2. * self.a3 * self.a4 * r.a7 + 2. * self.a3 * self.a11 * r.a8 + 2. * self.a3 * self.a12 * r.a9 + 2. * self.a3 * self.a13 * r.a10 + self.a4.powi(2) * r.a6 - 2. * self.a4 * self.a11 * r.a9 + 2. * self.a4 * self.a12 * r.a8 - 2. * self.a4 * self.a14 * r.a5 + 2. * self.a5 * self.a9 * r.a10 - 2. * self.a5 * self.a10 * r.a9 + 2. * self.a6 * self.a8 * r.a8 + 2. * self.a6 * self.a9 * r.a9 + 2. * self.a6 * self.a10 * r.a10 - 2. * self.a7 * self.a8 * r.a9 + 2. * self.a7 * self.a9 * r.a8 - self.a8.powi(2) * r.a6 + 2. * self.a8 * self.a9 * r.a7 + 2. * self.a8 * self.a15 * r.a10 + self.a9.powi(2) * r.a6 + 2. * self.a9 * self.a10 * r.a5 - self.a10.powi(2) * r.a6 - 2. * self.a10 * self.a15 * r.a8 + 2. * self.a11 * self.a14 * r.a10 - 2. * self.a13 * self.a14 * r.a8 - self.a14.powi(2) * r.a6,
-            a7: self.a0.powi(2) * r.a7 - 2. * self.a0 * self.a5 * r.a9 + 2. * self.a0 * self.a6 * r.a10 + 2. * self.a0 * self.a9 * r.a5 - 2. * self.a0 * self.a10 * r.a6 - 2. * self.a0 * self.a15 * r.a8 + 2. * self.a1 * self.a2 * r.a9 - 2. * self.a1 * self.a3 * r.a10 + 2. * self.a1 * self.a14 * r.a8 + self.a2.powi(2) * r.a7 - 2. * self.a2 * self.a4 * r.a5 + 2. * self.a2 * self.a11 * r.a10 - 2. * self.a2 * self.a13 * r.a8 - 2. * self.a2 * self.a14 * r.a6 + self.a3.powi(2) * r.a7 - 2. * self.a3 * self.a4 * r.a6 + 2. * self.a3 * self.a11 * r.a9 - 2. * self.a3 * self.a12 * r.a8 + 2. * self.a3 * self.a14 * r.a5 - self.a4.powi(2) * r.a7 + 2. * self.a4 * self.a11 * r.a8 + 2. * self.a4 * self.a12 * r.a9 + 2. * self.a4 * self.a13 * r.a10 + 2. * self.a5 * self.a8 * r.a10 - 2. * self.a5 * self.a10 * r.a8 + 2. * self.a6 * self.a8 * r.a9 - 2. * self.a6 * self.a9 * r.a8 + 2. * self.a7 * self.a8 * r.a8 + 2. * self.a7 * self.a9 * r.a9 + 2. * self.a7 * self.a10 * r.a10 + self.a8.powi(2) * r.a7 + 2. * self.a8 * self.a9 * r.a6 + 2. * self.a8 * self.a10 * r.a5 - self.a9.powi(2) * r.a7 - 2. * self.a9 * self.a15 * r.a10 - self.a10.powi(2) * r.a7 + 2. * self.a10 * self.a15 * r.a9 - 2. * self.a12 * self.a14 * r.a10 + 2. * self.a13 * self.a14 * r.a9 - self.a14.powi(2) * r.a7,
-            a8: self.a0.powi(2) * r.a8 + 2. * self.a0 * self.a9 * r.a10 - 2. * self.a0 * self.a10 * r.a9 - self.a2.powi(2) * r.a8 + 2. * self.a2 * self.a4 * r.a10 + 2. * self.a2 * self.a14 * r.a9 - self.a3.powi(2) * r.a8 + 2. * self.a3 * self.a4 * r.a9 - 2. * self.a3 * self.a14 * r.a10 + self.a4.powi(2) * r.a8 + self.a8.powi(2) * r.a8 + 2. * self.a8 * self.a9 * r.a9 + 2. * self.a8 * self.a10 * r.a10 - self.a9.powi(2) * r.a8 - self.a10.powi(2) * r.a8 + self.a14.powi(2) * r.a8,
-            a9: self.a0.powi(2) * r.a9 - 2. * self.a0 * self.a8 * r.a10 + 2. * self.a0 * self.a10 * r.a8 - self.a2.powi(2) * r.a9 + 2. * self.a2 * self.a3 * r.a10 - 2. * self.a2 * self.a14 * r.a8 + self.a3.powi(2) * r.a9 + 2. * self.a3 * self.a4 * r.a8 - self.a4.powi(2) * r.a9 + 2. * self.a4 * self.a14 * r.a10 - self.a8.powi(2) * r.a9 + 2. * self.a8 * self.a9 * r.a8 + self.a9.powi(2) * r.a9 + 2. * self.a9 * self.a10 * r.a10 - self.a10.powi(2) * r.a9 + self.a14.powi(2) * r.a9,
-            a10: self.a0.powi(2) * r.a10 + 2. * self.a0 * self.a8 * r.a9 - 2. * self.a0 * self.a9 * r.a8 + self.a2.powi(2) * r.a10 + 2. * self.a2 * self.a3 * r.a9 + 2. * self.a2 * self.a4 * r.a8 - self.a3.powi(2) * r.a10 + 2. * self.a3 * self.a14 * r.a8 - self.a4.powi(2) * r.a10 - 2. * self.a4 * self.a14 * r.a9 - self.a8.powi(2) * r.a10 + 2. * self.a8 * self.a10 * r.a8 - self.a9.powi(2) * r.a10 + 2. * self.a9 * self.a10 * r.a9 + self.a10.powi(2) * r.a10 + self.a14.powi(2) * r.a10,
-            a11: -2. * self.a0 * self.a1 * r.a8 + 2. * self.a0 * self.a2 * r.a6 - 2. * self.a0 * self.a3 * r.a5 + 2. * self.a0 * self.a12 * r.a10 - 2. * self.a0 * self.a13 * r.a9 + 2. * self.a0 * self.a14 * r.a7 - 2. * self.a1 * self.a9 * r.a10 + 2. * self.a1 * self.a10 * r.a9 + 2. * self.a2 * self.a5 * r.a8 - 2. * self.a2 * self.a7 * r.a10 - 2. * self.a2 * self.a8 * r.a5 + 2. * self.a2 * self.a10 * r.a7 - 2. * self.a2 * self.a15 * r.a9 + 2. * self.a3 * self.a6 * r.a8 - 2. * self.a3 * self.a7 * r.a9 - 2. * self.a3 * self.a8 * r.a6 + 2. * self.a3 * self.a9 * r.a7 + 2. * self.a3 * self.a15 * r.a10 - 2. * self.a4 * self.a5 * r.a10 - 2. * self.a4 * self.a6 * r.a9 - 2. * self.a4 * self.a7 * r.a8 - 2. * self.a4 * self.a8 * r.a7 - 2. * self.a4 * self.a9 * r.a6 - 2. * self.a4 * self.a10 * r.a5 - 2. * self.a5 * self.a14 * r.a9 + 2. * self.a6 * self.a14 * r.a10 + 2. * self.a8 * self.a11 * r.a8 + 2. * self.a8 * self.a12 * r.a9 + 2. * self.a8 * self.a13 * r.a10 + 2. * self.a9 * self.a11 * r.a9 - 2. * self.a9 * self.a12 * r.a8 + 2. * self.a9 * self.a14 * r.a5 + 2. * self.a10 * self.a11 * r.a10 - 2. * self.a10 * self.a13 * r.a8 - 2. * self.a10 * self.a14 * r.a6 - 2. * self.a14 * self.a15 * r.a8,
-            a12: -2. * self.a0 * self.a1 * r.a9 - 2. * self.a0 * self.a2 * r.a7 + 2. * self.a0 * self.a4 * r.a5 - 2. * self.a0 * self.a11 * r.a10 + 2. * self.a0 * self.a13 * r.a8 + 2. * self.a0 * self.a14 * r.a6 + 2. * self.a1 * self.a8 * r.a10 - 2. * self.a1 * self.a10 * r.a8 + 2. * self.a2 * self.a5 * r.a9 - 2. * self.a2 * self.a6 * r.a10 - 2. * self.a2 * self.a9 * r.a5 + 2. * self.a2 * self.a10 * r.a6 + 2. * self.a2 * self.a15 * r.a8 - 2. * self.a3 * self.a5 * r.a10 - 2. * self.a3 * self.a6 * r.a9 - 2. * self.a3 * self.a7 * r.a8 - 2. * self.a3 * self.a8 * r.a7 - 2. * self.a3 * self.a9 * r.a6 - 2. * self.a3 * self.a10 * r.a5 - 2. * self.a4 * self.a6 * r.a8 + 2. * self.a4 * self.a7 * r.a9 + 2. * self.a4 * self.a8 * r.a6 - 2. * self.a4 * self.a9 * r.a7 - 2. * self.a4 * self.a15 * r.a10 + 2. * self.a5 * self.a14 * r.a8 - 2. * self.a7 * self.a14 * r.a10 - 2. * self.a8 * self.a11 * r.a9 + 2. * self.a8 * self.a12 * r.a8 - 2. * self.a8 * self.a14 * r.a5 + 2. * self.a9 * self.a11 * r.a8 + 2. * self.a9 * self.a12 * r.a9 + 2. * self.a9 * self.a13 * r.a10 + 2. * self.a10 * self.a12 * r.a10 - 2. * self.a10 * self.a13 * r.a9 + 2. * self.a10 * self.a14 * r.a7 - 2. * self.a14 * self.a15 * r.a9,
-            a13: -2. * self.a0 * self.a1 * r.a10 + 2. * self.a0 * self.a3 * r.a7 - 2. * self.a0 * self.a4 * r.a6 + 2. * self.a0 * self.a11 * r.a9 - 2. * self.a0 * self.a12 * r.a8 + 2. * self.a0 * self.a14 * r.a5 - 2. * self.a1 * self.a8 * r.a9 + 2. * self.a1 * self.a9 * r.a8 - 2. * self.a2 * self.a5 * r.a10 - 2. * self.a2 * self.a6 * r.a9 - 2. * self.a2 * self.a7 * r.a8 - 2. * self.a2 * self.a8 * r.a7 - 2. * self.a2 * self.a9 * r.a6 - 2. * self.a2 * self.a10 * r.a5 - 2. * self.a3 * self.a5 * r.a9 + 2. * self.a3 * self.a6 * r.a10 + 2. * self.a3 * self.a9 * r.a5 - 2. * self.a3 * self.a10 * r.a6 - 2. * self.a3 * self.a15 * r.a8 - 2. * self.a4 * self.a5 * r.a8 + 2. * self.a4 * self.a7 * r.a10 + 2. * self.a4 * self.a8 * r.a5 - 2. * self.a4 * self.a10 * r.a7 + 2. * self.a4 * self.a15 * r.a9 - 2. * self.a6 * self.a14 * r.a8 + 2. * self.a7 * self.a14 * r.a9 - 2. * self.a8 * self.a11 * r.a10 + 2. * self.a8 * self.a13 * r.a8 + 2. * self.a8 * self.a14 * r.a6 - 2. * self.a9 * self.a12 * r.a10 + 2. * self.a9 * self.a13 * r.a9 - 2. * self.a9 * self.a14 * r.a7 + 2. * self.a10 * self.a11 * r.a8 + 2. * self.a10 * self.a12 * r.a9 + 2. * self.a10 * self.a13 * r.a10 - 2. * self.a14 * self.a15 * r.a10,
-            a14: 2. * self.a0 * self.a2 * r.a10 + 2. * self.a0 * self.a3 * r.a9 + 2. * self.a0 * self.a4 * r.a8 + 2. * self.a2 * self.a8 * r.a9 - 2. * self.a2 * self.a9 * r.a8 - 2. * self.a3 * self.a8 * r.a10 + 2. * self.a3 * self.a10 * r.a8 + 2. * self.a4 * self.a9 * r.a10 - 2. * self.a4 * self.a10 * r.a9 + 2. * self.a8 * self.a14 * r.a8 + 2. * self.a9 * self.a14 * r.a9 + 2. * self.a10 * self.a14 * r.a10,
-            a15: 2. * r.a0 * (self.a0 * self.a15 - self.a1 * self.a14 - self.a2 * self.a13 - self.a3 * self.a12 - self.a4 * self.a11 - self.a5 * self.a10 - self.a6 * self.a9 - self.a7 * self.a8),
+            a0: self.a0 * (r.a0.powi(2) + r.a8.powi(2) + r.a9.powi(2) + r.a10.powi(2)),
+            a1: self.a1 * r.a0.powi(2) + self.a1 * r.a8.powi(2) + self.a1 * r.a9.powi(2) + self.a1 * r.a10.powi(2) + 2. * self.a2 * r.a0 * r.a5 - 2. * self.a2 * r.a6 * r.a8 + 2. * self.a2 * r.a7 * r.a9 + 2. * self.a3 * r.a0 * r.a6 + 2. * self.a3 * r.a5 * r.a8 - 2. * self.a3 * r.a7 * r.a10 + 2. * self.a4 * r.a0 * r.a7 - 2. * self.a4 * r.a5 * r.a9 + 2. * self.a4 * r.a6 * r.a10,
+            a2: self.a2 * r.a0.powi(2) - self.a2 * r.a8.powi(2) - self.a2 * r.a9.powi(2) + self.a2 * r.a10.powi(2) + 2. * self.a3 * r.a0 * r.a8 + 2. * self.a3 * r.a9 * r.a10 - 2. * self.a4 * r.a0 * r.a9 + 2. * self.a4 * r.a8 * r.a10,
+            a3: -2. * self.a2 * r.a0 * r.a8 + 2. * self.a2 * r.a9 * r.a10 + self.a3 * r.a0.powi(2) - self.a3 * r.a8.powi(2) + self.a3 * r.a9.powi(2) - self.a3 * r.a10.powi(2) + 2. * self.a4 * r.a0 * r.a10 + 2. * self.a4 * r.a8 * r.a9,
+            a4: 2. * self.a2 * r.a0 * r.a9 + 2. * self.a2 * r.a8 * r.a10 - 2. * self.a3 * r.a0 * r.a10 + 2. * self.a3 * r.a8 * r.a9 + self.a4 * r.a0.powi(2) + self.a4 * r.a8.powi(2) - self.a4 * r.a9.powi(2) - self.a4 * r.a10.powi(2),
+            a5: self.a5 * r.a0.powi(2) - self.a5 * r.a8.powi(2) - self.a5 * r.a9.powi(2) + self.a5 * r.a10.powi(2) + 2. * self.a6 * r.a0 * r.a8 + 2. * self.a6 * r.a9 * r.a10 - 2. * self.a7 * r.a0 * r.a9 + 2. * self.a7 * r.a8 * r.a10 - 2. * self.a8 * r.a0 * r.a6 + 2. * self.a8 * r.a5 * r.a8 + 2. * self.a8 * r.a7 * r.a10 + 2. * self.a9 * r.a0 * r.a7 + 2. * self.a9 * r.a5 * r.a9 + 2. * self.a9 * r.a6 * r.a10 + 2. * self.a10 * r.a5 * r.a10 - 2. * self.a10 * r.a6 * r.a9 - 2. * self.a10 * r.a7 * r.a8,
+            a6: -2. * self.a5 * r.a0 * r.a8 + 2. * self.a5 * r.a9 * r.a10 + self.a6 * r.a0.powi(2) - self.a6 * r.a8.powi(2) + self.a6 * r.a9.powi(2) - self.a6 * r.a10.powi(2) + 2. * self.a7 * r.a0 * r.a10 + 2. * self.a7 * r.a8 * r.a9 + 2. * self.a8 * r.a0 * r.a5 + 2. * self.a8 * r.a6 * r.a8 + 2. * self.a8 * r.a7 * r.a9 - 2. * self.a9 * r.a5 * r.a10 + 2. * self.a9 * r.a6 * r.a9 - 2. * self.a9 * r.a7 * r.a8 - 2. * self.a10 * r.a0 * r.a7 + 2. * self.a10 * r.a5 * r.a9 + 2. * self.a10 * r.a6 * r.a10,
+            a7: 2. * self.a5 * r.a0 * r.a9 + 2. * self.a5 * r.a8 * r.a10 - 2. * self.a6 * r.a0 * r.a10 + 2. * self.a6 * r.a8 * r.a9 + self.a7 * r.a0.powi(2) + self.a7 * r.a8.powi(2) - self.a7 * r.a9.powi(2) - self.a7 * r.a10.powi(2) - 2. * self.a8 * r.a5 * r.a10 - 2. * self.a8 * r.a6 * r.a9 + 2. * self.a8 * r.a7 * r.a8 - 2. * self.a9 * r.a0 * r.a5 + 2. * self.a9 * r.a6 * r.a8 + 2. * self.a9 * r.a7 * r.a9 + 2. * self.a10 * r.a0 * r.a6 + 2. * self.a10 * r.a5 * r.a8 + 2. * self.a10 * r.a7 * r.a10,
+            a8: self.a8 * r.a0.powi(2) + self.a8 * r.a8.powi(2) - self.a8 * r.a9.powi(2) - self.a8 * r.a10.powi(2) - 2. * self.a9 * r.a0 * r.a10 + 2. * self.a9 * r.a8 * r.a9 + 2. * self.a10 * r.a0 * r.a9 + 2. * self.a10 * r.a8 * r.a10,
+            a9: 2. * self.a8 * r.a0 * r.a10 + 2. * self.a8 * r.a8 * r.a9 + self.a9 * r.a0.powi(2) - self.a9 * r.a8.powi(2) + self.a9 * r.a9.powi(2) - self.a9 * r.a10.powi(2) - 2. * self.a10 * r.a0 * r.a8 + 2. * self.a10 * r.a9 * r.a10,
+            a10: -2. * self.a8 * r.a0 * r.a9 + 2. * self.a8 * r.a8 * r.a10 + 2. * self.a9 * r.a0 * r.a8 + 2. * self.a9 * r.a9 * r.a10 + self.a10 * r.a0.powi(2) - self.a10 * r.a8.powi(2) - self.a10 * r.a9.powi(2) + self.a10 * r.a10.powi(2),
+            a11: self.a11 * r.a0.powi(2) + self.a11 * r.a8.powi(2) - self.a11 * r.a9.powi(2) - self.a11 * r.a10.powi(2) - 2. * self.a12 * r.a0 * r.a10 + 2. * self.a12 * r.a8 * r.a9 + 2. * self.a13 * r.a0 * r.a9 + 2. * self.a13 * r.a8 * r.a10 - 2. * self.a14 * r.a0 * r.a7 - 2. * self.a14 * r.a5 * r.a9 + 2. * self.a14 * r.a6 * r.a10,
+            a12: 2. * self.a11 * r.a0 * r.a10 + 2. * self.a11 * r.a8 * r.a9 + self.a12 * r.a0.powi(2) - self.a12 * r.a8.powi(2) + self.a12 * r.a9.powi(2) - self.a12 * r.a10.powi(2) - 2. * self.a13 * r.a0 * r.a8 + 2. * self.a13 * r.a9 * r.a10 - 2. * self.a14 * r.a0 * r.a6 + 2. * self.a14 * r.a5 * r.a8 - 2. * self.a14 * r.a7 * r.a10,
+            a13: -2. * self.a11 * r.a0 * r.a9 + 2. * self.a11 * r.a8 * r.a10 + 2. * self.a12 * r.a0 * r.a8 + 2. * self.a12 * r.a9 * r.a10 + self.a13 * r.a0.powi(2) - self.a13 * r.a8.powi(2) - self.a13 * r.a9.powi(2) + self.a13 * r.a10.powi(2) - 2. * self.a14 * r.a0 * r.a5 - 2. * self.a14 * r.a6 * r.a8 + 2. * self.a14 * r.a7 * r.a9,
+            a14: self.a14 * (r.a0.powi(2) + r.a8.powi(2) + r.a9.powi(2) + r.a10.powi(2)),
+            a15: -2. * self.a0 * r.a5 * r.a10 - 2. * self.a0 * r.a6 * r.a9 - 2. * self.a0 * r.a7 * r.a8 + self.a15 * r.a0.powi(2) + self.a15 * r.a8.powi(2) + self.a15 * r.a9.powi(2) + self.a15 * r.a10.powi(2),
         }
     }
 }
 
-impl Transform<Trivector> for FullMultivector {
-    type Output = FullMultivector;
+impl Transform<FullMultivector> for FullMultivector {
+    fn transform(self, r: FullMultivector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0 * r.a0.powi(2) + self.a0 * r.a2.powi(2) + self.a0 * r.a3.powi(2) + self.a0 * r.a4.powi(2) + self.a0 * r.a8.powi(2) + self.a0 * r.a9.powi(2) + self.a0 * r.a10.powi(2) + self.a0 * r.a14.powi(2) + 2. * self.a2 * r.a0 * r.a2 - 2. * self.a2 * r.a3 * r.a8 + 2. * self.a2 * r.a4 * r.a9 + 2. * self.a2 * r.a10 * r.a14 + 2. * self.a3 * r.a0 * r.a3 + 2. * self.a3 * r.a2 * r.a8 - 2. * self.a3 * r.a4 * r.a10 + 2. * self.a3 * r.a9 * r.a14 + 2. * self.a4 * r.a0 * r.a4 - 2. * self.a4 * r.a2 * r.a9 + 2. * self.a4 * r.a3 * r.a10 + 2. * self.a4 * r.a8 * r.a14,
+            a1: 2. * self.a0 * r.a0 * r.a1 + 2. * self.a0 * r.a2 * r.a5 + 2. * self.a0 * r.a3 * r.a6 + 2. * self.a0 * r.a4 * r.a7 - 2. * self.a0 * r.a8 * r.a11 - 2. * self.a0 * r.a9 * r.a12 - 2. * self.a0 * r.a10 * r.a13 + 2. * self.a0 * r.a14 * r.a15 + self.a1 * r.a0.powi(2) - self.a1 * r.a2.powi(2) - self.a1 * r.a3.powi(2) - self.a1 * r.a4.powi(2) + self.a1 * r.a8.powi(2) + self.a1 * r.a9.powi(2) + self.a1 * r.a10.powi(2) - self.a1 * r.a14.powi(2) + 2. * self.a2 * r.a0 * r.a5 + 2. * self.a2 * r.a1 * r.a2 + 2. * self.a2 * r.a3 * r.a11 - 2. * self.a2 * r.a4 * r.a12 - 2. * self.a2 * r.a6 * r.a8 + 2. * self.a2 * r.a7 * r.a9 + 2. * self.a2 * r.a10 * r.a15 - 2. * self.a2 * r.a13 * r.a14 + 2. * self.a3 * r.a0 * r.a6 + 2. * self.a3 * r.a1 * r.a3 - 2. * self.a3 * r.a2 * r.a11 + 2. * self.a3 * r.a4 * r.a13 + 2. * self.a3 * r.a5 * r.a8 - 2. * self.a3 * r.a7 * r.a10 + 2. * self.a3 * r.a9 * r.a15 - 2. * self.a3 * r.a12 * r.a14 + 2. * self.a4 * r.a0 * r.a7 + 2. * self.a4 * r.a1 * r.a4 + 2. * self.a4 * r.a2 * r.a12 - 2. * self.a4 * r.a3 * r.a13 - 2. * self.a4 * r.a5 * r.a9 + 2. * self.a4 * r.a6 * r.a10 + 2. * self.a4 * r.a8 * r.a15 - 2. * self.a4 * r.a11 * r.a14 + 2. * self.a15 * r.a0 * r.a14 - 2. * self.a15 * r.a2 * r.a10 - 2. * self.a15 * r.a3 * r.a9 - 2. * self.a15 * r.a4 * r.a8,
+            a2: 2. * self.a0 * r.a0 * r.a2 + 2. * self.a0 * r.a3 * r.a8 - 2. * self.a0 * r.a4 * r.a9 + 2. * self.a0 * r.a10 * r.a14 + self.a2 * r.a0.powi(2) + self.a2 * r.a2.powi(2) - self.a2 * r.a3.powi(2) - self.a2 * r.a4.powi(2) - self.a2 * r.a8.powi(2) - self.a2 * r.a9.powi(2) + self.a2 * r.a10.powi(2) + self.a2 * r.a14.powi(2) + 2. * self.a3 * r.a0 * r.a8 + 2. * self.a3 * r.a2 * r.a3 - 2. * self.a3 * r.a4 * r.a14 + 2. * self.a3 * r.a9 * r.a10 - 2. * self.a4 * r.a0 * r.a9 + 2. * self.a4 * r.a2 * r.a4 + 2. * self.a4 * r.a3 * r.a14 + 2. * self.a4 * r.a8 * r.a10,
+            a3: 2. * self.a0 * r.a0 * r.a3 - 2. * self.a0 * r.a2 * r.a8 + 2. * self.a0 * r.a4 * r.a10 + 2. * self.a0 * r.a9 * r.a14 - 2. * self.a2 * r.a0 * r.a8 + 2. * self.a2 * r.a2 * r.a3 + 2. * self.a2 * r.a4 * r.a14 + 2. * self.a2 * r.a9 * r.a10 + self.a3 * r.a0.powi(2) - self.a3 * r.a2.powi(2) + self.a3 * r.a3.powi(2) - self.a3 * r.a4.powi(2) - self.a3 * r.a8.powi(2) + self.a3 * r.a9.powi(2) - self.a3 * r.a10.powi(2) + self.a3 * r.a14.powi(2) + 2. * self.a4 * r.a0 * r.a10 - 2. * self.a4 * r.a2 * r.a14 + 2. * self.a4 * r.a3 * r.a4 + 2. * self.a4 * r.a8 * r.a9,
+            a4: 2. * self.a0 * r.a0 * r.a4 + 2. * self.a0 * r.a2 * r.a9 - 2. * self.a0 * r.a3 * r.a10 + 2. * self.a0 * r.a8 * r.a14 + 2. * self.a2 * r.a0 * r.a9 + 2. * self.a2 * r.a2 * r.a4 - 2. * self.a2 * r.a3 * r.a14 + 2. * self.a2 * r.a8 * r.a10 - 2. * self.a3 * r.a0 * r.a10 + 2. * self.a3 * r.a2 * r.a14 + 2. * self.a3 * r.a3 * r.a4 + 2. * self.a3 * r.a8 * r.a9 + self.a4 * r.a0.powi(2) - self.a4 * r.a2.powi(2) - self.a4 * r.a3.powi(2) + self.a4 * r.a4.powi(2) + self.a4 * r.a8.powi(2) - self.a4 * r.a9.powi(2) - self.a4 * r.a10.powi(2) + self.a4 * r.a14.powi(2),
+            a5: self.a5 * r.a0.powi(2) - self.a5 * r.a2.powi(2) + self.a5 * r.a3.powi(2) + self.a5 * r.a4.powi(2) - self.a5 * r.a8.powi(2) - self.a5 * r.a9.powi(2) + self.a5 * r.a10.powi(2) - self.a5 * r.a14.powi(2) + 2. * self.a6 * r.a0 * r.a8 - 2. * self.a6 * r.a2 * r.a3 + 2. * self.a6 * r.a4 * r.a14 + 2. * self.a6 * r.a9 * r.a10 - 2. * self.a7 * r.a0 * r.a9 - 2. * self.a7 * r.a2 * r.a4 - 2. * self.a7 * r.a3 * r.a14 + 2. * self.a7 * r.a8 * r.a10 - 2. * self.a8 * r.a0 * r.a6 + 2. * self.a8 * r.a1 * r.a3 + 2. * self.a8 * r.a2 * r.a11 + 2. * self.a8 * r.a4 * r.a13 + 2. * self.a8 * r.a5 * r.a8 + 2. * self.a8 * r.a7 * r.a10 + 2. * self.a8 * r.a9 * r.a15 + 2. * self.a8 * r.a12 * r.a14 + 2. * self.a9 * r.a0 * r.a7 - 2. * self.a9 * r.a1 * r.a4 + 2. * self.a9 * r.a2 * r.a12 + 2. * self.a9 * r.a3 * r.a13 + 2. * self.a9 * r.a5 * r.a9 + 2. * self.a9 * r.a6 * r.a10 - 2. * self.a9 * r.a8 * r.a15 - 2. * self.a9 * r.a11 * r.a14 - 2. * self.a10 * r.a0 * r.a15 + 2. * self.a10 * r.a1 * r.a14 + 2. * self.a10 * r.a2 * r.a13 - 2. * self.a10 * r.a3 * r.a12 - 2. * self.a10 * r.a4 * r.a11 + 2. * self.a10 * r.a5 * r.a10 - 2. * self.a10 * r.a6 * r.a9 - 2. * self.a10 * r.a7 * r.a8 - 2. * self.a11 * r.a0 * r.a3 + 2. * self.a11 * r.a2 * r.a8 + 2. * self.a11 * r.a4 * r.a10 + 2. * self.a11 * r.a9 * r.a14 + 2. * self.a12 * r.a0 * r.a4 + 2. * self.a12 * r.a2 * r.a9 + 2. * self.a12 * r.a3 * r.a10 - 2. * self.a12 * r.a8 * r.a14 - 2. * self.a13 * r.a0 * r.a14 + 2. * self.a13 * r.a2 * r.a10 - 2. * self.a13 * r.a3 * r.a9 - 2. * self.a13 * r.a4 * r.a8 + 2. * self.a14 * r.a0 * r.a13 + 2. * self.a14 * r.a1 * r.a10 - 2. * self.a14 * r.a2 * r.a15 + 2. * self.a14 * r.a3 * r.a7 - 2. * self.a14 * r.a4 * r.a6 + 2. * self.a14 * r.a5 * r.a14 + 2. * self.a14 * r.a8 * r.a12 - 2. * self.a14 * r.a9 * r.a11,
+            a6: -2. * self.a5 * r.a0 * r.a8 - 2. * self.a5 * r.a2 * r.a3 - 2. * self.a5 * r.a4 * r.a14 + 2. * self.a5 * r.a9 * r.a10 + self.a6 * r.a0.powi(2) + self.a6 * r.a2.powi(2) - self.a6 * r.a3.powi(2) + self.a6 * r.a4.powi(2) - self.a6 * r.a8.powi(2) + self.a6 * r.a9.powi(2) - self.a6 * r.a10.powi(2) - self.a6 * r.a14.powi(2) + 2. * self.a7 * r.a0 * r.a10 + 2. * self.a7 * r.a2 * r.a14 - 2. * self.a7 * r.a3 * r.a4 + 2. * self.a7 * r.a8 * r.a9 + 2. * self.a8 * r.a0 * r.a5 - 2. * self.a8 * r.a1 * r.a2 + 2. * self.a8 * r.a3 * r.a11 + 2. * self.a8 * r.a4 * r.a12 + 2. * self.a8 * r.a6 * r.a8 + 2. * self.a8 * r.a7 * r.a9 - 2. * self.a8 * r.a10 * r.a15 - 2. * self.a8 * r.a13 * r.a14 - 2. * self.a9 * r.a0 * r.a15 + 2. * self.a9 * r.a1 * r.a14 - 2. * self.a9 * r.a2 * r.a13 + 2. * self.a9 * r.a3 * r.a12 - 2. * self.a9 * r.a4 * r.a11 - 2. * self.a9 * r.a5 * r.a10 + 2. * self.a9 * r.a6 * r.a9 - 2. * self.a9 * r.a7 * r.a8 - 2. * self.a10 * r.a0 * r.a7 + 2. * self.a10 * r.a1 * r.a4 + 2. * self.a10 * r.a2 * r.a12 + 2. * self.a10 * r.a3 * r.a13 + 2. * self.a10 * r.a5 * r.a9 + 2. * self.a10 * r.a6 * r.a10 + 2. * self.a10 * r.a8 * r.a15 + 2. * self.a10 * r.a11 * r.a14 + 2. * self.a11 * r.a0 * r.a2 + 2. * self.a11 * r.a3 * r.a8 + 2. * self.a11 * r.a4 * r.a9 - 2. * self.a11 * r.a10 * r.a14 - 2. * self.a12 * r.a0 * r.a14 - 2. * self.a12 * r.a2 * r.a10 + 2. * self.a12 * r.a3 * r.a9 - 2. * self.a12 * r.a4 * r.a8 - 2. * self.a13 * r.a0 * r.a4 + 2. * self.a13 * r.a2 * r.a9 + 2. * self.a13 * r.a3 * r.a10 + 2. * self.a13 * r.a8 * r.a14 + 2. * self.a14 * r.a0 * r.a12 + 2. * self.a14 * r.a1 * r.a9 - 2. * self.a14 * r.a2 * r.a7 - 2. * self.a14 * r.a3 * r.a15 + 2. * self.a14 * r.a4 * r.a5 + 2. * self.a14 * r.a6 * r.a14 - 2. * self.a14 * r.a8 * r.a13 + 2. * self.a14 * r.a10 * r.a11,
+            a7: 2. * self.a5 * r.a0 * r.a9 - 2. * self.a5 * r.a2 * r.a4 + 2. * self.a5 * r.a3 * r.a14 + 2. * self.a5 * r.a8 * r.a10 - 2. * self.a6 * r.a0 * r.a10 - 2. * self.a6 * r.a2 * r.a14 - 2. * self.a6 * r.a3 * r.a4 + 2. * self.a6 * r.a8 * r.a9 + self.a7 * r.a0.powi(2) + self.a7 * r.a2.powi(2) + self.a7 * r.a3.powi(2) - self.a7 * r.a4.powi(2) + self.a7 * r.a8.powi(2) - self.a7 * r.a9.powi(2) - self.a7 * r.a10.powi(2) - self.a7 * r.a14.powi(2) - 2. * self.a8 * r.a0 * r.a15 + 2. * self.a8 * r.a1 * r.a14 - 2. * self.a8 * r.a2 * r.a13 - 2. * self.a8 * r.a3 * r.a12 + 2. * self.a8 * r.a4 * r.a11 - 2. * self.a8 * r.a5 * r.a10 - 2. * self.a8 * r.a6 * r.a9 + 2. * self.a8 * r.a7 * r.a8 - 2. * self.a9 * r.a0 * r.a5 + 2. * self.a9 * r.a1 * r.a2 + 2. * self.a9 * r.a3 * r.a11 + 2. * self.a9 * r.a4 * r.a12 + 2. * self.a9 * r.a6 * r.a8 + 2. * self.a9 * r.a7 * r.a9 + 2. * self.a9 * r.a10 * r.a15 + 2. * self.a9 * r.a13 * r.a14 + 2. * self.a10 * r.a0 * r.a6 - 2. * self.a10 * r.a1 * r.a3 + 2. * self.a10 * r.a2 * r.a11 + 2. * self.a10 * r.a4 * r.a13 + 2. * self.a10 * r.a5 * r.a8 + 2. * self.a10 * r.a7 * r.a10 - 2. * self.a10 * r.a9 * r.a15 - 2. * self.a10 * r.a12 * r.a14 - 2. * self.a11 * r.a0 * r.a14 - 2. * self.a11 * r.a2 * r.a10 - 2. * self.a11 * r.a3 * r.a9 + 2. * self.a11 * r.a4 * r.a8 - 2. * self.a12 * r.a0 * r.a2 + 2. * self.a12 * r.a3 * r.a8 + 2. * self.a12 * r.a4 * r.a9 + 2. * self.a12 * r.a10 * r.a14 + 2. * self.a13 * r.a0 * r.a3 + 2. * self.a13 * r.a2 * r.a8 + 2. * self.a13 * r.a4 * r.a10 - 2. * self.a13 * r.a9 * r.a14 + 2. * self.a14 * r.a0 * r.a11 + 2. * self.a14 * r.a1 * r.a8 + 2. * self.a14 * r.a2 * r.a6 - 2. * self.a14 * r.a3 * r.a5 - 2. * self.a14 * r.a4 * r.a15 + 2. * self.a14 * r.a7 * r.a14 + 2. * self.a14 * r.a9 * r.a13 - 2. * self.a14 * r.a10 * r.a12,
+            a8: self.a8 * r.a0.powi(2) - self.a8 * r.a2.powi(2) - self.a8 * r.a3.powi(2) + self.a8 * r.a4.powi(2) + self.a8 * r.a8.powi(2) - self.a8 * r.a9.powi(2) - self.a8 * r.a10.powi(2) + self.a8 * r.a14.powi(2) - 2. * self.a9 * r.a0 * r.a10 + 2. * self.a9 * r.a2 * r.a14 + 2. * self.a9 * r.a3 * r.a4 + 2. * self.a9 * r.a8 * r.a9 + 2. * self.a10 * r.a0 * r.a9 + 2. * self.a10 * r.a2 * r.a4 - 2. * self.a10 * r.a3 * r.a14 + 2. * self.a10 * r.a8 * r.a10 + 2. * self.a14 * r.a0 * r.a4 + 2. * self.a14 * r.a2 * r.a9 - 2. * self.a14 * r.a3 * r.a10 + 2. * self.a14 * r.a8 * r.a14,
+            a9: 2. * self.a8 * r.a0 * r.a10 - 2. * self.a8 * r.a2 * r.a14 + 2. * self.a8 * r.a3 * r.a4 + 2. * self.a8 * r.a8 * r.a9 + self.a9 * r.a0.powi(2) - self.a9 * r.a2.powi(2) + self.a9 * r.a3.powi(2) - self.a9 * r.a4.powi(2) - self.a9 * r.a8.powi(2) + self.a9 * r.a9.powi(2) - self.a9 * r.a10.powi(2) + self.a9 * r.a14.powi(2) - 2. * self.a10 * r.a0 * r.a8 + 2. * self.a10 * r.a2 * r.a3 + 2. * self.a10 * r.a4 * r.a14 + 2. * self.a10 * r.a9 * r.a10 + 2. * self.a14 * r.a0 * r.a3 - 2. * self.a14 * r.a2 * r.a8 + 2. * self.a14 * r.a4 * r.a10 + 2. * self.a14 * r.a9 * r.a14,
+            a10: -2. * self.a8 * r.a0 * r.a9 + 2. * self.a8 * r.a2 * r.a4 + 2. * self.a8 * r.a3 * r.a14 + 2. * self.a8 * r.a8 * r.a10 + 2. * self.a9 * r.a0 * r.a8 + 2. * self.a9 * r.a2 * r.a3 - 2. * self.a9 * r.a4 * r.a14 + 2. * self.a9 * r.a9 * r.a10 + self.a10 * r.a0.powi(2) + self.a10 * r.a2.powi(2) - self.a10 * r.a3.powi(2) - self.a10 * r.a4.powi(2) - self.a10 * r.a8.powi(2) - self.a10 * r.a9.powi(2) + self.a10 * r.a10.powi(2) + self.a10 * r.a14.powi(2) + 2. * self.a14 * r.a0 * r.a2 + 2. * self.a14 * r.a3 * r.a8 - 2. * self.a14 * r.a4 * r.a9 + 2. * self.a14 * r.a10 * r.a14,
+            a11: -2. * self.a5 * r.a0 * r.a3 - 2. * self.a5 * r.a2 * r.a8 - 2. * self.a5 * r.a4 * r.a10 + 2. * self.a5 * r.a9 * r.a14 + 2. * self.a6 * r.a0 * r.a2 - 2. * self.a6 * r.a3 * r.a8 - 2. * self.a6 * r.a4 * r.a9 - 2. * self.a6 * r.a10 * r.a14 + 2. * self.a7 * r.a0 * r.a14 + 2. * self.a7 * r.a2 * r.a10 + 2. * self.a7 * r.a3 * r.a9 - 2. * self.a7 * r.a4 * r.a8 - 2. * self.a8 * r.a0 * r.a1 + 2. * self.a8 * r.a2 * r.a5 + 2. * self.a8 * r.a3 * r.a6 - 2. * self.a8 * r.a4 * r.a7 + 2. * self.a8 * r.a8 * r.a11 - 2. * self.a8 * r.a9 * r.a12 - 2. * self.a8 * r.a10 * r.a13 - 2. * self.a8 * r.a14 * r.a15 - 2. * self.a9 * r.a0 * r.a13 + 2. * self.a9 * r.a1 * r.a10 - 2. * self.a9 * r.a2 * r.a15 - 2. * self.a9 * r.a3 * r.a7 - 2. * self.a9 * r.a4 * r.a6 - 2. * self.a9 * r.a5 * r.a14 + 2. * self.a9 * r.a8 * r.a12 + 2. * self.a9 * r.a9 * r.a11 + 2. * self.a10 * r.a0 * r.a12 - 2. * self.a10 * r.a1 * r.a9 - 2. * self.a10 * r.a2 * r.a7 + 2. * self.a10 * r.a3 * r.a15 - 2. * self.a10 * r.a4 * r.a5 + 2. * self.a10 * r.a6 * r.a14 + 2. * self.a10 * r.a8 * r.a13 + 2. * self.a10 * r.a10 * r.a11 + self.a11 * r.a0.powi(2) + self.a11 * r.a2.powi(2) + self.a11 * r.a3.powi(2) - self.a11 * r.a4.powi(2) + self.a11 * r.a8.powi(2) - self.a11 * r.a9.powi(2) - self.a11 * r.a10.powi(2) - self.a11 * r.a14.powi(2) - 2. * self.a12 * r.a0 * r.a10 - 2. * self.a12 * r.a2 * r.a14 - 2. * self.a12 * r.a3 * r.a4 + 2. * self.a12 * r.a8 * r.a9 + 2. * self.a13 * r.a0 * r.a9 - 2. * self.a13 * r.a2 * r.a4 + 2. * self.a13 * r.a3 * r.a14 + 2. * self.a13 * r.a8 * r.a10 - 2. * self.a14 * r.a0 * r.a7 - 2. * self.a14 * r.a1 * r.a4 + 2. * self.a14 * r.a2 * r.a12 - 2. * self.a14 * r.a3 * r.a13 - 2. * self.a14 * r.a5 * r.a9 + 2. * self.a14 * r.a6 * r.a10 - 2. * self.a14 * r.a8 * r.a15 + 2. * self.a14 * r.a11 * r.a14,
+            a12: 2. * self.a5 * r.a0 * r.a4 - 2. * self.a5 * r.a2 * r.a9 - 2. * self.a5 * r.a3 * r.a10 - 2. * self.a5 * r.a8 * r.a14 + 2. * self.a6 * r.a0 * r.a14 + 2. * self.a6 * r.a2 * r.a10 - 2. * self.a6 * r.a3 * r.a9 + 2. * self.a6 * r.a4 * r.a8 - 2. * self.a7 * r.a0 * r.a2 - 2. * self.a7 * r.a3 * r.a8 - 2. * self.a7 * r.a4 * r.a9 + 2. * self.a7 * r.a10 * r.a14 + 2. * self.a8 * r.a0 * r.a13 - 2. * self.a8 * r.a1 * r.a10 + 2. * self.a8 * r.a2 * r.a15 - 2. * self.a8 * r.a3 * r.a7 - 2. * self.a8 * r.a4 * r.a6 + 2. * self.a8 * r.a5 * r.a14 + 2. * self.a8 * r.a8 * r.a12 + 2. * self.a8 * r.a9 * r.a11 - 2. * self.a9 * r.a0 * r.a1 + 2. * self.a9 * r.a2 * r.a5 - 2. * self.a9 * r.a3 * r.a6 + 2. * self.a9 * r.a4 * r.a7 - 2. * self.a9 * r.a8 * r.a11 + 2. * self.a9 * r.a9 * r.a12 - 2. * self.a9 * r.a10 * r.a13 - 2. * self.a9 * r.a14 * r.a15 - 2. * self.a10 * r.a0 * r.a11 + 2. * self.a10 * r.a1 * r.a8 - 2. * self.a10 * r.a2 * r.a6 - 2. * self.a10 * r.a3 * r.a5 - 2. * self.a10 * r.a4 * r.a15 - 2. * self.a10 * r.a7 * r.a14 + 2. * self.a10 * r.a9 * r.a13 + 2. * self.a10 * r.a10 * r.a12 + 2. * self.a11 * r.a0 * r.a10 + 2. * self.a11 * r.a2 * r.a14 - 2. * self.a11 * r.a3 * r.a4 + 2. * self.a11 * r.a8 * r.a9 + self.a12 * r.a0.powi(2) + self.a12 * r.a2.powi(2) - self.a12 * r.a3.powi(2) + self.a12 * r.a4.powi(2) - self.a12 * r.a8.powi(2) + self.a12 * r.a9.powi(2) - self.a12 * r.a10.powi(2) - self.a12 * r.a14.powi(2) - 2. * self.a13 * r.a0 * r.a8 - 2. * self.a13 * r.a2 * r.a3 - 2. * self.a13 * r.a4 * r.a14 + 2. * self.a13 * r.a9 * r.a10 - 2. * self.a14 * r.a0 * r.a6 - 2. * self.a14 * r.a1 * r.a3 - 2. * self.a14 * r.a2 * r.a11 + 2. * self.a14 * r.a4 * r.a13 + 2. * self.a14 * r.a5 * r.a8 - 2. * self.a14 * r.a7 * r.a10 - 2. * self.a14 * r.a9 * r.a15 + 2. * self.a14 * r.a12 * r.a14,
+            a13: 2. * self.a5 * r.a0 * r.a14 - 2. * self.a5 * r.a2 * r.a10 + 2. * self.a5 * r.a3 * r.a9 + 2. * self.a5 * r.a4 * r.a8 - 2. * self.a6 * r.a0 * r.a4 - 2. * self.a6 * r.a2 * r.a9 - 2. * self.a6 * r.a3 * r.a10 + 2. * self.a6 * r.a8 * r.a14 + 2. * self.a7 * r.a0 * r.a3 - 2. * self.a7 * r.a2 * r.a8 - 2. * self.a7 * r.a4 * r.a10 - 2. * self.a7 * r.a9 * r.a14 - 2. * self.a8 * r.a0 * r.a12 + 2. * self.a8 * r.a1 * r.a9 - 2. * self.a8 * r.a2 * r.a7 - 2. * self.a8 * r.a3 * r.a15 - 2. * self.a8 * r.a4 * r.a5 - 2. * self.a8 * r.a6 * r.a14 + 2. * self.a8 * r.a8 * r.a13 + 2. * self.a8 * r.a10 * r.a11 + 2. * self.a9 * r.a0 * r.a11 - 2. * self.a9 * r.a1 * r.a8 - 2. * self.a9 * r.a2 * r.a6 - 2. * self.a9 * r.a3 * r.a5 + 2. * self.a9 * r.a4 * r.a15 + 2. * self.a9 * r.a7 * r.a14 + 2. * self.a9 * r.a9 * r.a13 + 2. * self.a9 * r.a10 * r.a12 - 2. * self.a10 * r.a0 * r.a1 - 2. * self.a10 * r.a2 * r.a5 + 2. * self.a10 * r.a3 * r.a6 + 2. * self.a10 * r.a4 * r.a7 - 2. * self.a10 * r.a8 * r.a11 - 2. * self.a10 * r.a9 * r.a12 + 2. * self.a10 * r.a10 * r.a13 - 2. * self.a10 * r.a14 * r.a15 - 2. * self.a11 * r.a0 * r.a9 - 2. * self.a11 * r.a2 * r.a4 - 2. * self.a11 * r.a3 * r.a14 + 2. * self.a11 * r.a8 * r.a10 + 2. * self.a12 * r.a0 * r.a8 - 2. * self.a12 * r.a2 * r.a3 + 2. * self.a12 * r.a4 * r.a14 + 2. * self.a12 * r.a9 * r.a10 + self.a13 * r.a0.powi(2) - self.a13 * r.a2.powi(2) + self.a13 * r.a3.powi(2) + self.a13 * r.a4.powi(2) - self.a13 * r.a8.powi(2) - self.a13 * r.a9.powi(2) + self.a13 * r.a10.powi(2) - self.a13 * r.a14.powi(2) - 2. * self.a14 * r.a0 * r.a5 - 2. * self.a14 * r.a1 * r.a2 + 2. * self.a14 * r.a3 * r.a11 - 2. * self.a14 * r.a4 * r.a12 - 2. * self.a14 * r.a6 * r.a8 + 2. * self.a14 * r.a7 * r.a9 - 2. * self.a14 * r.a10 * r.a15 + 2. * self.a14 * r.a13 * r.a14,
+            a14: 2. * self.a8 * r.a0 * r.a4 - 2. * self.a8 * r.a2 * r.a9 + 2. * self.a8 * r.a3 * r.a10 + 2. * self.a8 * r.a8 * r.a14 + 2. * self.a9 * r.a0 * r.a3 + 2. * self.a9 * r.a2 * r.a8 - 2. * self.a9 * r.a4 * r.a10 + 2. * self.a9 * r.a9 * r.a14 + 2. * self.a10 * r.a0 * r.a2 - 2. * self.a10 * r.a3 * r.a8 + 2. * self.a10 * r.a4 * r.a9 + 2. * self.a10 * r.a10 * r.a14 + self.a14 * r.a0.powi(2) + self.a14 * r.a2.powi(2) + self.a14 * r.a3.powi(2) + self.a14 * r.a4.powi(2) + self.a14 * r.a8.powi(2) + self.a14 * r.a9.powi(2) + self.a14 * r.a10.powi(2) + self.a14 * r.a14.powi(2),
+            a15: 2. * self.a0 * r.a0 * r.a15 - 2. * self.a0 * r.a1 * r.a14 - 2. * self.a0 * r.a2 * r.a13 - 2. * self.a0 * r.a3 * r.a12 - 2. * self.a0 * r.a4 * r.a11 - 2. * self.a0 * r.a5 * r.a10 - 2. * self.a0 * r.a6 * r.a9 - 2. * self.a0 * r.a7 * r.a8 - 2. * self.a1 * r.a0 * r.a14 + 2. * self.a1 * r.a2 * r.a10 + 2. * self.a1 * r.a3 * r.a9 + 2. * self.a1 * r.a4 * r.a8 - 2. * self.a2 * r.a0 * r.a13 - 2. * self.a2 * r.a1 * r.a10 + 2. * self.a2 * r.a2 * r.a15 + 2. * self.a2 * r.a3 * r.a7 - 2. * self.a2 * r.a4 * r.a6 - 2. * self.a2 * r.a5 * r.a14 + 2. * self.a2 * r.a8 * r.a12 - 2. * self.a2 * r.a9 * r.a11 - 2. * self.a3 * r.a0 * r.a12 - 2. * self.a3 * r.a1 * r.a9 - 2. * self.a3 * r.a2 * r.a7 + 2. * self.a3 * r.a3 * r.a15 + 2. * self.a3 * r.a4 * r.a5 - 2. * self.a3 * r.a6 * r.a14 - 2. * self.a3 * r.a8 * r.a13 + 2. * self.a3 * r.a10 * r.a11 - 2. * self.a4 * r.a0 * r.a11 - 2. * self.a4 * r.a1 * r.a8 + 2. * self.a4 * r.a2 * r.a6 - 2. * self.a4 * r.a3 * r.a5 + 2. * self.a4 * r.a4 * r.a15 - 2. * self.a4 * r.a7 * r.a14 + 2. * self.a4 * r.a9 * r.a13 - 2. * self.a4 * r.a10 * r.a12 + self.a15 * r.a0.powi(2) - self.a15 * r.a2.powi(2) - self.a15 * r.a3.powi(2) - self.a15 * r.a4.powi(2) + self.a15 * r.a8.powi(2) + self.a15 * r.a9.powi(2) + self.a15 * r.a10.powi(2) - self.a15 * r.a14.powi(2),
+        }
+    }
+}
 
-    fn transform(self, r: Trivector) -> FullMultivector {
+impl Reflect<Float> for FullMultivector {
+    fn reflect(self, r: Float) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0 * r.powi(2),
+            a1: self.a1 * r.powi(2),
+            a2: self.a2 * r.powi(2),
+            a3: self.a3 * r.powi(2),
+            a4: self.a4 * r.powi(2),
+            a5: self.a5 * r.powi(2),
+            a6: self.a6 * r.powi(2),
+            a7: self.a7 * r.powi(2),
+            a8: self.a8 * r.powi(2),
+            a9: self.a9 * r.powi(2),
+            a10: self.a10 * r.powi(2),
+            a11: self.a11 * r.powi(2),
+            a12: self.a12 * r.powi(2),
+            a13: self.a13 * r.powi(2),
+            a14: self.a14 * r.powi(2),
+            a15: self.a15 * r.powi(2),
+        }
+    }
+}
+
+impl Reflect<Vector> for FullMultivector {
+    fn reflect(self, r: Vector) -> FullMultivector {
+        FullMultivector {
+            a0: self.a0 * (r.a2.powi(2) + r.a3.powi(2) + r.a4.powi(2)),
+            a1: -self.a1 * r.a2.powi(2) - self.a1 * r.a3.powi(2) - self.a1 * r.a4.powi(2) + 2. * self.a2 * r.a1 * r.a2 + 2. * self.a3 * r.a1 * r.a3 + 2. * self.a4 * r.a1 * r.a4,
+            a2: self.a2 * r.a2.powi(2) - self.a2 * r.a3.powi(2) - self.a2 * r.a4.powi(2) + 2. * self.a3 * r.a2 * r.a3 + 2. * self.a4 * r.a2 * r.a4,
+            a3: 2. * self.a2 * r.a2 * r.a3 - self.a3 * r.a2.powi(2) + self.a3 * r.a3.powi(2) - self.a3 * r.a4.powi(2) + 2. * self.a4 * r.a3 * r.a4,
+            a4: 2. * self.a2 * r.a2 * r.a4 + 2. * self.a3 * r.a3 * r.a4 - self.a4 * r.a2.powi(2) - self.a4 * r.a3.powi(2) + self.a4 * r.a4.powi(2),
+            a5: -self.a5 * r.a2.powi(2) + self.a5 * r.a3.powi(2) + self.a5 * r.a4.powi(2) - 2. * self.a6 * r.a2 * r.a3 - 2. * self.a7 * r.a2 * r.a4 + 2. * self.a8 * r.a1 * r.a3 - 2. * self.a9 * r.a1 * r.a4,
+            a6: -2. * self.a5 * r.a2 * r.a3 + self.a6 * r.a2.powi(2) - self.a6 * r.a3.powi(2) + self.a6 * r.a4.powi(2) - 2. * self.a7 * r.a3 * r.a4 - 2. * self.a8 * r.a1 * r.a2 + 2. * self.a10 * r.a1 * r.a4,
+            a7: -2. * self.a5 * r.a2 * r.a4 - 2. * self.a6 * r.a3 * r.a4 + self.a7 * r.a2.powi(2) + self.a7 * r.a3.powi(2) - self.a7 * r.a4.powi(2) + 2. * self.a9 * r.a1 * r.a2 - 2. * self.a10 * r.a1 * r.a3,
+            a8: -self.a8 * r.a2.powi(2) - self.a8 * r.a3.powi(2) + self.a8 * r.a4.powi(2) + 2. * self.a9 * r.a3 * r.a4 + 2. * self.a10 * r.a2 * r.a4,
+            a9: 2. * self.a8 * r.a3 * r.a4 - self.a9 * r.a2.powi(2) + self.a9 * r.a3.powi(2) - self.a9 * r.a4.powi(2) + 2. * self.a10 * r.a2 * r.a3,
+            a10: 2. * self.a8 * r.a2 * r.a4 + 2. * self.a9 * r.a2 * r.a3 + self.a10 * r.a2.powi(2) - self.a10 * r.a3.powi(2) - self.a10 * r.a4.powi(2),
+            a11: self.a11 * r.a2.powi(2) + self.a11 * r.a3.powi(2) - self.a11 * r.a4.powi(2) - 2. * self.a12 * r.a3 * r.a4 - 2. * self.a13 * r.a2 * r.a4 - 2. * self.a14 * r.a1 * r.a4,
+            a12: -2. * self.a11 * r.a3 * r.a4 + self.a12 * r.a2.powi(2) - self.a12 * r.a3.powi(2) + self.a12 * r.a4.powi(2) - 2. * self.a13 * r.a2 * r.a3 - 2. * self.a14 * r.a1 * r.a3,
+            a13: -2. * self.a11 * r.a2 * r.a4 - 2. * self.a12 * r.a2 * r.a3 - self.a13 * r.a2.powi(2) + self.a13 * r.a3.powi(2) + self.a13 * r.a4.powi(2) - 2. * self.a14 * r.a1 * r.a2,
+            a14: self.a14 * (r.a2.powi(2) + r.a3.powi(2) + r.a4.powi(2)),
+            a15: -self.a15 * (r.a2.powi(2) + r.a3.powi(2) + r.a4.powi(2)),
+        }
+    }
+}
+
+impl Reflect<Bivector> for FullMultivector {
+    fn reflect(self, r: Bivector) -> FullMultivector {
+        FullMultivector {
+            a0: -self.a0 * (r.a8.powi(2) + r.a9.powi(2) + r.a10.powi(2)),
+            a1: -self.a1 * r.a8.powi(2) - self.a1 * r.a9.powi(2) - self.a1 * r.a10.powi(2) + 2. * self.a2 * r.a6 * r.a8 - 2. * self.a2 * r.a7 * r.a9 - 2. * self.a3 * r.a5 * r.a8 + 2. * self.a3 * r.a7 * r.a10 + 2. * self.a4 * r.a5 * r.a9 - 2. * self.a4 * r.a6 * r.a10,
+            a2: self.a2 * r.a8.powi(2) + self.a2 * r.a9.powi(2) - self.a2 * r.a10.powi(2) - 2. * self.a3 * r.a9 * r.a10 - 2. * self.a4 * r.a8 * r.a10,
+            a3: -2. * self.a2 * r.a9 * r.a10 + self.a3 * r.a8.powi(2) - self.a3 * r.a9.powi(2) + self.a3 * r.a10.powi(2) - 2. * self.a4 * r.a8 * r.a9,
+            a4: -2. * self.a2 * r.a8 * r.a10 - 2. * self.a3 * r.a8 * r.a9 - self.a4 * r.a8.powi(2) + self.a4 * r.a9.powi(2) + self.a4 * r.a10.powi(2),
+            a5: self.a5 * r.a8.powi(2) + self.a5 * r.a9.powi(2) - self.a5 * r.a10.powi(2) - 2. * self.a6 * r.a9 * r.a10 - 2. * self.a7 * r.a8 * r.a10 - 2. * self.a8 * r.a5 * r.a8 - 2. * self.a8 * r.a7 * r.a10 - 2. * self.a9 * r.a5 * r.a9 - 2. * self.a9 * r.a6 * r.a10 - 2. * self.a10 * r.a5 * r.a10 + 2. * self.a10 * r.a6 * r.a9 + 2. * self.a10 * r.a7 * r.a8,
+            a6: -2. * self.a5 * r.a9 * r.a10 + self.a6 * r.a8.powi(2) - self.a6 * r.a9.powi(2) + self.a6 * r.a10.powi(2) - 2. * self.a7 * r.a8 * r.a9 - 2. * self.a8 * r.a6 * r.a8 - 2. * self.a8 * r.a7 * r.a9 + 2. * self.a9 * r.a5 * r.a10 - 2. * self.a9 * r.a6 * r.a9 + 2. * self.a9 * r.a7 * r.a8 - 2. * self.a10 * r.a5 * r.a9 - 2. * self.a10 * r.a6 * r.a10,
+            a7: -2. * self.a5 * r.a8 * r.a10 - 2. * self.a6 * r.a8 * r.a9 - self.a7 * r.a8.powi(2) + self.a7 * r.a9.powi(2) + self.a7 * r.a10.powi(2) + 2. * self.a8 * r.a5 * r.a10 + 2. * self.a8 * r.a6 * r.a9 - 2. * self.a8 * r.a7 * r.a8 - 2. * self.a9 * r.a6 * r.a8 - 2. * self.a9 * r.a7 * r.a9 - 2. * self.a10 * r.a5 * r.a8 - 2. * self.a10 * r.a7 * r.a10,
+            a8: -self.a8 * r.a8.powi(2) + self.a8 * r.a9.powi(2) + self.a8 * r.a10.powi(2) - 2. * self.a9 * r.a8 * r.a9 - 2. * self.a10 * r.a8 * r.a10,
+            a9: -2. * self.a8 * r.a8 * r.a9 + self.a9 * r.a8.powi(2) - self.a9 * r.a9.powi(2) + self.a9 * r.a10.powi(2) - 2. * self.a10 * r.a9 * r.a10,
+            a10: -2. * self.a8 * r.a8 * r.a10 - 2. * self.a9 * r.a9 * r.a10 + self.a10 * r.a8.powi(2) + self.a10 * r.a9.powi(2) - self.a10 * r.a10.powi(2),
+            a11: -self.a11 * r.a8.powi(2) + self.a11 * r.a9.powi(2) + self.a11 * r.a10.powi(2) - 2. * self.a12 * r.a8 * r.a9 - 2. * self.a13 * r.a8 * r.a10 + 2. * self.a14 * r.a5 * r.a9 - 2. * self.a14 * r.a6 * r.a10,
+            a12: -2. * self.a11 * r.a8 * r.a9 + self.a12 * r.a8.powi(2) - self.a12 * r.a9.powi(2) + self.a12 * r.a10.powi(2) - 2. * self.a13 * r.a9 * r.a10 - 2. * self.a14 * r.a5 * r.a8 + 2. * self.a14 * r.a7 * r.a10,
+            a13: -2. * self.a11 * r.a8 * r.a10 - 2. * self.a12 * r.a9 * r.a10 + self.a13 * r.a8.powi(2) + self.a13 * r.a9.powi(2) - self.a13 * r.a10.powi(2) + 2. * self.a14 * r.a6 * r.a8 - 2. * self.a14 * r.a7 * r.a9,
+            a14: -self.a14 * (r.a8.powi(2) + r.a9.powi(2) + r.a10.powi(2)),
+            a15: 2. * self.a0 * r.a5 * r.a10 + 2. * self.a0 * r.a6 * r.a9 + 2. * self.a0 * r.a7 * r.a8 - self.a15 * r.a8.powi(2) - self.a15 * r.a9.powi(2) - self.a15 * r.a10.powi(2),
+        }
+    }
+}
+
+impl Reflect<Trivector> for FullMultivector {
+    fn reflect(self, r: Trivector) -> FullMultivector {
+        FullMultivector {
+            a0: -self.a0 * r.a14.powi(2),
+            a1: r.a14 * (self.a1 * r.a14 + 2. * self.a2 * r.a13 + 2. * self.a3 * r.a12 + 2. * self.a4 * r.a11),
+            a2: -self.a2 * r.a14.powi(2),
+            a3: -self.a3 * r.a14.powi(2),
+            a4: -self.a4 * r.a14.powi(2),
+            a5: r.a14 * (self.a5 * r.a14 - 2. * self.a8 * r.a12 + 2. * self.a9 * r.a11),
+            a6: r.a14 * (self.a6 * r.a14 + 2. * self.a8 * r.a13 - 2. * self.a10 * r.a11),
+            a7: r.a14 * (self.a7 * r.a14 - 2. * self.a9 * r.a13 + 2. * self.a10 * r.a12),
+            a8: -self.a8 * r.a14.powi(2),
+            a9: -self.a9 * r.a14.powi(2),
+            a10: -self.a10 * r.a14.powi(2),
+            a11: r.a14 * (self.a11 * r.a14 - 2. * self.a14 * r.a11),
+            a12: r.a14 * (self.a12 * r.a14 - 2. * self.a14 * r.a12),
+            a13: r.a14 * (self.a13 * r.a14 - 2. * self.a14 * r.a13),
+            a14: -self.a14 * r.a14.powi(2),
+            a15: self.a15 * r.a14.powi(2),
+        }
+    }
+}
+
+impl Reflect<Pseudoscalar> for FullMultivector {
+    fn reflect(self, _r: Pseudoscalar) -> FullMultivector {
         FullMultivector {
             a0: 0.,
             a1: 0.,
             a2: 0.,
             a3: 0.,
             a4: 0.,
-            a5: -2. * self.a0 * self.a3 * r.a11 + 2. * self.a0 * self.a4 * r.a12 + 2. * self.a0 * self.a13 * r.a14 - 2. * self.a0 * self.a14 * r.a13 + 2. * self.a1 * self.a10 * r.a14 + 2. * self.a2 * self.a8 * r.a11 + 2. * self.a2 * self.a9 * r.a12 + 2. * self.a2 * self.a10 * r.a13 - 2. * self.a2 * self.a15 * r.a14 + 2. * self.a3 * self.a7 * r.a14 - 2. * self.a3 * self.a9 * r.a13 + 2. * self.a3 * self.a10 * r.a12 - 2. * self.a4 * self.a6 * r.a14 - 2. * self.a4 * self.a8 * r.a13 + 2. * self.a4 * self.a10 * r.a11 + 2. * self.a5 * self.a14 * r.a14 + 2. * self.a8 * self.a12 * r.a14 - 2. * self.a8 * self.a14 * r.a12 - 2. * self.a9 * self.a11 * r.a14 + 2. * self.a9 * self.a14 * r.a11,
-            a6: 2. * self.a0 * self.a2 * r.a11 - 2. * self.a0 * self.a4 * r.a13 + 2. * self.a0 * self.a12 * r.a14 - 2. * self.a0 * self.a14 * r.a12 + 2. * self.a1 * self.a9 * r.a14 - 2. * self.a2 * self.a7 * r.a14 + 2. * self.a2 * self.a9 * r.a13 - 2. * self.a2 * self.a10 * r.a12 + 2. * self.a3 * self.a8 * r.a11 + 2. * self.a3 * self.a9 * r.a12 + 2. * self.a3 * self.a10 * r.a13 - 2. * self.a3 * self.a15 * r.a14 + 2. * self.a4 * self.a5 * r.a14 - 2. * self.a4 * self.a8 * r.a12 + 2. * self.a4 * self.a9 * r.a11 + 2. * self.a6 * self.a14 * r.a14 - 2. * self.a8 * self.a13 * r.a14 + 2. * self.a8 * self.a14 * r.a13 + 2. * self.a10 * self.a11 * r.a14 - 2. * self.a10 * self.a14 * r.a11,
-            a7: -2. * self.a0 * self.a2 * r.a12 + 2. * self.a0 * self.a3 * r.a13 + 2. * self.a0 * self.a11 * r.a14 - 2. * self.a0 * self.a14 * r.a11 + 2. * self.a1 * self.a8 * r.a14 + 2. * self.a2 * self.a6 * r.a14 + 2. * self.a2 * self.a8 * r.a13 - 2. * self.a2 * self.a10 * r.a11 - 2. * self.a3 * self.a5 * r.a14 + 2. * self.a3 * self.a8 * r.a12 - 2. * self.a3 * self.a9 * r.a11 + 2. * self.a4 * self.a8 * r.a11 + 2. * self.a4 * self.a9 * r.a12 + 2. * self.a4 * self.a10 * r.a13 - 2. * self.a4 * self.a15 * r.a14 + 2. * self.a7 * self.a14 * r.a14 + 2. * self.a9 * self.a13 * r.a14 - 2. * self.a9 * self.a14 * r.a13 - 2. * self.a10 * self.a12 * r.a14 + 2. * self.a10 * self.a14 * r.a12,
-            a8: 2. * r.a14 * (self.a0 * self.a4 + self.a2 * self.a9 - self.a3 * self.a10 + self.a8 * self.a14),
-            a9: 2. * r.a14 * (self.a0 * self.a3 - self.a2 * self.a8 + self.a4 * self.a10 + self.a9 * self.a14),
-            a10: 2. * r.a14 * (self.a0 * self.a2 + self.a3 * self.a8 - self.a4 * self.a9 + self.a10 * self.a14),
-            a11: self.a0.powi(2) * r.a11 - 2. * self.a0 * self.a7 * r.a14 + 2. * self.a0 * self.a9 * r.a13 - 2. * self.a0 * self.a10 * r.a12 - 2. * self.a1 * self.a4 * r.a14 + self.a2.powi(2) * r.a11 - 2. * self.a2 * self.a4 * r.a13 + 2. * self.a2 * self.a12 * r.a14 - 2. * self.a2 * self.a14 * r.a12 + self.a3.powi(2) * r.a11 - 2. * self.a3 * self.a4 * r.a12 - 2. * self.a3 * self.a13 * r.a14 + 2. * self.a3 * self.a14 * r.a13 - self.a4.powi(2) * r.a11 - 2. * self.a5 * self.a9 * r.a14 + 2. * self.a6 * self.a10 * r.a14 + self.a8.powi(2) * r.a11 + 2. * self.a8 * self.a9 * r.a12 + 2. * self.a8 * self.a10 * r.a13 - 2. * self.a8 * self.a15 * r.a14 - self.a9.powi(2) * r.a11 - self.a10.powi(2) * r.a11 + 2. * self.a11 * self.a14 * r.a14 - self.a14.powi(2) * r.a11,
-            a12: self.a0.powi(2) * r.a12 - 2. * self.a0 * self.a6 * r.a14 - 2. * self.a0 * self.a8 * r.a13 + 2. * self.a0 * self.a10 * r.a11 - 2. * self.a1 * self.a3 * r.a14 + self.a2.powi(2) * r.a12 - 2. * self.a2 * self.a3 * r.a13 - 2. * self.a2 * self.a11 * r.a14 + 2. * self.a2 * self.a14 * r.a11 - self.a3.powi(2) * r.a12 - 2. * self.a3 * self.a4 * r.a11 + self.a4.powi(2) * r.a12 + 2. * self.a4 * self.a13 * r.a14 - 2. * self.a4 * self.a14 * r.a13 + 2. * self.a5 * self.a8 * r.a14 - 2. * self.a7 * self.a10 * r.a14 - self.a8.powi(2) * r.a12 + 2. * self.a8 * self.a9 * r.a11 + self.a9.powi(2) * r.a12 + 2. * self.a9 * self.a10 * r.a13 - 2. * self.a9 * self.a15 * r.a14 - self.a10.powi(2) * r.a12 + 2. * self.a12 * self.a14 * r.a14 - self.a14.powi(2) * r.a12,
-            a13: self.a0.powi(2) * r.a13 - 2. * self.a0 * self.a5 * r.a14 + 2. * self.a0 * self.a8 * r.a12 - 2. * self.a0 * self.a9 * r.a11 - 2. * self.a1 * self.a2 * r.a14 - self.a2.powi(2) * r.a13 - 2. * self.a2 * self.a3 * r.a12 - 2. * self.a2 * self.a4 * r.a11 + self.a3.powi(2) * r.a13 + 2. * self.a3 * self.a11 * r.a14 - 2. * self.a3 * self.a14 * r.a11 + self.a4.powi(2) * r.a13 - 2. * self.a4 * self.a12 * r.a14 + 2. * self.a4 * self.a14 * r.a12 - 2. * self.a6 * self.a8 * r.a14 + 2. * self.a7 * self.a9 * r.a14 - self.a8.powi(2) * r.a13 + 2. * self.a8 * self.a10 * r.a11 - self.a9.powi(2) * r.a13 + 2. * self.a9 * self.a10 * r.a12 + self.a10.powi(2) * r.a13 - 2. * self.a10 * self.a15 * r.a14 + 2. * self.a13 * self.a14 * r.a14 - self.a14.powi(2) * r.a13,
-            a14: r.a14 * (self.a0.powi(2) + self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2) + self.a8.powi(2) + self.a9.powi(2) + self.a10.powi(2) + self.a14.powi(2)),
+            a5: 0.,
+            a6: 0.,
+            a7: 0.,
+            a8: 0.,
+            a9: 0.,
+            a10: 0.,
+            a11: 0.,
+            a12: 0.,
+            a13: 0.,
+            a14: 0.,
             a15: 0.,
         }
     }
 }
 
-impl Transform<FullMultivector> for FullMultivector {
-    type Output = FullMultivector;
-
-    fn transform(self, r: FullMultivector) -> FullMultivector {
-        FullMultivector {
-            a0: self.a0.powi(2) * r.a0 + 2. * self.a0 * self.a2 * r.a2 + 2. * self.a0 * self.a3 * r.a3 + 2. * self.a0 * self.a4 * r.a4 + self.a2.powi(2) * r.a0 + 2. * self.a2 * self.a8 * r.a3 - 2. * self.a2 * self.a9 * r.a4 + self.a3.powi(2) * r.a0 - 2. * self.a3 * self.a8 * r.a2 + 2. * self.a3 * self.a10 * r.a4 + self.a4.powi(2) * r.a0 + 2. * self.a4 * self.a9 * r.a2 - 2. * self.a4 * self.a10 * r.a3 + self.a8.powi(2) * r.a0 + 2. * self.a8 * self.a14 * r.a4 + self.a9.powi(2) * r.a0 + 2. * self.a9 * self.a14 * r.a3 + self.a10.powi(2) * r.a0 + 2. * self.a10 * self.a14 * r.a2 + self.a14.powi(2) * r.a0,
-            a1: self.a0.powi(2) * r.a1 + 2. * self.a0 * self.a1 * r.a0 + 2. * self.a0 * self.a5 * r.a2 + 2. * self.a0 * self.a6 * r.a3 + 2. * self.a0 * self.a7 * r.a4 + 2. * self.a0 * self.a14 * r.a15 + 2. * self.a1 * self.a2 * r.a2 + 2. * self.a1 * self.a3 * r.a3 + 2. * self.a1 * self.a4 * r.a4 - self.a2.powi(2) * r.a1 + 2. * self.a2 * self.a5 * r.a0 - 2. * self.a2 * self.a10 * r.a15 - 2. * self.a2 * self.a11 * r.a3 + 2. * self.a2 * self.a12 * r.a4 - self.a3.powi(2) * r.a1 + 2. * self.a3 * self.a6 * r.a0 - 2. * self.a3 * self.a9 * r.a15 + 2. * self.a3 * self.a11 * r.a2 - 2. * self.a3 * self.a13 * r.a4 - self.a4.powi(2) * r.a1 + 2. * self.a4 * self.a7 * r.a0 - 2. * self.a4 * self.a8 * r.a15 - 2. * self.a4 * self.a12 * r.a2 + 2. * self.a4 * self.a13 * r.a3 + 2. * self.a5 * self.a8 * r.a3 - 2. * self.a5 * self.a9 * r.a4 - 2. * self.a6 * self.a8 * r.a2 + 2. * self.a6 * self.a10 * r.a4 + 2. * self.a7 * self.a9 * r.a2 - 2. * self.a7 * self.a10 * r.a3 + self.a8.powi(2) * r.a1 - 2. * self.a8 * self.a11 * r.a0 + 2. * self.a8 * self.a15 * r.a4 + self.a9.powi(2) * r.a1 - 2. * self.a9 * self.a12 * r.a0 + 2. * self.a9 * self.a15 * r.a3 + self.a10.powi(2) * r.a1 - 2. * self.a10 * self.a13 * r.a0 + 2. * self.a10 * self.a15 * r.a2 - 2. * self.a11 * self.a14 * r.a4 - 2. * self.a12 * self.a14 * r.a3 - 2. * self.a13 * self.a14 * r.a2 - self.a14.powi(2) * r.a1 + 2. * self.a14 * self.a15 * r.a0,
-            a2: self.a0.powi(2) * r.a2 + 2. * self.a0 * self.a2 * r.a0 + 2. * self.a0 * self.a8 * r.a3 - 2. * self.a0 * self.a9 * r.a4 + self.a2.powi(2) * r.a2 + 2. * self.a2 * self.a3 * r.a3 + 2. * self.a2 * self.a4 * r.a4 - self.a3.powi(2) * r.a2 + 2. * self.a3 * self.a8 * r.a0 + 2. * self.a3 * self.a14 * r.a4 - self.a4.powi(2) * r.a2 - 2. * self.a4 * self.a9 * r.a0 - 2. * self.a4 * self.a14 * r.a3 - self.a8.powi(2) * r.a2 + 2. * self.a8 * self.a10 * r.a4 - self.a9.powi(2) * r.a2 + 2. * self.a9 * self.a10 * r.a3 + self.a10.powi(2) * r.a2 + 2. * self.a10 * self.a14 * r.a0 + self.a14.powi(2) * r.a2,
-            a3: self.a0.powi(2) * r.a3 + 2. * self.a0 * self.a3 * r.a0 - 2. * self.a0 * self.a8 * r.a2 + 2. * self.a0 * self.a10 * r.a4 - self.a2.powi(2) * r.a3 + 2. * self.a2 * self.a3 * r.a2 - 2. * self.a2 * self.a8 * r.a0 - 2. * self.a2 * self.a14 * r.a4 + self.a3.powi(2) * r.a3 + 2. * self.a3 * self.a4 * r.a4 - self.a4.powi(2) * r.a3 + 2. * self.a4 * self.a10 * r.a0 + 2. * self.a4 * self.a14 * r.a2 - self.a8.powi(2) * r.a3 + 2. * self.a8 * self.a9 * r.a4 + self.a9.powi(2) * r.a3 + 2. * self.a9 * self.a10 * r.a2 + 2. * self.a9 * self.a14 * r.a0 - self.a10.powi(2) * r.a3 + self.a14.powi(2) * r.a3,
-            a4: self.a0.powi(2) * r.a4 + 2. * self.a0 * self.a4 * r.a0 + 2. * self.a0 * self.a9 * r.a2 - 2. * self.a0 * self.a10 * r.a3 - self.a2.powi(2) * r.a4 + 2. * self.a2 * self.a4 * r.a2 + 2. * self.a2 * self.a9 * r.a0 + 2. * self.a2 * self.a14 * r.a3 - self.a3.powi(2) * r.a4 + 2. * self.a3 * self.a4 * r.a3 - 2. * self.a3 * self.a10 * r.a0 - 2. * self.a3 * self.a14 * r.a2 + self.a4.powi(2) * r.a4 + self.a8.powi(2) * r.a4 + 2. * self.a8 * self.a9 * r.a3 + 2. * self.a8 * self.a10 * r.a2 + 2. * self.a8 * self.a14 * r.a0 - self.a9.powi(2) * r.a4 - self.a10.powi(2) * r.a4 + self.a14.powi(2) * r.a4,
-            a5: self.a0.powi(2) * r.a5 - 2. * self.a0 * self.a3 * r.a11 + 2. * self.a0 * self.a4 * r.a12 - 2. * self.a0 * self.a6 * r.a8 + 2. * self.a0 * self.a7 * r.a9 + 2. * self.a0 * self.a8 * r.a6 - 2. * self.a0 * self.a9 * r.a7 + 2. * self.a0 * self.a13 * r.a14 - 2. * self.a0 * self.a14 * r.a13 - 2. * self.a0 * self.a15 * r.a10 + 2. * self.a1 * self.a3 * r.a8 - 2. * self.a1 * self.a4 * r.a9 + 2. * self.a1 * self.a10 * r.a14 + 2. * self.a1 * self.a14 * r.a10 - self.a2.powi(2) * r.a5 - 2. * self.a2 * self.a3 * r.a6 - 2. * self.a2 * self.a4 * r.a7 + 2. * self.a2 * self.a8 * r.a11 + 2. * self.a2 * self.a9 * r.a12 + 2. * self.a2 * self.a10 * r.a13 + 2. * self.a2 * self.a11 * r.a8 + 2. * self.a2 * self.a12 * r.a9 + 2. * self.a2 * self.a13 * r.a10 - 2. * self.a2 * self.a15 * r.a14 + self.a3.powi(2) * r.a5 + 2. * self.a3 * self.a7 * r.a14 - 2. * self.a3 * self.a9 * r.a13 + 2. * self.a3 * self.a10 * r.a12 - 2. * self.a3 * self.a12 * r.a10 + 2. * self.a3 * self.a13 * r.a9 - 2. * self.a3 * self.a14 * r.a7 + self.a4.powi(2) * r.a5 - 2. * self.a4 * self.a6 * r.a14 - 2. * self.a4 * self.a8 * r.a13 + 2. * self.a4 * self.a10 * r.a11 - 2. * self.a4 * self.a11 * r.a10 + 2. * self.a4 * self.a13 * r.a8 + 2. * self.a4 * self.a14 * r.a6 + 2. * self.a5 * self.a8 * r.a8 + 2. * self.a5 * self.a9 * r.a9 + 2. * self.a5 * self.a10 * r.a10 + 2. * self.a5 * self.a14 * r.a14 - 2. * self.a6 * self.a9 * r.a10 + 2. * self.a6 * self.a10 * r.a9 - 2. * self.a7 * self.a8 * r.a10 + 2. * self.a7 * self.a10 * r.a8 - self.a8.powi(2) * r.a5 + 2. * self.a8 * self.a10 * r.a7 + 2. * self.a8 * self.a12 * r.a14 - 2. * self.a8 * self.a14 * r.a12 - 2. * self.a8 * self.a15 * r.a9 - self.a9.powi(2) * r.a5 + 2. * self.a9 * self.a10 * r.a6 - 2. * self.a9 * self.a11 * r.a14 + 2. * self.a9 * self.a14 * r.a11 + 2. * self.a9 * self.a15 * r.a8 + self.a10.powi(2) * r.a5 - 2. * self.a11 * self.a14 * r.a9 + 2. * self.a12 * self.a14 * r.a8 - self.a14.powi(2) * r.a5,
-            a6: self.a0.powi(2) * r.a6 + 2. * self.a0 * self.a2 * r.a11 - 2. * self.a0 * self.a4 * r.a13 + 2. * self.a0 * self.a5 * r.a8 - 2. * self.a0 * self.a7 * r.a10 - 2. * self.a0 * self.a8 * r.a5 + 2. * self.a0 * self.a10 * r.a7 + 2. * self.a0 * self.a12 * r.a14 - 2. * self.a0 * self.a14 * r.a12 - 2. * self.a0 * self.a15 * r.a9 - 2. * self.a1 * self.a2 * r.a8 + 2. * self.a1 * self.a4 * r.a10 + 2. * self.a1 * self.a9 * r.a14 + 2. * self.a1 * self.a14 * r.a9 + self.a2.powi(2) * r.a6 - 2. * self.a2 * self.a3 * r.a5 - 2. * self.a2 * self.a7 * r.a14 + 2. * self.a2 * self.a9 * r.a13 - 2. * self.a2 * self.a10 * r.a12 + 2. * self.a2 * self.a12 * r.a10 - 2. * self.a2 * self.a13 * r.a9 + 2. * self.a2 * self.a14 * r.a7 - self.a3.powi(2) * r.a6 - 2. * self.a3 * self.a4 * r.a7 + 2. * self.a3 * self.a8 * r.a11 + 2. * self.a3 * self.a9 * r.a12 + 2. * self.a3 * self.a10 * r.a13 + 2. * self.a3 * self.a11 * r.a8 + 2. * self.a3 * self.a12 * r.a9 + 2. * self.a3 * self.a13 * r.a10 - 2. * self.a3 * self.a15 * r.a14 + self.a4.powi(2) * r.a6 + 2. * self.a4 * self.a5 * r.a14 - 2. * self.a4 * self.a8 * r.a12 + 2. * self.a4 * self.a9 * r.a11 - 2. * self.a4 * self.a11 * r.a9 + 2. * self.a4 * self.a12 * r.a8 - 2. * self.a4 * self.a14 * r.a5 + 2. * self.a5 * self.a9 * r.a10 - 2. * self.a5 * self.a10 * r.a9 + 2. * self.a6 * self.a8 * r.a8 + 2. * self.a6 * self.a9 * r.a9 + 2. * self.a6 * self.a10 * r.a10 + 2. * self.a6 * self.a14 * r.a14 - 2. * self.a7 * self.a8 * r.a9 + 2. * self.a7 * self.a9 * r.a8 - self.a8.powi(2) * r.a6 + 2. * self.a8 * self.a9 * r.a7 - 2. * self.a8 * self.a13 * r.a14 + 2. * self.a8 * self.a14 * r.a13 + 2. * self.a8 * self.a15 * r.a10 + self.a9.powi(2) * r.a6 + 2. * self.a9 * self.a10 * r.a5 - self.a10.powi(2) * r.a6 + 2. * self.a10 * self.a11 * r.a14 - 2. * self.a10 * self.a14 * r.a11 - 2. * self.a10 * self.a15 * r.a8 + 2. * self.a11 * self.a14 * r.a10 - 2. * self.a13 * self.a14 * r.a8 - self.a14.powi(2) * r.a6,
-            a7: self.a0.powi(2) * r.a7 - 2. * self.a0 * self.a2 * r.a12 + 2. * self.a0 * self.a3 * r.a13 - 2. * self.a0 * self.a5 * r.a9 + 2. * self.a0 * self.a6 * r.a10 + 2. * self.a0 * self.a9 * r.a5 - 2. * self.a0 * self.a10 * r.a6 + 2. * self.a0 * self.a11 * r.a14 - 2. * self.a0 * self.a14 * r.a11 - 2. * self.a0 * self.a15 * r.a8 + 2. * self.a1 * self.a2 * r.a9 - 2. * self.a1 * self.a3 * r.a10 + 2. * self.a1 * self.a8 * r.a14 + 2. * self.a1 * self.a14 * r.a8 + self.a2.powi(2) * r.a7 - 2. * self.a2 * self.a4 * r.a5 + 2. * self.a2 * self.a6 * r.a14 + 2. * self.a2 * self.a8 * r.a13 - 2. * self.a2 * self.a10 * r.a11 + 2. * self.a2 * self.a11 * r.a10 - 2. * self.a2 * self.a13 * r.a8 - 2. * self.a2 * self.a14 * r.a6 + self.a3.powi(2) * r.a7 - 2. * self.a3 * self.a4 * r.a6 - 2. * self.a3 * self.a5 * r.a14 + 2. * self.a3 * self.a8 * r.a12 - 2. * self.a3 * self.a9 * r.a11 + 2. * self.a3 * self.a11 * r.a9 - 2. * self.a3 * self.a12 * r.a8 + 2. * self.a3 * self.a14 * r.a5 - self.a4.powi(2) * r.a7 + 2. * self.a4 * self.a8 * r.a11 + 2. * self.a4 * self.a9 * r.a12 + 2. * self.a4 * self.a10 * r.a13 + 2. * self.a4 * self.a11 * r.a8 + 2. * self.a4 * self.a12 * r.a9 + 2. * self.a4 * self.a13 * r.a10 - 2. * self.a4 * self.a15 * r.a14 + 2. * self.a5 * self.a8 * r.a10 - 2. * self.a5 * self.a10 * r.a8 + 2. * self.a6 * self.a8 * r.a9 - 2. * self.a6 * self.a9 * r.a8 + 2. * self.a7 * self.a8 * r.a8 + 2. * self.a7 * self.a9 * r.a9 + 2. * self.a7 * self.a10 * r.a10 + 2. * self.a7 * self.a14 * r.a14 + self.a8.powi(2) * r.a7 + 2. * self.a8 * self.a9 * r.a6 + 2. * self.a8 * self.a10 * r.a5 - self.a9.powi(2) * r.a7 + 2. * self.a9 * self.a13 * r.a14 - 2. * self.a9 * self.a14 * r.a13 - 2. * self.a9 * self.a15 * r.a10 - self.a10.powi(2) * r.a7 - 2. * self.a10 * self.a12 * r.a14 + 2. * self.a10 * self.a14 * r.a12 + 2. * self.a10 * self.a15 * r.a9 - 2. * self.a12 * self.a14 * r.a10 + 2. * self.a13 * self.a14 * r.a9 - self.a14.powi(2) * r.a7,
-            a8: self.a0.powi(2) * r.a8 + 2. * self.a0 * self.a4 * r.a14 + 2. * self.a0 * self.a9 * r.a10 - 2. * self.a0 * self.a10 * r.a9 - self.a2.powi(2) * r.a8 + 2. * self.a2 * self.a4 * r.a10 + 2. * self.a2 * self.a9 * r.a14 + 2. * self.a2 * self.a14 * r.a9 - self.a3.powi(2) * r.a8 + 2. * self.a3 * self.a4 * r.a9 - 2. * self.a3 * self.a10 * r.a14 - 2. * self.a3 * self.a14 * r.a10 + self.a4.powi(2) * r.a8 + self.a8.powi(2) * r.a8 + 2. * self.a8 * self.a9 * r.a9 + 2. * self.a8 * self.a10 * r.a10 + 2. * self.a8 * self.a14 * r.a14 - self.a9.powi(2) * r.a8 - self.a10.powi(2) * r.a8 + self.a14.powi(2) * r.a8,
-            a9: self.a0.powi(2) * r.a9 + 2. * self.a0 * self.a3 * r.a14 - 2. * self.a0 * self.a8 * r.a10 + 2. * self.a0 * self.a10 * r.a8 - self.a2.powi(2) * r.a9 + 2. * self.a2 * self.a3 * r.a10 - 2. * self.a2 * self.a8 * r.a14 - 2. * self.a2 * self.a14 * r.a8 + self.a3.powi(2) * r.a9 + 2. * self.a3 * self.a4 * r.a8 - self.a4.powi(2) * r.a9 + 2. * self.a4 * self.a10 * r.a14 + 2. * self.a4 * self.a14 * r.a10 - self.a8.powi(2) * r.a9 + 2. * self.a8 * self.a9 * r.a8 + self.a9.powi(2) * r.a9 + 2. * self.a9 * self.a10 * r.a10 + 2. * self.a9 * self.a14 * r.a14 - self.a10.powi(2) * r.a9 + self.a14.powi(2) * r.a9,
-            a10: self.a0.powi(2) * r.a10 + 2. * self.a0 * self.a2 * r.a14 + 2. * self.a0 * self.a8 * r.a9 - 2. * self.a0 * self.a9 * r.a8 + self.a2.powi(2) * r.a10 + 2. * self.a2 * self.a3 * r.a9 + 2. * self.a2 * self.a4 * r.a8 - self.a3.powi(2) * r.a10 + 2. * self.a3 * self.a8 * r.a14 + 2. * self.a3 * self.a14 * r.a8 - self.a4.powi(2) * r.a10 - 2. * self.a4 * self.a9 * r.a14 - 2. * self.a4 * self.a14 * r.a9 - self.a8.powi(2) * r.a10 + 2. * self.a8 * self.a10 * r.a8 - self.a9.powi(2) * r.a10 + 2. * self.a9 * self.a10 * r.a9 + self.a10.powi(2) * r.a10 + 2. * self.a10 * self.a14 * r.a14 + self.a14.powi(2) * r.a10,
-            a11: self.a0.powi(2) * r.a11 - 2. * self.a0 * self.a1 * r.a8 + 2. * self.a0 * self.a2 * r.a6 - 2. * self.a0 * self.a3 * r.a5 - 2. * self.a0 * self.a7 * r.a14 + 2. * self.a0 * self.a9 * r.a13 - 2. * self.a0 * self.a10 * r.a12 + 2. * self.a0 * self.a12 * r.a10 - 2. * self.a0 * self.a13 * r.a9 + 2. * self.a0 * self.a14 * r.a7 - 2. * self.a1 * self.a4 * r.a14 - 2. * self.a1 * self.a9 * r.a10 + 2. * self.a1 * self.a10 * r.a9 + self.a2.powi(2) * r.a11 - 2. * self.a2 * self.a4 * r.a13 + 2. * self.a2 * self.a5 * r.a8 - 2. * self.a2 * self.a7 * r.a10 - 2. * self.a2 * self.a8 * r.a5 + 2. * self.a2 * self.a10 * r.a7 + 2. * self.a2 * self.a12 * r.a14 - 2. * self.a2 * self.a14 * r.a12 - 2. * self.a2 * self.a15 * r.a9 + self.a3.powi(2) * r.a11 - 2. * self.a3 * self.a4 * r.a12 + 2. * self.a3 * self.a6 * r.a8 - 2. * self.a3 * self.a7 * r.a9 - 2. * self.a3 * self.a8 * r.a6 + 2. * self.a3 * self.a9 * r.a7 - 2. * self.a3 * self.a13 * r.a14 + 2. * self.a3 * self.a14 * r.a13 + 2. * self.a3 * self.a15 * r.a10 - self.a4.powi(2) * r.a11 - 2. * self.a4 * self.a5 * r.a10 - 2. * self.a4 * self.a6 * r.a9 - 2. * self.a4 * self.a7 * r.a8 - 2. * self.a4 * self.a8 * r.a7 - 2. * self.a4 * self.a9 * r.a6 - 2. * self.a4 * self.a10 * r.a5 - 2. * self.a5 * self.a9 * r.a14 - 2. * self.a5 * self.a14 * r.a9 + 2. * self.a6 * self.a10 * r.a14 + 2. * self.a6 * self.a14 * r.a10 + self.a8.powi(2) * r.a11 + 2. * self.a8 * self.a9 * r.a12 + 2. * self.a8 * self.a10 * r.a13 + 2. * self.a8 * self.a11 * r.a8 + 2. * self.a8 * self.a12 * r.a9 + 2. * self.a8 * self.a13 * r.a10 - 2. * self.a8 * self.a15 * r.a14 - self.a9.powi(2) * r.a11 + 2. * self.a9 * self.a11 * r.a9 - 2. * self.a9 * self.a12 * r.a8 + 2. * self.a9 * self.a14 * r.a5 - self.a10.powi(2) * r.a11 + 2. * self.a10 * self.a11 * r.a10 - 2. * self.a10 * self.a13 * r.a8 - 2. * self.a10 * self.a14 * r.a6 + 2. * self.a11 * self.a14 * r.a14 - self.a14.powi(2) * r.a11 - 2. * self.a14 * self.a15 * r.a8,
-            a12: self.a0.powi(2) * r.a12 - 2. * self.a0 * self.a1 * r.a9 - 2. * self.a0 * self.a2 * r.a7 + 2. * self.a0 * self.a4 * r.a5 - 2. * self.a0 * self.a6 * r.a14 - 2. * self.a0 * self.a8 * r.a13 + 2. * self.a0 * self.a10 * r.a11 - 2. * self.a0 * self.a11 * r.a10 + 2. * self.a0 * self.a13 * r.a8 + 2. * self.a0 * self.a14 * r.a6 - 2. * self.a1 * self.a3 * r.a14 + 2. * self.a1 * self.a8 * r.a10 - 2. * self.a1 * self.a10 * r.a8 + self.a2.powi(2) * r.a12 - 2. * self.a2 * self.a3 * r.a13 + 2. * self.a2 * self.a5 * r.a9 - 2. * self.a2 * self.a6 * r.a10 - 2. * self.a2 * self.a9 * r.a5 + 2. * self.a2 * self.a10 * r.a6 - 2. * self.a2 * self.a11 * r.a14 + 2. * self.a2 * self.a14 * r.a11 + 2. * self.a2 * self.a15 * r.a8 - self.a3.powi(2) * r.a12 - 2. * self.a3 * self.a4 * r.a11 - 2. * self.a3 * self.a5 * r.a10 - 2. * self.a3 * self.a6 * r.a9 - 2. * self.a3 * self.a7 * r.a8 - 2. * self.a3 * self.a8 * r.a7 - 2. * self.a3 * self.a9 * r.a6 - 2. * self.a3 * self.a10 * r.a5 + self.a4.powi(2) * r.a12 - 2. * self.a4 * self.a6 * r.a8 + 2. * self.a4 * self.a7 * r.a9 + 2. * self.a4 * self.a8 * r.a6 - 2. * self.a4 * self.a9 * r.a7 + 2. * self.a4 * self.a13 * r.a14 - 2. * self.a4 * self.a14 * r.a13 - 2. * self.a4 * self.a15 * r.a10 + 2. * self.a5 * self.a8 * r.a14 + 2. * self.a5 * self.a14 * r.a8 - 2. * self.a7 * self.a10 * r.a14 - 2. * self.a7 * self.a14 * r.a10 - self.a8.powi(2) * r.a12 + 2. * self.a8 * self.a9 * r.a11 - 2. * self.a8 * self.a11 * r.a9 + 2. * self.a8 * self.a12 * r.a8 - 2. * self.a8 * self.a14 * r.a5 + self.a9.powi(2) * r.a12 + 2. * self.a9 * self.a10 * r.a13 + 2. * self.a9 * self.a11 * r.a8 + 2. * self.a9 * self.a12 * r.a9 + 2. * self.a9 * self.a13 * r.a10 - 2. * self.a9 * self.a15 * r.a14 - self.a10.powi(2) * r.a12 + 2. * self.a10 * self.a12 * r.a10 - 2. * self.a10 * self.a13 * r.a9 + 2. * self.a10 * self.a14 * r.a7 + 2. * self.a12 * self.a14 * r.a14 - self.a14.powi(2) * r.a12 - 2. * self.a14 * self.a15 * r.a9,
-            a13: self.a0.powi(2) * r.a13 - 2. * self.a0 * self.a1 * r.a10 + 2. * self.a0 * self.a3 * r.a7 - 2. * self.a0 * self.a4 * r.a6 - 2. * self.a0 * self.a5 * r.a14 + 2. * self.a0 * self.a8 * r.a12 - 2. * self.a0 * self.a9 * r.a11 + 2. * self.a0 * self.a11 * r.a9 - 2. * self.a0 * self.a12 * r.a8 + 2. * self.a0 * self.a14 * r.a5 - 2. * self.a1 * self.a2 * r.a14 - 2. * self.a1 * self.a8 * r.a9 + 2. * self.a1 * self.a9 * r.a8 - self.a2.powi(2) * r.a13 - 2. * self.a2 * self.a3 * r.a12 - 2. * self.a2 * self.a4 * r.a11 - 2. * self.a2 * self.a5 * r.a10 - 2. * self.a2 * self.a6 * r.a9 - 2. * self.a2 * self.a7 * r.a8 - 2. * self.a2 * self.a8 * r.a7 - 2. * self.a2 * self.a9 * r.a6 - 2. * self.a2 * self.a10 * r.a5 + self.a3.powi(2) * r.a13 - 2. * self.a3 * self.a5 * r.a9 + 2. * self.a3 * self.a6 * r.a10 + 2. * self.a3 * self.a9 * r.a5 - 2. * self.a3 * self.a10 * r.a6 + 2. * self.a3 * self.a11 * r.a14 - 2. * self.a3 * self.a14 * r.a11 - 2. * self.a3 * self.a15 * r.a8 + self.a4.powi(2) * r.a13 - 2. * self.a4 * self.a5 * r.a8 + 2. * self.a4 * self.a7 * r.a10 + 2. * self.a4 * self.a8 * r.a5 - 2. * self.a4 * self.a10 * r.a7 - 2. * self.a4 * self.a12 * r.a14 + 2. * self.a4 * self.a14 * r.a12 + 2. * self.a4 * self.a15 * r.a9 - 2. * self.a6 * self.a8 * r.a14 - 2. * self.a6 * self.a14 * r.a8 + 2. * self.a7 * self.a9 * r.a14 + 2. * self.a7 * self.a14 * r.a9 - self.a8.powi(2) * r.a13 + 2. * self.a8 * self.a10 * r.a11 - 2. * self.a8 * self.a11 * r.a10 + 2. * self.a8 * self.a13 * r.a8 + 2. * self.a8 * self.a14 * r.a6 - self.a9.powi(2) * r.a13 + 2. * self.a9 * self.a10 * r.a12 - 2. * self.a9 * self.a12 * r.a10 + 2. * self.a9 * self.a13 * r.a9 - 2. * self.a9 * self.a14 * r.a7 + self.a10.powi(2) * r.a13 + 2. * self.a10 * self.a11 * r.a8 + 2. * self.a10 * self.a12 * r.a9 + 2. * self.a10 * self.a13 * r.a10 - 2. * self.a10 * self.a15 * r.a14 + 2. * self.a13 * self.a14 * r.a14 - self.a14.powi(2) * r.a13 - 2. * self.a14 * self.a15 * r.a10,
-            a14: self.a0.powi(2) * r.a14 + 2. * self.a0 * self.a2 * r.a10 + 2. * self.a0 * self.a3 * r.a9 + 2. * self.a0 * self.a4 * r.a8 + self.a2.powi(2) * r.a14 + 2. * self.a2 * self.a8 * r.a9 - 2. * self.a2 * self.a9 * r.a8 + self.a3.powi(2) * r.a14 - 2. * self.a3 * self.a8 * r.a10 + 2. * self.a3 * self.a10 * r.a8 + self.a4.powi(2) * r.a14 + 2. * self.a4 * self.a9 * r.a10 - 2. * self.a4 * self.a10 * r.a9 + self.a8.powi(2) * r.a14 + 2. * self.a8 * self.a14 * r.a8 + self.a9.powi(2) * r.a14 + 2. * self.a9 * self.a14 * r.a9 + self.a10.powi(2) * r.a14 + 2. * self.a10 * self.a14 * r.a10 + self.a14.powi(2) * r.a14,
-            a15: self.a0.powi(2) * r.a15 - 2. * self.a0 * self.a11 * r.a4 - 2. * self.a0 * self.a12 * r.a3 - 2. * self.a0 * self.a13 * r.a2 - 2. * self.a0 * self.a14 * r.a1 + 2. * self.a0 * self.a15 * r.a0 - 2. * self.a1 * self.a8 * r.a4 - 2. * self.a1 * self.a9 * r.a3 - 2. * self.a1 * self.a10 * r.a2 - 2. * self.a1 * self.a14 * r.a0 - self.a2.powi(2) * r.a15 + 2. * self.a2 * self.a6 * r.a4 - 2. * self.a2 * self.a7 * r.a3 + 2. * self.a2 * self.a10 * r.a1 - 2. * self.a2 * self.a13 * r.a0 + 2. * self.a2 * self.a15 * r.a2 - self.a3.powi(2) * r.a15 - 2. * self.a3 * self.a5 * r.a4 + 2. * self.a3 * self.a7 * r.a2 + 2. * self.a3 * self.a9 * r.a1 - 2. * self.a3 * self.a12 * r.a0 + 2. * self.a3 * self.a15 * r.a3 - self.a4.powi(2) * r.a15 + 2. * self.a4 * self.a5 * r.a3 - 2. * self.a4 * self.a6 * r.a2 + 2. * self.a4 * self.a8 * r.a1 - 2. * self.a4 * self.a11 * r.a0 + 2. * self.a4 * self.a15 * r.a4 - 2. * self.a5 * self.a10 * r.a0 - 2. * self.a5 * self.a14 * r.a2 - 2. * self.a6 * self.a9 * r.a0 - 2. * self.a6 * self.a14 * r.a3 - 2. * self.a7 * self.a8 * r.a0 - 2. * self.a7 * self.a14 * r.a4 + self.a8.powi(2) * r.a15 + 2. * self.a8 * self.a12 * r.a2 - 2. * self.a8 * self.a13 * r.a3 + self.a9.powi(2) * r.a15 - 2. * self.a9 * self.a11 * r.a2 + 2. * self.a9 * self.a13 * r.a4 + self.a10.powi(2) * r.a15 + 2. * self.a10 * self.a11 * r.a3 - 2. * self.a10 * self.a12 * r.a4 - self.a14.powi(2) * r.a15,
-        }
-    }
-}
-
-impl Reflect<Float> for FullMultivector {
-    type Output = FullMultivector;
-
-    fn reflect(self, r: Float) -> FullMultivector {
-        FullMultivector {
-            a0: r * (self.a0.powi(2) + self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2) - self.a8.powi(2) - self.a9.powi(2) - self.a10.powi(2) - self.a14.powi(2)),
-            a1: 2. * r * (self.a0 * self.a1 + self.a8 * self.a11 + self.a9 * self.a12 + self.a10 * self.a13),
-            a2: 2. * r * (self.a0 * self.a2 - self.a10 * self.a14),
-            a3: 2. * r * (self.a0 * self.a3 - self.a9 * self.a14),
-            a4: 2. * r * (self.a0 * self.a4 - self.a8 * self.a14),
-            a5: 2. * r * (self.a0 * self.a5 - self.a3 * self.a11 + self.a4 * self.a12 - self.a10 * self.a15),
-            a6: 2. * r * (self.a0 * self.a6 + self.a2 * self.a11 - self.a4 * self.a13 - self.a9 * self.a15),
-            a7: 2. * r * (self.a0 * self.a7 - self.a2 * self.a12 + self.a3 * self.a13 - self.a8 * self.a15),
-            a8: 2. * r * (self.a0 * self.a8 + self.a4 * self.a14),
-            a9: 2. * r * (self.a0 * self.a9 + self.a3 * self.a14),
-            a10: 2. * r * (self.a0 * self.a10 + self.a2 * self.a14),
-            a11: 2. * r * (self.a0 * self.a11 - self.a1 * self.a8 + self.a2 * self.a6 - self.a3 * self.a5),
-            a12: 2. * r * (self.a0 * self.a12 - self.a1 * self.a9 - self.a2 * self.a7 + self.a4 * self.a5),
-            a13: 2. * r * (self.a0 * self.a13 - self.a1 * self.a10 + self.a3 * self.a7 - self.a4 * self.a6),
-            a14: 2. * r * (self.a0 * self.a14 + self.a2 * self.a10 + self.a3 * self.a9 + self.a4 * self.a8),
-            a15: 2. * r * (self.a0 * self.a15 + self.a5 * self.a10 + self.a6 * self.a9 + self.a7 * self.a8),
-        }
-    }
-}
-
-impl Reflect<Vector> for FullMultivector {
-    type Output = FullMultivector;
-
-    fn reflect(self, r: Vector) -> FullMultivector {
-        FullMultivector {
-            a0: 2. * self.a0 * self.a2 * r.a2 + 2. * self.a0 * self.a3 * r.a3 + 2. * self.a0 * self.a4 * r.a4 - 2. * self.a8 * self.a14 * r.a4 - 2. * self.a9 * self.a14 * r.a3 - 2. * self.a10 * self.a14 * r.a2,
-            a1: self.a0.powi(2) * r.a1 + 2. * self.a1 * self.a2 * r.a2 + 2. * self.a1 * self.a3 * r.a3 + 2. * self.a1 * self.a4 * r.a4 - self.a2.powi(2) * r.a1 - self.a3.powi(2) * r.a1 - self.a4.powi(2) * r.a1 - 2. * self.a5 * self.a8 * r.a3 + 2. * self.a5 * self.a9 * r.a4 + 2. * self.a6 * self.a8 * r.a2 - 2. * self.a6 * self.a10 * r.a4 - 2. * self.a7 * self.a9 * r.a2 + 2. * self.a7 * self.a10 * r.a3 - self.a8.powi(2) * r.a1 - self.a9.powi(2) * r.a1 - self.a10.powi(2) * r.a1 + 2. * self.a11 * self.a14 * r.a4 + 2. * self.a12 * self.a14 * r.a3 + 2. * self.a13 * self.a14 * r.a2 + self.a14.powi(2) * r.a1,
-            a2: self.a0.powi(2) * r.a2 + self.a2.powi(2) * r.a2 + 2. * self.a2 * self.a3 * r.a3 + 2. * self.a2 * self.a4 * r.a4 - self.a3.powi(2) * r.a2 - self.a4.powi(2) * r.a2 + self.a8.powi(2) * r.a2 - 2. * self.a8 * self.a10 * r.a4 + self.a9.powi(2) * r.a2 - 2. * self.a9 * self.a10 * r.a3 - self.a10.powi(2) * r.a2 - self.a14.powi(2) * r.a2,
-            a3: self.a0.powi(2) * r.a3 - self.a2.powi(2) * r.a3 + 2. * self.a2 * self.a3 * r.a2 + self.a3.powi(2) * r.a3 + 2. * self.a3 * self.a4 * r.a4 - self.a4.powi(2) * r.a3 + self.a8.powi(2) * r.a3 - 2. * self.a8 * self.a9 * r.a4 - self.a9.powi(2) * r.a3 - 2. * self.a9 * self.a10 * r.a2 + self.a10.powi(2) * r.a3 - self.a14.powi(2) * r.a3,
-            a4: self.a0.powi(2) * r.a4 - self.a2.powi(2) * r.a4 + 2. * self.a2 * self.a4 * r.a2 - self.a3.powi(2) * r.a4 + 2. * self.a3 * self.a4 * r.a3 + self.a4.powi(2) * r.a4 - self.a8.powi(2) * r.a4 - 2. * self.a8 * self.a9 * r.a3 - 2. * self.a8 * self.a10 * r.a2 + self.a9.powi(2) * r.a4 + self.a10.powi(2) * r.a4 - self.a14.powi(2) * r.a4,
-            a5: -2. * self.a0 * self.a11 * r.a3 + 2. * self.a0 * self.a12 * r.a4 - 2. * self.a1 * self.a8 * r.a3 + 2. * self.a1 * self.a9 * r.a4 + 2. * self.a2 * self.a5 * r.a2 + 2. * self.a2 * self.a6 * r.a3 + 2. * self.a2 * self.a7 * r.a4 + 2. * self.a3 * self.a5 * r.a3 - 2. * self.a3 * self.a6 * r.a2 + 2. * self.a3 * self.a8 * r.a1 + 2. * self.a4 * self.a5 * r.a4 - 2. * self.a4 * self.a7 * r.a2 - 2. * self.a4 * self.a9 * r.a1 - 2. * self.a14 * self.a15 * r.a2,
-            a6: 2. * self.a0 * self.a11 * r.a2 - 2. * self.a0 * self.a13 * r.a4 + 2. * self.a1 * self.a8 * r.a2 - 2. * self.a1 * self.a10 * r.a4 - 2. * self.a2 * self.a5 * r.a3 + 2. * self.a2 * self.a6 * r.a2 - 2. * self.a2 * self.a8 * r.a1 + 2. * self.a3 * self.a5 * r.a2 + 2. * self.a3 * self.a6 * r.a3 + 2. * self.a3 * self.a7 * r.a4 + 2. * self.a4 * self.a6 * r.a4 - 2. * self.a4 * self.a7 * r.a3 + 2. * self.a4 * self.a10 * r.a1 - 2. * self.a14 * self.a15 * r.a3,
-            a7: -2. * self.a0 * self.a12 * r.a2 + 2. * self.a0 * self.a13 * r.a3 - 2. * self.a1 * self.a9 * r.a2 + 2. * self.a1 * self.a10 * r.a3 - 2. * self.a2 * self.a5 * r.a4 + 2. * self.a2 * self.a7 * r.a2 + 2. * self.a2 * self.a9 * r.a1 - 2. * self.a3 * self.a6 * r.a4 + 2. * self.a3 * self.a7 * r.a3 - 2. * self.a3 * self.a10 * r.a1 + 2. * self.a4 * self.a5 * r.a2 + 2. * self.a4 * self.a6 * r.a3 + 2. * self.a4 * self.a7 * r.a4 - 2. * self.a14 * self.a15 * r.a4,
-            a8: 2. * self.a0 * self.a14 * r.a4 + 2. * self.a2 * self.a8 * r.a2 - 2. * self.a2 * self.a10 * r.a4 + 2. * self.a3 * self.a8 * r.a3 - 2. * self.a3 * self.a9 * r.a4 + 2. * self.a4 * self.a8 * r.a4 + 2. * self.a4 * self.a9 * r.a3 + 2. * self.a4 * self.a10 * r.a2,
-            a9: 2. * self.a0 * self.a14 * r.a3 + 2. * self.a2 * self.a9 * r.a2 - 2. * self.a2 * self.a10 * r.a3 + 2. * self.a3 * self.a8 * r.a4 + 2. * self.a3 * self.a9 * r.a3 + 2. * self.a3 * self.a10 * r.a2 - 2. * self.a4 * self.a8 * r.a3 + 2. * self.a4 * self.a9 * r.a4,
-            a10: 2. * self.a0 * self.a14 * r.a2 + 2. * self.a2 * self.a8 * r.a4 + 2. * self.a2 * self.a9 * r.a3 + 2. * self.a2 * self.a10 * r.a2 - 2. * self.a3 * self.a9 * r.a2 + 2. * self.a3 * self.a10 * r.a3 - 2. * self.a4 * self.a8 * r.a2 + 2. * self.a4 * self.a10 * r.a4,
-            a11: -2. * self.a0 * self.a5 * r.a3 + 2. * self.a0 * self.a6 * r.a2 - 2. * self.a0 * self.a8 * r.a1 - 2. * self.a1 * self.a14 * r.a4 + 2. * self.a2 * self.a11 * r.a2 - 2. * self.a2 * self.a13 * r.a4 + 2. * self.a3 * self.a11 * r.a3 - 2. * self.a3 * self.a12 * r.a4 + 2. * self.a4 * self.a11 * r.a4 + 2. * self.a4 * self.a12 * r.a3 + 2. * self.a4 * self.a13 * r.a2 + 2. * self.a4 * self.a14 * r.a1 + 2. * self.a9 * self.a15 * r.a2 - 2. * self.a10 * self.a15 * r.a3,
-            a12: 2. * self.a0 * self.a5 * r.a4 - 2. * self.a0 * self.a7 * r.a2 - 2. * self.a0 * self.a9 * r.a1 - 2. * self.a1 * self.a14 * r.a3 + 2. * self.a2 * self.a12 * r.a2 - 2. * self.a2 * self.a13 * r.a3 + 2. * self.a3 * self.a11 * r.a4 + 2. * self.a3 * self.a12 * r.a3 + 2. * self.a3 * self.a13 * r.a2 + 2. * self.a3 * self.a14 * r.a1 - 2. * self.a4 * self.a11 * r.a3 + 2. * self.a4 * self.a12 * r.a4 - 2. * self.a8 * self.a15 * r.a2 + 2. * self.a10 * self.a15 * r.a4,
-            a13: -2. * self.a0 * self.a6 * r.a4 + 2. * self.a0 * self.a7 * r.a3 - 2. * self.a0 * self.a10 * r.a1 - 2. * self.a1 * self.a14 * r.a2 + 2. * self.a2 * self.a11 * r.a4 + 2. * self.a2 * self.a12 * r.a3 + 2. * self.a2 * self.a13 * r.a2 + 2. * self.a2 * self.a14 * r.a1 - 2. * self.a3 * self.a12 * r.a2 + 2. * self.a3 * self.a13 * r.a3 - 2. * self.a4 * self.a11 * r.a2 + 2. * self.a4 * self.a13 * r.a4 + 2. * self.a8 * self.a15 * r.a3 - 2. * self.a9 * self.a15 * r.a4,
-            a14: 2. * self.a0 * self.a8 * r.a4 + 2. * self.a0 * self.a9 * r.a3 + 2. * self.a0 * self.a10 * r.a2 + 2. * self.a2 * self.a14 * r.a2 + 2. * self.a3 * self.a14 * r.a3 + 2. * self.a4 * self.a14 * r.a4,
-            a15: 2. * self.a2 * self.a15 * r.a2 + 2. * self.a3 * self.a15 * r.a3 + 2. * self.a4 * self.a15 * r.a4 + 2. * self.a5 * self.a14 * r.a2 + 2. * self.a6 * self.a14 * r.a3 + 2. * self.a7 * self.a14 * r.a4 - 2. * self.a8 * self.a12 * r.a2 + 2. * self.a8 * self.a13 * r.a3 + 2. * self.a9 * self.a11 * r.a2 - 2. * self.a9 * self.a13 * r.a4 - 2. * self.a10 * self.a11 * r.a3 + 2. * self.a10 * self.a12 * r.a4,
-        }
-    }
-}
-
-impl Reflect<Bivector> for FullMultivector {
-    type Output = FullMultivector;
-
-    fn reflect(self, r: Bivector) -> FullMultivector {
-        FullMultivector {
-            a0: -2. * self.a0 * self.a8 * r.a8 - 2. * self.a0 * self.a9 * r.a9 - 2. * self.a0 * self.a10 * r.a10 - 2. * self.a2 * self.a14 * r.a10 - 2. * self.a3 * self.a14 * r.a9 - 2. * self.a4 * self.a14 * r.a8,
-            a1: 2. * self.a0 * self.a11 * r.a8 + 2. * self.a0 * self.a12 * r.a9 + 2. * self.a0 * self.a13 * r.a10 - 2. * self.a1 * self.a8 * r.a8 - 2. * self.a1 * self.a9 * r.a9 - 2. * self.a1 * self.a10 * r.a10 - 2. * self.a2 * self.a6 * r.a8 + 2. * self.a2 * self.a7 * r.a9 + 2. * self.a2 * self.a8 * r.a6 - 2. * self.a2 * self.a9 * r.a7 + 2. * self.a3 * self.a5 * r.a8 - 2. * self.a3 * self.a7 * r.a10 - 2. * self.a3 * self.a8 * r.a5 + 2. * self.a3 * self.a10 * r.a7 - 2. * self.a4 * self.a5 * r.a9 + 2. * self.a4 * self.a6 * r.a10 + 2. * self.a4 * self.a9 * r.a5 - 2. * self.a4 * self.a10 * r.a6,
-            a2: -2. * self.a0 * self.a14 * r.a10 - 2. * self.a2 * self.a8 * r.a8 - 2. * self.a2 * self.a9 * r.a9 - 2. * self.a2 * self.a10 * r.a10 + 2. * self.a3 * self.a9 * r.a10 - 2. * self.a3 * self.a10 * r.a9 + 2. * self.a4 * self.a8 * r.a10 - 2. * self.a4 * self.a10 * r.a8,
-            a3: -2. * self.a0 * self.a14 * r.a9 - 2. * self.a2 * self.a9 * r.a10 + 2. * self.a2 * self.a10 * r.a9 - 2. * self.a3 * self.a8 * r.a8 - 2. * self.a3 * self.a9 * r.a9 - 2. * self.a3 * self.a10 * r.a10 + 2. * self.a4 * self.a8 * r.a9 - 2. * self.a4 * self.a9 * r.a8,
-            a4: -2. * self.a0 * self.a14 * r.a8 - 2. * self.a2 * self.a8 * r.a10 + 2. * self.a2 * self.a10 * r.a8 - 2. * self.a3 * self.a8 * r.a9 + 2. * self.a3 * self.a9 * r.a8 - 2. * self.a4 * self.a8 * r.a8 - 2. * self.a4 * self.a9 * r.a9 - 2. * self.a4 * self.a10 * r.a10,
-            a5: self.a0.powi(2) * r.a5 - 2. * self.a0 * self.a15 * r.a10 + 2. * self.a1 * self.a3 * r.a8 - 2. * self.a1 * self.a4 * r.a9 - self.a2.powi(2) * r.a5 - 2. * self.a2 * self.a3 * r.a6 - 2. * self.a2 * self.a4 * r.a7 + self.a3.powi(2) * r.a5 + self.a4.powi(2) * r.a5 - 2. * self.a5 * self.a8 * r.a8 - 2. * self.a5 * self.a9 * r.a9 - 2. * self.a5 * self.a10 * r.a10 + 2. * self.a6 * self.a9 * r.a10 - 2. * self.a6 * self.a10 * r.a9 + 2. * self.a7 * self.a8 * r.a10 - 2. * self.a7 * self.a10 * r.a8 + self.a8.powi(2) * r.a5 - 2. * self.a8 * self.a10 * r.a7 + self.a9.powi(2) * r.a5 - 2. * self.a9 * self.a10 * r.a6 - self.a10.powi(2) * r.a5 + 2. * self.a11 * self.a14 * r.a9 - 2. * self.a12 * self.a14 * r.a8 + self.a14.powi(2) * r.a5,
-            a6: self.a0.powi(2) * r.a6 - 2. * self.a0 * self.a15 * r.a9 - 2. * self.a1 * self.a2 * r.a8 + 2. * self.a1 * self.a4 * r.a10 + self.a2.powi(2) * r.a6 - 2. * self.a2 * self.a3 * r.a5 - self.a3.powi(2) * r.a6 - 2. * self.a3 * self.a4 * r.a7 + self.a4.powi(2) * r.a6 - 2. * self.a5 * self.a9 * r.a10 + 2. * self.a5 * self.a10 * r.a9 - 2. * self.a6 * self.a8 * r.a8 - 2. * self.a6 * self.a9 * r.a9 - 2. * self.a6 * self.a10 * r.a10 + 2. * self.a7 * self.a8 * r.a9 - 2. * self.a7 * self.a9 * r.a8 + self.a8.powi(2) * r.a6 - 2. * self.a8 * self.a9 * r.a7 - self.a9.powi(2) * r.a6 - 2. * self.a9 * self.a10 * r.a5 + self.a10.powi(2) * r.a6 - 2. * self.a11 * self.a14 * r.a10 + 2. * self.a13 * self.a14 * r.a8 + self.a14.powi(2) * r.a6,
-            a7: self.a0.powi(2) * r.a7 - 2. * self.a0 * self.a15 * r.a8 + 2. * self.a1 * self.a2 * r.a9 - 2. * self.a1 * self.a3 * r.a10 + self.a2.powi(2) * r.a7 - 2. * self.a2 * self.a4 * r.a5 + self.a3.powi(2) * r.a7 - 2. * self.a3 * self.a4 * r.a6 - self.a4.powi(2) * r.a7 - 2. * self.a5 * self.a8 * r.a10 + 2. * self.a5 * self.a10 * r.a8 - 2. * self.a6 * self.a8 * r.a9 + 2. * self.a6 * self.a9 * r.a8 - 2. * self.a7 * self.a8 * r.a8 - 2. * self.a7 * self.a9 * r.a9 - 2. * self.a7 * self.a10 * r.a10 - self.a8.powi(2) * r.a7 - 2. * self.a8 * self.a9 * r.a6 - 2. * self.a8 * self.a10 * r.a5 + self.a9.powi(2) * r.a7 + self.a10.powi(2) * r.a7 + 2. * self.a12 * self.a14 * r.a10 - 2. * self.a13 * self.a14 * r.a9 + self.a14.powi(2) * r.a7,
-            a8: self.a0.powi(2) * r.a8 - self.a2.powi(2) * r.a8 + 2. * self.a2 * self.a4 * r.a10 - self.a3.powi(2) * r.a8 + 2. * self.a3 * self.a4 * r.a9 + self.a4.powi(2) * r.a8 - self.a8.powi(2) * r.a8 - 2. * self.a8 * self.a9 * r.a9 - 2. * self.a8 * self.a10 * r.a10 + self.a9.powi(2) * r.a8 + self.a10.powi(2) * r.a8 - self.a14.powi(2) * r.a8,
-            a9: self.a0.powi(2) * r.a9 - self.a2.powi(2) * r.a9 + 2. * self.a2 * self.a3 * r.a10 + self.a3.powi(2) * r.a9 + 2. * self.a3 * self.a4 * r.a8 - self.a4.powi(2) * r.a9 + self.a8.powi(2) * r.a9 - 2. * self.a8 * self.a9 * r.a8 - self.a9.powi(2) * r.a9 - 2. * self.a9 * self.a10 * r.a10 + self.a10.powi(2) * r.a9 - self.a14.powi(2) * r.a9,
-            a10: self.a0.powi(2) * r.a10 + self.a2.powi(2) * r.a10 + 2. * self.a2 * self.a3 * r.a9 + 2. * self.a2 * self.a4 * r.a8 - self.a3.powi(2) * r.a10 - self.a4.powi(2) * r.a10 + self.a8.powi(2) * r.a10 - 2. * self.a8 * self.a10 * r.a8 + self.a9.powi(2) * r.a10 - 2. * self.a9 * self.a10 * r.a9 - self.a10.powi(2) * r.a10 - self.a14.powi(2) * r.a10,
-            a11: -2. * self.a0 * self.a1 * r.a8 + 2. * self.a0 * self.a2 * r.a6 - 2. * self.a0 * self.a3 * r.a5 - 2. * self.a2 * self.a15 * r.a9 + 2. * self.a3 * self.a15 * r.a10 + 2. * self.a5 * self.a14 * r.a9 - 2. * self.a6 * self.a14 * r.a10 - 2. * self.a8 * self.a11 * r.a8 - 2. * self.a8 * self.a12 * r.a9 - 2. * self.a8 * self.a13 * r.a10 - 2. * self.a9 * self.a11 * r.a9 + 2. * self.a9 * self.a12 * r.a8 - 2. * self.a9 * self.a14 * r.a5 - 2. * self.a10 * self.a11 * r.a10 + 2. * self.a10 * self.a13 * r.a8 + 2. * self.a10 * self.a14 * r.a6,
-            a12: -2. * self.a0 * self.a1 * r.a9 - 2. * self.a0 * self.a2 * r.a7 + 2. * self.a0 * self.a4 * r.a5 + 2. * self.a2 * self.a15 * r.a8 - 2. * self.a4 * self.a15 * r.a10 - 2. * self.a5 * self.a14 * r.a8 + 2. * self.a7 * self.a14 * r.a10 + 2. * self.a8 * self.a11 * r.a9 - 2. * self.a8 * self.a12 * r.a8 + 2. * self.a8 * self.a14 * r.a5 - 2. * self.a9 * self.a11 * r.a8 - 2. * self.a9 * self.a12 * r.a9 - 2. * self.a9 * self.a13 * r.a10 - 2. * self.a10 * self.a12 * r.a10 + 2. * self.a10 * self.a13 * r.a9 - 2. * self.a10 * self.a14 * r.a7,
-            a13: -2. * self.a0 * self.a1 * r.a10 + 2. * self.a0 * self.a3 * r.a7 - 2. * self.a0 * self.a4 * r.a6 - 2. * self.a3 * self.a15 * r.a8 + 2. * self.a4 * self.a15 * r.a9 + 2. * self.a6 * self.a14 * r.a8 - 2. * self.a7 * self.a14 * r.a9 + 2. * self.a8 * self.a11 * r.a10 - 2. * self.a8 * self.a13 * r.a8 - 2. * self.a8 * self.a14 * r.a6 + 2. * self.a9 * self.a12 * r.a10 - 2. * self.a9 * self.a13 * r.a9 + 2. * self.a9 * self.a14 * r.a7 - 2. * self.a10 * self.a11 * r.a8 - 2. * self.a10 * self.a12 * r.a9 - 2. * self.a10 * self.a13 * r.a10,
-            a14: 2. * self.a0 * self.a2 * r.a10 + 2. * self.a0 * self.a3 * r.a9 + 2. * self.a0 * self.a4 * r.a8 - 2. * self.a8 * self.a14 * r.a8 - 2. * self.a9 * self.a14 * r.a9 - 2. * self.a10 * self.a14 * r.a10,
-            a15: 2. * self.a0 * self.a5 * r.a10 + 2. * self.a0 * self.a6 * r.a9 + 2. * self.a0 * self.a7 * r.a8 + 2. * self.a0 * self.a8 * r.a7 + 2. * self.a0 * self.a9 * r.a6 + 2. * self.a0 * self.a10 * r.a5 - 2. * self.a2 * self.a11 * r.a9 + 2. * self.a2 * self.a12 * r.a8 - 2. * self.a2 * self.a14 * r.a5 + 2. * self.a3 * self.a11 * r.a10 - 2. * self.a3 * self.a13 * r.a8 - 2. * self.a3 * self.a14 * r.a6 - 2. * self.a4 * self.a12 * r.a10 + 2. * self.a4 * self.a13 * r.a9 - 2. * self.a4 * self.a14 * r.a7 - 2. * self.a8 * self.a15 * r.a8 - 2. * self.a9 * self.a15 * r.a9 - 2. * self.a10 * self.a15 * r.a10,
-        }
-    }
-}
-
 impl Reflect<ScalarAndBivector> for FullMultivector {
-    type Output = FullMultivector;
-
     fn reflect(self, r: ScalarAndBivector) -> FullMultivector {
         FullMultivector {
-            a0: self.a0.powi(2) * r.a0 - 2. * self.a0 * self.a8 * r.a8 - 2. * self.a0 * self.a9 * r.a9 - 2. * self.a0 * self.a10 * r.a10 + self.a2.powi(2) * r.a0 - 2. * self.a2 * self.a14 * r.a10 + self.a3.powi(2) * r.a0 - 2. * self.a3 * self.a14 * r.a9 + self.a4.powi(2) * r.a0 - 2. * self.a4 * self.a14 * r.a8 - self.a8.powi(2) * r.a0 - self.a9.powi(2) * r.a0 - self.a10.powi(2) * r.a0 - self.a14.powi(2) * r.a0,
-            a1: 2. * self.a0 * self.a1 * r.a0 + 2. * self.a0 * self.a11 * r.a8 + 2. * self.a0 * self.a12 * r.a9 + 2. * self.a0 * self.a13 * r.a10 - 2. * self.a1 * self.a8 * r.a8 - 2. * self.a1 * self.a9 * r.a9 - 2. * self.a1 * self.a10 * r.a10 - 2. * self.a2 * self.a6 * r.a8 + 2. * self.a2 * self.a7 * r.a9 + 2. * self.a2 * self.a8 * r.a6 - 2. * self.a2 * self.a9 * r.a7 + 2. * self.a3 * self.a5 * r.a8 - 2. * self.a3 * self.a7 * r.a10 - 2. * self.a3 * self.a8 * r.a5 + 2. * self.a3 * self.a10 * r.a7 - 2. * self.a4 * self.a5 * r.a9 + 2. * self.a4 * self.a6 * r.a10 + 2. * self.a4 * self.a9 * r.a5 - 2. * self.a4 * self.a10 * r.a6 + 2. * self.a8 * self.a11 * r.a0 + 2. * self.a9 * self.a12 * r.a0 + 2. * self.a10 * self.a13 * r.a0,
-            a2: 2. * self.a0 * self.a2 * r.a0 - 2. * self.a0 * self.a14 * r.a10 - 2. * self.a2 * self.a8 * r.a8 - 2. * self.a2 * self.a9 * r.a9 - 2. * self.a2 * self.a10 * r.a10 + 2. * self.a3 * self.a9 * r.a10 - 2. * self.a3 * self.a10 * r.a9 + 2. * self.a4 * self.a8 * r.a10 - 2. * self.a4 * self.a10 * r.a8 - 2. * self.a10 * self.a14 * r.a0,
-            a3: 2. * self.a0 * self.a3 * r.a0 - 2. * self.a0 * self.a14 * r.a9 - 2. * self.a2 * self.a9 * r.a10 + 2. * self.a2 * self.a10 * r.a9 - 2. * self.a3 * self.a8 * r.a8 - 2. * self.a3 * self.a9 * r.a9 - 2. * self.a3 * self.a10 * r.a10 + 2. * self.a4 * self.a8 * r.a9 - 2. * self.a4 * self.a9 * r.a8 - 2. * self.a9 * self.a14 * r.a0,
-            a4: 2. * self.a0 * self.a4 * r.a0 - 2. * self.a0 * self.a14 * r.a8 - 2. * self.a2 * self.a8 * r.a10 + 2. * self.a2 * self.a10 * r.a8 - 2. * self.a3 * self.a8 * r.a9 + 2. * self.a3 * self.a9 * r.a8 - 2. * self.a4 * self.a8 * r.a8 - 2. * self.a4 * self.a9 * r.a9 - 2. * self.a4 * self.a10 * r.a10 - 2. * self.a8 * self.a14 * r.a0,
-            a5: self.a0.powi(2) * r.a5 + 2. * self.a0 * self.a5 * r.a0 - 2. * self.a0 * self.a15 * r.a10 + 2. * self.a1 * self.a3 * r.a8 - 2. * self.a1 * self.a4 * r.a9 - self.a2.powi(2) * r.a5 - 2. * self.a2 * self.a3 * r.a6 - 2. * self.a2 * self.a4 * r.a7 + self.a3.powi(2) * r.a5 - 2. * self.a3 * self.a11 * r.a0 + self.a4.powi(2) * r.a5 + 2. * self.a4 * self.a12 * r.a0 - 2. * self.a5 * self.a8 * r.a8 - 2. * self.a5 * self.a9 * r.a9 - 2. * self.a5 * self.a10 * r.a10 + 2. * self.a6 * self.a9 * r.a10 - 2. * self.a6 * self.a10 * r.a9 + 2. * self.a7 * self.a8 * r.a10 - 2. * self.a7 * self.a10 * r.a8 + self.a8.powi(2) * r.a5 - 2. * self.a8 * self.a10 * r.a7 + self.a9.powi(2) * r.a5 - 2. * self.a9 * self.a10 * r.a6 - self.a10.powi(2) * r.a5 - 2. * self.a10 * self.a15 * r.a0 + 2. * self.a11 * self.a14 * r.a9 - 2. * self.a12 * self.a14 * r.a8 + self.a14.powi(2) * r.a5,
-            a6: self.a0.powi(2) * r.a6 + 2. * self.a0 * self.a6 * r.a0 - 2. * self.a0 * self.a15 * r.a9 - 2. * self.a1 * self.a2 * r.a8 + 2. * self.a1 * self.a4 * r.a10 + self.a2.powi(2) * r.a6 - 2. * self.a2 * self.a3 * r.a5 + 2. * self.a2 * self.a11 * r.a0 - self.a3.powi(2) * r.a6 - 2. * self.a3 * self.a4 * r.a7 + self.a4.powi(2) * r.a6 - 2. * self.a4 * self.a13 * r.a0 - 2. * self.a5 * self.a9 * r.a10 + 2. * self.a5 * self.a10 * r.a9 - 2. * self.a6 * self.a8 * r.a8 - 2. * self.a6 * self.a9 * r.a9 - 2. * self.a6 * self.a10 * r.a10 + 2. * self.a7 * self.a8 * r.a9 - 2. * self.a7 * self.a9 * r.a8 + self.a8.powi(2) * r.a6 - 2. * self.a8 * self.a9 * r.a7 - self.a9.powi(2) * r.a6 - 2. * self.a9 * self.a10 * r.a5 - 2. * self.a9 * self.a15 * r.a0 + self.a10.powi(2) * r.a6 - 2. * self.a11 * self.a14 * r.a10 + 2. * self.a13 * self.a14 * r.a8 + self.a14.powi(2) * r.a6,
-            a7: self.a0.powi(2) * r.a7 + 2. * self.a0 * self.a7 * r.a0 - 2. * self.a0 * self.a15 * r.a8 + 2. * self.a1 * self.a2 * r.a9 - 2. * self.a1 * self.a3 * r.a10 + self.a2.powi(2) * r.a7 - 2. * self.a2 * self.a4 * r.a5 - 2. * self.a2 * self.a12 * r.a0 + self.a3.powi(2) * r.a7 - 2. * self.a3 * self.a4 * r.a6 + 2. * self.a3 * self.a13 * r.a0 - self.a4.powi(2) * r.a7 - 2. * self.a5 * self.a8 * r.a10 + 2. * self.a5 * self.a10 * r.a8 - 2. * self.a6 * self.a8 * r.a9 + 2. * self.a6 * self.a9 * r.a8 - 2. * self.a7 * self.a8 * r.a8 - 2. * self.a7 * self.a9 * r.a9 - 2. * self.a7 * self.a10 * r.a10 - self.a8.powi(2) * r.a7 - 2. * self.a8 * self.a9 * r.a6 - 2. * self.a8 * self.a10 * r.a5 - 2. * self.a8 * self.a15 * r.a0 + self.a9.powi(2) * r.a7 + self.a10.powi(2) * r.a7 + 2. * self.a12 * self.a14 * r.a10 - 2. * self.a13 * self.a14 * r.a9 + self.a14.powi(2) * r.a7,
-            a8: self.a0.powi(2) * r.a8 + 2. * self.a0 * self.a8 * r.a0 - self.a2.powi(2) * r.a8 + 2. * self.a2 * self.a4 * r.a10 - self.a3.powi(2) * r.a8 + 2. * self.a3 * self.a4 * r.a9 + self.a4.powi(2) * r.a8 + 2. * self.a4 * self.a14 * r.a0 - self.a8.powi(2) * r.a8 - 2. * self.a8 * self.a9 * r.a9 - 2. * self.a8 * self.a10 * r.a10 + self.a9.powi(2) * r.a8 + self.a10.powi(2) * r.a8 - self.a14.powi(2) * r.a8,
-            a9: self.a0.powi(2) * r.a9 + 2. * self.a0 * self.a9 * r.a0 - self.a2.powi(2) * r.a9 + 2. * self.a2 * self.a3 * r.a10 + self.a3.powi(2) * r.a9 + 2. * self.a3 * self.a4 * r.a8 + 2. * self.a3 * self.a14 * r.a0 - self.a4.powi(2) * r.a9 + self.a8.powi(2) * r.a9 - 2. * self.a8 * self.a9 * r.a8 - self.a9.powi(2) * r.a9 - 2. * self.a9 * self.a10 * r.a10 + self.a10.powi(2) * r.a9 - self.a14.powi(2) * r.a9,
-            a10: self.a0.powi(2) * r.a10 + 2. * self.a0 * self.a10 * r.a0 + self.a2.powi(2) * r.a10 + 2. * self.a2 * self.a3 * r.a9 + 2. * self.a2 * self.a4 * r.a8 + 2. * self.a2 * self.a14 * r.a0 - self.a3.powi(2) * r.a10 - self.a4.powi(2) * r.a10 + self.a8.powi(2) * r.a10 - 2. * self.a8 * self.a10 * r.a8 + self.a9.powi(2) * r.a10 - 2. * self.a9 * self.a10 * r.a9 - self.a10.powi(2) * r.a10 - self.a14.powi(2) * r.a10,
-            a11: -2. * self.a0 * self.a1 * r.a8 + 2. * self.a0 * self.a2 * r.a6 - 2. * self.a0 * self.a3 * r.a5 + 2. * self.a0 * self.a11 * r.a0 - 2. * self.a1 * self.a8 * r.a0 + 2. * self.a2 * self.a6 * r.a0 - 2. * self.a2 * self.a15 * r.a9 - 2. * self.a3 * self.a5 * r.a0 + 2. * self.a3 * self.a15 * r.a10 + 2. * self.a5 * self.a14 * r.a9 - 2. * self.a6 * self.a14 * r.a10 - 2. * self.a8 * self.a11 * r.a8 - 2. * self.a8 * self.a12 * r.a9 - 2. * self.a8 * self.a13 * r.a10 - 2. * self.a9 * self.a11 * r.a9 + 2. * self.a9 * self.a12 * r.a8 - 2. * self.a9 * self.a14 * r.a5 - 2. * self.a10 * self.a11 * r.a10 + 2. * self.a10 * self.a13 * r.a8 + 2. * self.a10 * self.a14 * r.a6,
-            a12: -2. * self.a0 * self.a1 * r.a9 - 2. * self.a0 * self.a2 * r.a7 + 2. * self.a0 * self.a4 * r.a5 + 2. * self.a0 * self.a12 * r.a0 - 2. * self.a1 * self.a9 * r.a0 - 2. * self.a2 * self.a7 * r.a0 + 2. * self.a2 * self.a15 * r.a8 + 2. * self.a4 * self.a5 * r.a0 - 2. * self.a4 * self.a15 * r.a10 - 2. * self.a5 * self.a14 * r.a8 + 2. * self.a7 * self.a14 * r.a10 + 2. * self.a8 * self.a11 * r.a9 - 2. * self.a8 * self.a12 * r.a8 + 2. * self.a8 * self.a14 * r.a5 - 2. * self.a9 * self.a11 * r.a8 - 2. * self.a9 * self.a12 * r.a9 - 2. * self.a9 * self.a13 * r.a10 - 2. * self.a10 * self.a12 * r.a10 + 2. * self.a10 * self.a13 * r.a9 - 2. * self.a10 * self.a14 * r.a7,
-            a13: -2. * self.a0 * self.a1 * r.a10 + 2. * self.a0 * self.a3 * r.a7 - 2. * self.a0 * self.a4 * r.a6 + 2. * self.a0 * self.a13 * r.a0 - 2. * self.a1 * self.a10 * r.a0 + 2. * self.a3 * self.a7 * r.a0 - 2. * self.a3 * self.a15 * r.a8 - 2. * self.a4 * self.a6 * r.a0 + 2. * self.a4 * self.a15 * r.a9 + 2. * self.a6 * self.a14 * r.a8 - 2. * self.a7 * self.a14 * r.a9 + 2. * self.a8 * self.a11 * r.a10 - 2. * self.a8 * self.a13 * r.a8 - 2. * self.a8 * self.a14 * r.a6 + 2. * self.a9 * self.a12 * r.a10 - 2. * self.a9 * self.a13 * r.a9 + 2. * self.a9 * self.a14 * r.a7 - 2. * self.a10 * self.a11 * r.a8 - 2. * self.a10 * self.a12 * r.a9 - 2. * self.a10 * self.a13 * r.a10,
-            a14: 2. * self.a0 * self.a2 * r.a10 + 2. * self.a0 * self.a3 * r.a9 + 2. * self.a0 * self.a4 * r.a8 + 2. * self.a0 * self.a14 * r.a0 + 2. * self.a2 * self.a10 * r.a0 + 2. * self.a3 * self.a9 * r.a0 + 2. * self.a4 * self.a8 * r.a0 - 2. * self.a8 * self.a14 * r.a8 - 2. * self.a9 * self.a14 * r.a9 - 2. * self.a10 * self.a14 * r.a10,
-            a15: 2. * self.a0 * self.a5 * r.a10 + 2. * self.a0 * self.a6 * r.a9 + 2. * self.a0 * self.a7 * r.a8 + 2. * self.a0 * self.a8 * r.a7 + 2. * self.a0 * self.a9 * r.a6 + 2. * self.a0 * self.a10 * r.a5 + 2. * self.a0 * self.a15 * r.a0 - 2. * self.a2 * self.a11 * r.a9 + 2. * self.a2 * self.a12 * r.a8 - 2. * self.a2 * self.a14 * r.a5 + 2. * self.a3 * self.a11 * r.a10 - 2. * self.a3 * self.a13 * r.a8 - 2. * self.a3 * self.a14 * r.a6 - 2. * self.a4 * self.a12 * r.a10 + 2. * self.a4 * self.a13 * r.a9 - 2. * self.a4 * self.a14 * r.a7 + 2. * self.a5 * self.a10 * r.a0 + 2. * self.a6 * self.a9 * r.a0 + 2. * self.a7 * self.a8 * r.a0 - 2. * self.a8 * self.a15 * r.a8 - 2. * self.a9 * self.a15 * r.a9 - 2. * self.a10 * self.a15 * r.a10,
-        }
-    }
-}
-
-impl Reflect<Trivector> for FullMultivector {
-    type Output = FullMultivector;
-
-    fn reflect(self, r: Trivector) -> FullMultivector {
-        FullMultivector {
-            a0: -2. * r.a14 * (self.a0 * self.a14 + self.a2 * self.a10 + self.a3 * self.a9 + self.a4 * self.a8),
-            a1: 2. * self.a0 * self.a8 * r.a11 + 2. * self.a0 * self.a9 * r.a12 + 2. * self.a0 * self.a10 * r.a13 - 2. * self.a1 * self.a14 * r.a14 + 2. * self.a2 * self.a13 * r.a14 - 2. * self.a2 * self.a14 * r.a13 + 2. * self.a3 * self.a12 * r.a14 - 2. * self.a3 * self.a14 * r.a12 + 2. * self.a4 * self.a11 * r.a14 - 2. * self.a4 * self.a14 * r.a11,
-            a2: -2. * r.a14 * (self.a0 * self.a10 + self.a2 * self.a14),
-            a3: -2. * r.a14 * (self.a0 * self.a9 + self.a3 * self.a14),
-            a4: -2. * r.a14 * (self.a0 * self.a8 + self.a4 * self.a14),
-            a5: -2. * self.a0 * self.a3 * r.a11 + 2. * self.a0 * self.a4 * r.a12 - 2. * self.a2 * self.a15 * r.a14 - 2. * self.a5 * self.a14 * r.a14 - 2. * self.a8 * self.a12 * r.a14 + 2. * self.a8 * self.a14 * r.a12 + 2. * self.a9 * self.a11 * r.a14 - 2. * self.a9 * self.a14 * r.a11,
-            a6: 2. * self.a0 * self.a2 * r.a11 - 2. * self.a0 * self.a4 * r.a13 - 2. * self.a3 * self.a15 * r.a14 - 2. * self.a6 * self.a14 * r.a14 + 2. * self.a8 * self.a13 * r.a14 - 2. * self.a8 * self.a14 * r.a13 - 2. * self.a10 * self.a11 * r.a14 + 2. * self.a10 * self.a14 * r.a11,
-            a7: -2. * self.a0 * self.a2 * r.a12 + 2. * self.a0 * self.a3 * r.a13 - 2. * self.a4 * self.a15 * r.a14 - 2. * self.a7 * self.a14 * r.a14 - 2. * self.a9 * self.a13 * r.a14 + 2. * self.a9 * self.a14 * r.a13 + 2. * self.a10 * self.a12 * r.a14 - 2. * self.a10 * self.a14 * r.a12,
-            a8: 2. * r.a14 * (self.a0 * self.a4 - self.a8 * self.a14),
-            a9: 2. * r.a14 * (self.a0 * self.a3 - self.a9 * self.a14),
-            a10: 2. * r.a14 * (self.a0 * self.a2 - self.a10 * self.a14),
-            a11: self.a0.powi(2) * r.a11 - 2. * self.a1 * self.a4 * r.a14 + self.a2.powi(2) * r.a11 - 2. * self.a2 * self.a4 * r.a13 + self.a3.powi(2) * r.a11 - 2. * self.a3 * self.a4 * r.a12 - self.a4.powi(2) * r.a11 + 2. * self.a5 * self.a9 * r.a14 - 2. * self.a6 * self.a10 * r.a14 - self.a8.powi(2) * r.a11 - 2. * self.a8 * self.a9 * r.a12 - 2. * self.a8 * self.a10 * r.a13 + self.a9.powi(2) * r.a11 + self.a10.powi(2) * r.a11 - 2. * self.a11 * self.a14 * r.a14 + self.a14.powi(2) * r.a11,
-            a12: self.a0.powi(2) * r.a12 - 2. * self.a1 * self.a3 * r.a14 + self.a2.powi(2) * r.a12 - 2. * self.a2 * self.a3 * r.a13 - self.a3.powi(2) * r.a12 - 2. * self.a3 * self.a4 * r.a11 + self.a4.powi(2) * r.a12 - 2. * self.a5 * self.a8 * r.a14 + 2. * self.a7 * self.a10 * r.a14 + self.a8.powi(2) * r.a12 - 2. * self.a8 * self.a9 * r.a11 - self.a9.powi(2) * r.a12 - 2. * self.a9 * self.a10 * r.a13 + self.a10.powi(2) * r.a12 - 2. * self.a12 * self.a14 * r.a14 + self.a14.powi(2) * r.a12,
-            a13: self.a0.powi(2) * r.a13 - 2. * self.a1 * self.a2 * r.a14 - self.a2.powi(2) * r.a13 - 2. * self.a2 * self.a3 * r.a12 - 2. * self.a2 * self.a4 * r.a11 + self.a3.powi(2) * r.a13 + self.a4.powi(2) * r.a13 + 2. * self.a6 * self.a8 * r.a14 - 2. * self.a7 * self.a9 * r.a14 + self.a8.powi(2) * r.a13 - 2. * self.a8 * self.a10 * r.a11 + self.a9.powi(2) * r.a13 - 2. * self.a9 * self.a10 * r.a12 - self.a10.powi(2) * r.a13 - 2. * self.a13 * self.a14 * r.a14 + self.a14.powi(2) * r.a13,
-            a14: r.a14 * (self.a0.powi(2) + self.a2.powi(2) + self.a3.powi(2) + self.a4.powi(2) - self.a8.powi(2) - self.a9.powi(2) - self.a10.powi(2) - self.a14.powi(2)),
-            a15: 2. * self.a2 * self.a5 * r.a14 - 2. * self.a2 * self.a8 * r.a12 + 2. * self.a2 * self.a9 * r.a11 + 2. * self.a3 * self.a6 * r.a14 + 2. * self.a3 * self.a8 * r.a13 - 2. * self.a3 * self.a10 * r.a11 + 2. * self.a4 * self.a7 * r.a14 - 2. * self.a4 * self.a9 * r.a13 + 2. * self.a4 * self.a10 * r.a12 - 2. * self.a14 * self.a15 * r.a14,
+            a0: self.a0 * r.a0.powi(2) - self.a0 * r.a8.powi(2) - self.a0 * r.a9.powi(2) - self.a0 * r.a10.powi(2) - 2. * self.a8 * r.a0 * r.a8 - 2. * self.a9 * r.a0 * r.a9 - 2. * self.a10 * r.a0 * r.a10,
+            a1: self.a1 * r.a0.powi(2) - self.a1 * r.a8.powi(2) - self.a1 * r.a9.powi(2) - self.a1 * r.a10.powi(2) + 2. * self.a2 * r.a6 * r.a8 - 2. * self.a2 * r.a7 * r.a9 - 2. * self.a3 * r.a5 * r.a8 + 2. * self.a3 * r.a7 * r.a10 + 2. * self.a4 * r.a5 * r.a9 - 2. * self.a4 * r.a6 * r.a10 + 2. * self.a11 * r.a0 * r.a8 + 2. * self.a12 * r.a0 * r.a9 + 2. * self.a13 * r.a0 * r.a10,
+            a2: self.a2 * r.a0.powi(2) + self.a2 * r.a8.powi(2) + self.a2 * r.a9.powi(2) - self.a2 * r.a10.powi(2) - 2. * self.a3 * r.a9 * r.a10 - 2. * self.a4 * r.a8 * r.a10 - 2. * self.a14 * r.a0 * r.a10,
+            a3: -2. * self.a2 * r.a9 * r.a10 + self.a3 * r.a0.powi(2) + self.a3 * r.a8.powi(2) - self.a3 * r.a9.powi(2) + self.a3 * r.a10.powi(2) - 2. * self.a4 * r.a8 * r.a9 - 2. * self.a14 * r.a0 * r.a9,
+            a4: -2. * self.a2 * r.a8 * r.a10 - 2. * self.a3 * r.a8 * r.a9 + self.a4 * r.a0.powi(2) - self.a4 * r.a8.powi(2) + self.a4 * r.a9.powi(2) + self.a4 * r.a10.powi(2) - 2. * self.a14 * r.a0 * r.a8,
+            a5: 2. * self.a0 * r.a0 * r.a5 + self.a5 * r.a0.powi(2) + self.a5 * r.a8.powi(2) + self.a5 * r.a9.powi(2) - self.a5 * r.a10.powi(2) - 2. * self.a6 * r.a9 * r.a10 - 2. * self.a7 * r.a8 * r.a10 - 2. * self.a8 * r.a5 * r.a8 - 2. * self.a8 * r.a7 * r.a10 - 2. * self.a9 * r.a5 * r.a9 - 2. * self.a9 * r.a6 * r.a10 - 2. * self.a10 * r.a5 * r.a10 + 2. * self.a10 * r.a6 * r.a9 + 2. * self.a10 * r.a7 * r.a8 - 2. * self.a15 * r.a0 * r.a10,
+            a6: 2. * self.a0 * r.a0 * r.a6 - 2. * self.a5 * r.a9 * r.a10 + self.a6 * r.a0.powi(2) + self.a6 * r.a8.powi(2) - self.a6 * r.a9.powi(2) + self.a6 * r.a10.powi(2) - 2. * self.a7 * r.a8 * r.a9 - 2. * self.a8 * r.a6 * r.a8 - 2. * self.a8 * r.a7 * r.a9 + 2. * self.a9 * r.a5 * r.a10 - 2. * self.a9 * r.a6 * r.a9 + 2. * self.a9 * r.a7 * r.a8 - 2. * self.a10 * r.a5 * r.a9 - 2. * self.a10 * r.a6 * r.a10 - 2. * self.a15 * r.a0 * r.a9,
+            a7: 2. * self.a0 * r.a0 * r.a7 - 2. * self.a5 * r.a8 * r.a10 - 2. * self.a6 * r.a8 * r.a9 + self.a7 * r.a0.powi(2) - self.a7 * r.a8.powi(2) + self.a7 * r.a9.powi(2) + self.a7 * r.a10.powi(2) + 2. * self.a8 * r.a5 * r.a10 + 2. * self.a8 * r.a6 * r.a9 - 2. * self.a8 * r.a7 * r.a8 - 2. * self.a9 * r.a6 * r.a8 - 2. * self.a9 * r.a7 * r.a9 - 2. * self.a10 * r.a5 * r.a8 - 2. * self.a10 * r.a7 * r.a10 - 2. * self.a15 * r.a0 * r.a8,
+            a8: 2. * self.a0 * r.a0 * r.a8 + self.a8 * r.a0.powi(2) - self.a8 * r.a8.powi(2) + self.a8 * r.a9.powi(2) + self.a8 * r.a10.powi(2) - 2. * self.a9 * r.a8 * r.a9 - 2. * self.a10 * r.a8 * r.a10,
+            a9: 2. * self.a0 * r.a0 * r.a9 - 2. * self.a8 * r.a8 * r.a9 + self.a9 * r.a0.powi(2) + self.a9 * r.a8.powi(2) - self.a9 * r.a9.powi(2) + self.a9 * r.a10.powi(2) - 2. * self.a10 * r.a9 * r.a10,
+            a10: 2. * self.a0 * r.a0 * r.a10 - 2. * self.a8 * r.a8 * r.a10 - 2. * self.a9 * r.a9 * r.a10 + self.a10 * r.a0.powi(2) + self.a10 * r.a8.powi(2) + self.a10 * r.a9.powi(2) - self.a10 * r.a10.powi(2),
+            a11: -2. * self.a1 * r.a0 * r.a8 + 2. * self.a2 * r.a0 * r.a6 - 2. * self.a3 * r.a0 * r.a5 + self.a11 * r.a0.powi(2) - self.a11 * r.a8.powi(2) + self.a11 * r.a9.powi(2) + self.a11 * r.a10.powi(2) - 2. * self.a12 * r.a8 * r.a9 - 2. * self.a13 * r.a8 * r.a10 + 2. * self.a14 * r.a5 * r.a9 - 2. * self.a14 * r.a6 * r.a10,
+            a12: -2. * self.a1 * r.a0 * r.a9 - 2. * self.a2 * r.a0 * r.a7 + 2. * self.a4 * r.a0 * r.a5 - 2. * self.a11 * r.a8 * r.a9 + self.a12 * r.a0.powi(2) + self.a12 * r.a8.powi(2) - self.a12 * r.a9.powi(2) + self.a12 * r.a10.powi(2) - 2. * self.a13 * r.a9 * r.a10 - 2. * self.a14 * r.a5 * r.a8 + 2. * self.a14 * r.a7 * r.a10,
+            a13: -2. * self.a1 * r.a0 * r.a10 + 2. * self.a3 * r.a0 * r.a7 - 2. * self.a4 * r.a0 * r.a6 - 2. * self.a11 * r.a8 * r.a10 - 2. * self.a12 * r.a9 * r.a10 + self.a13 * r.a0.powi(2) + self.a13 * r.a8.powi(2) + self.a13 * r.a9.powi(2) - self.a13 * r.a10.powi(2) + 2. * self.a14 * r.a6 * r.a8 - 2. * self.a14 * r.a7 * r.a9,
+            a14: 2. * self.a2 * r.a0 * r.a10 + 2. * self.a3 * r.a0 * r.a9 + 2. * self.a4 * r.a0 * r.a8 + self.a14 * r.a0.powi(2) - self.a14 * r.a8.powi(2) - self.a14 * r.a9.powi(2) - self.a14 * r.a10.powi(2),
+            a15: 2. * self.a0 * r.a5 * r.a10 + 2. * self.a0 * r.a6 * r.a9 + 2. * self.a0 * r.a7 * r.a8 + 2. * self.a5 * r.a0 * r.a10 + 2. * self.a6 * r.a0 * r.a9 + 2. * self.a7 * r.a0 * r.a8 + 2. * self.a8 * r.a0 * r.a7 + 2. * self.a9 * r.a0 * r.a6 + 2. * self.a10 * r.a0 * r.a5 + self.a15 * r.a0.powi(2) - self.a15 * r.a8.powi(2) - self.a15 * r.a9.powi(2) - self.a15 * r.a10.powi(2),
         }
     }
 }
 
 impl Reflect<FullMultivector> for FullMultivector {
-    type Output = FullMultivector;
-
     fn reflect(self, r: FullMultivector) -> FullMultivector {
         FullMultivector {
-            a0: self.a0.powi(2) * r.a0 + 2. * self.a0 * self.a2 * r.a2 + 2. * self.a0 * self.a3 * r.a3 + 2. * self.a0 * self.a4 * r.a4 - 2. * self.a0 * self.a8 * r.a8 - 2. * self.a0 * self.a9 * r.a9 - 2. * self.a0 * self.a10 * r.a10 - 2. * self.a0 * self.a14 * r.a14 + self.a2.powi(2) * r.a0 - 2. * self.a2 * self.a10 * r.a14 - 2. * self.a2 * self.a14 * r.a10 + self.a3.powi(2) * r.a0 - 2. * self.a3 * self.a9 * r.a14 - 2. * self.a3 * self.a14 * r.a9 + self.a4.powi(2) * r.a0 - 2. * self.a4 * self.a8 * r.a14 - 2. * self.a4 * self.a14 * r.a8 - self.a8.powi(2) * r.a0 - 2. * self.a8 * self.a14 * r.a4 - self.a9.powi(2) * r.a0 - 2. * self.a9 * self.a14 * r.a3 - self.a10.powi(2) * r.a0 - 2. * self.a10 * self.a14 * r.a2 - self.a14.powi(2) * r.a0,
-            a1: self.a0.powi(2) * r.a1 + 2. * self.a0 * self.a1 * r.a0 + 2. * self.a0 * self.a8 * r.a11 + 2. * self.a0 * self.a9 * r.a12 + 2. * self.a0 * self.a10 * r.a13 + 2. * self.a0 * self.a11 * r.a8 + 2. * self.a0 * self.a12 * r.a9 + 2. * self.a0 * self.a13 * r.a10 + 2. * self.a1 * self.a2 * r.a2 + 2. * self.a1 * self.a3 * r.a3 + 2. * self.a1 * self.a4 * r.a4 - 2. * self.a1 * self.a8 * r.a8 - 2. * self.a1 * self.a9 * r.a9 - 2. * self.a1 * self.a10 * r.a10 - 2. * self.a1 * self.a14 * r.a14 - self.a2.powi(2) * r.a1 - 2. * self.a2 * self.a6 * r.a8 + 2. * self.a2 * self.a7 * r.a9 + 2. * self.a2 * self.a8 * r.a6 - 2. * self.a2 * self.a9 * r.a7 + 2. * self.a2 * self.a13 * r.a14 - 2. * self.a2 * self.a14 * r.a13 - self.a3.powi(2) * r.a1 + 2. * self.a3 * self.a5 * r.a8 - 2. * self.a3 * self.a7 * r.a10 - 2. * self.a3 * self.a8 * r.a5 + 2. * self.a3 * self.a10 * r.a7 + 2. * self.a3 * self.a12 * r.a14 - 2. * self.a3 * self.a14 * r.a12 - self.a4.powi(2) * r.a1 - 2. * self.a4 * self.a5 * r.a9 + 2. * self.a4 * self.a6 * r.a10 + 2. * self.a4 * self.a9 * r.a5 - 2. * self.a4 * self.a10 * r.a6 + 2. * self.a4 * self.a11 * r.a14 - 2. * self.a4 * self.a14 * r.a11 - 2. * self.a5 * self.a8 * r.a3 + 2. * self.a5 * self.a9 * r.a4 + 2. * self.a6 * self.a8 * r.a2 - 2. * self.a6 * self.a10 * r.a4 - 2. * self.a7 * self.a9 * r.a2 + 2. * self.a7 * self.a10 * r.a3 - self.a8.powi(2) * r.a1 + 2. * self.a8 * self.a11 * r.a0 - self.a9.powi(2) * r.a1 + 2. * self.a9 * self.a12 * r.a0 - self.a10.powi(2) * r.a1 + 2. * self.a10 * self.a13 * r.a0 + 2. * self.a11 * self.a14 * r.a4 + 2. * self.a12 * self.a14 * r.a3 + 2. * self.a13 * self.a14 * r.a2 + self.a14.powi(2) * r.a1,
-            a2: self.a0.powi(2) * r.a2 + 2. * self.a0 * self.a2 * r.a0 - 2. * self.a0 * self.a10 * r.a14 - 2. * self.a0 * self.a14 * r.a10 + self.a2.powi(2) * r.a2 + 2. * self.a2 * self.a3 * r.a3 + 2. * self.a2 * self.a4 * r.a4 - 2. * self.a2 * self.a8 * r.a8 - 2. * self.a2 * self.a9 * r.a9 - 2. * self.a2 * self.a10 * r.a10 - 2. * self.a2 * self.a14 * r.a14 - self.a3.powi(2) * r.a2 + 2. * self.a3 * self.a9 * r.a10 - 2. * self.a3 * self.a10 * r.a9 - self.a4.powi(2) * r.a2 + 2. * self.a4 * self.a8 * r.a10 - 2. * self.a4 * self.a10 * r.a8 + self.a8.powi(2) * r.a2 - 2. * self.a8 * self.a10 * r.a4 + self.a9.powi(2) * r.a2 - 2. * self.a9 * self.a10 * r.a3 - self.a10.powi(2) * r.a2 - 2. * self.a10 * self.a14 * r.a0 - self.a14.powi(2) * r.a2,
-            a3: self.a0.powi(2) * r.a3 + 2. * self.a0 * self.a3 * r.a0 - 2. * self.a0 * self.a9 * r.a14 - 2. * self.a0 * self.a14 * r.a9 - self.a2.powi(2) * r.a3 + 2. * self.a2 * self.a3 * r.a2 - 2. * self.a2 * self.a9 * r.a10 + 2. * self.a2 * self.a10 * r.a9 + self.a3.powi(2) * r.a3 + 2. * self.a3 * self.a4 * r.a4 - 2. * self.a3 * self.a8 * r.a8 - 2. * self.a3 * self.a9 * r.a9 - 2. * self.a3 * self.a10 * r.a10 - 2. * self.a3 * self.a14 * r.a14 - self.a4.powi(2) * r.a3 + 2. * self.a4 * self.a8 * r.a9 - 2. * self.a4 * self.a9 * r.a8 + self.a8.powi(2) * r.a3 - 2. * self.a8 * self.a9 * r.a4 - self.a9.powi(2) * r.a3 - 2. * self.a9 * self.a10 * r.a2 - 2. * self.a9 * self.a14 * r.a0 + self.a10.powi(2) * r.a3 - self.a14.powi(2) * r.a3,
-            a4: self.a0.powi(2) * r.a4 + 2. * self.a0 * self.a4 * r.a0 - 2. * self.a0 * self.a8 * r.a14 - 2. * self.a0 * self.a14 * r.a8 - self.a2.powi(2) * r.a4 + 2. * self.a2 * self.a4 * r.a2 - 2. * self.a2 * self.a8 * r.a10 + 2. * self.a2 * self.a10 * r.a8 - self.a3.powi(2) * r.a4 + 2. * self.a3 * self.a4 * r.a3 - 2. * self.a3 * self.a8 * r.a9 + 2. * self.a3 * self.a9 * r.a8 + self.a4.powi(2) * r.a4 - 2. * self.a4 * self.a8 * r.a8 - 2. * self.a4 * self.a9 * r.a9 - 2. * self.a4 * self.a10 * r.a10 - 2. * self.a4 * self.a14 * r.a14 - self.a8.powi(2) * r.a4 - 2. * self.a8 * self.a9 * r.a3 - 2. * self.a8 * self.a10 * r.a2 - 2. * self.a8 * self.a14 * r.a0 + self.a9.powi(2) * r.a4 + self.a10.powi(2) * r.a4 - self.a14.powi(2) * r.a4,
-            a5: self.a0.powi(2) * r.a5 - 2. * self.a0 * self.a3 * r.a11 + 2. * self.a0 * self.a4 * r.a12 + 2. * self.a0 * self.a5 * r.a0 - 2. * self.a0 * self.a10 * r.a15 - 2. * self.a0 * self.a11 * r.a3 + 2. * self.a0 * self.a12 * r.a4 - 2. * self.a0 * self.a15 * r.a10 + 2. * self.a1 * self.a3 * r.a8 - 2. * self.a1 * self.a4 * r.a9 - 2. * self.a1 * self.a8 * r.a3 + 2. * self.a1 * self.a9 * r.a4 - self.a2.powi(2) * r.a5 - 2. * self.a2 * self.a3 * r.a6 - 2. * self.a2 * self.a4 * r.a7 + 2. * self.a2 * self.a5 * r.a2 + 2. * self.a2 * self.a6 * r.a3 + 2. * self.a2 * self.a7 * r.a4 + 2. * self.a2 * self.a14 * r.a15 - 2. * self.a2 * self.a15 * r.a14 + self.a3.powi(2) * r.a5 + 2. * self.a3 * self.a5 * r.a3 - 2. * self.a3 * self.a6 * r.a2 + 2. * self.a3 * self.a8 * r.a1 - 2. * self.a3 * self.a11 * r.a0 + self.a4.powi(2) * r.a5 + 2. * self.a4 * self.a5 * r.a4 - 2. * self.a4 * self.a7 * r.a2 - 2. * self.a4 * self.a9 * r.a1 + 2. * self.a4 * self.a12 * r.a0 - 2. * self.a5 * self.a8 * r.a8 - 2. * self.a5 * self.a9 * r.a9 - 2. * self.a5 * self.a10 * r.a10 - 2. * self.a5 * self.a14 * r.a14 + 2. * self.a6 * self.a9 * r.a10 - 2. * self.a6 * self.a10 * r.a9 + 2. * self.a7 * self.a8 * r.a10 - 2. * self.a7 * self.a10 * r.a8 + self.a8.powi(2) * r.a5 - 2. * self.a8 * self.a10 * r.a7 - 2. * self.a8 * self.a12 * r.a14 + 2. * self.a8 * self.a14 * r.a12 + self.a9.powi(2) * r.a5 - 2. * self.a9 * self.a10 * r.a6 + 2. * self.a9 * self.a11 * r.a14 - 2. * self.a9 * self.a14 * r.a11 - self.a10.powi(2) * r.a5 - 2. * self.a10 * self.a15 * r.a0 + 2. * self.a11 * self.a14 * r.a9 - 2. * self.a12 * self.a14 * r.a8 + self.a14.powi(2) * r.a5 - 2. * self.a14 * self.a15 * r.a2,
-            a6: self.a0.powi(2) * r.a6 + 2. * self.a0 * self.a2 * r.a11 - 2. * self.a0 * self.a4 * r.a13 + 2. * self.a0 * self.a6 * r.a0 - 2. * self.a0 * self.a9 * r.a15 + 2. * self.a0 * self.a11 * r.a2 - 2. * self.a0 * self.a13 * r.a4 - 2. * self.a0 * self.a15 * r.a9 - 2. * self.a1 * self.a2 * r.a8 + 2. * self.a1 * self.a4 * r.a10 + 2. * self.a1 * self.a8 * r.a2 - 2. * self.a1 * self.a10 * r.a4 + self.a2.powi(2) * r.a6 - 2. * self.a2 * self.a3 * r.a5 - 2. * self.a2 * self.a5 * r.a3 + 2. * self.a2 * self.a6 * r.a2 - 2. * self.a2 * self.a8 * r.a1 + 2. * self.a2 * self.a11 * r.a0 - self.a3.powi(2) * r.a6 - 2. * self.a3 * self.a4 * r.a7 + 2. * self.a3 * self.a5 * r.a2 + 2. * self.a3 * self.a6 * r.a3 + 2. * self.a3 * self.a7 * r.a4 + 2. * self.a3 * self.a14 * r.a15 - 2. * self.a3 * self.a15 * r.a14 + self.a4.powi(2) * r.a6 + 2. * self.a4 * self.a6 * r.a4 - 2. * self.a4 * self.a7 * r.a3 + 2. * self.a4 * self.a10 * r.a1 - 2. * self.a4 * self.a13 * r.a0 - 2. * self.a5 * self.a9 * r.a10 + 2. * self.a5 * self.a10 * r.a9 - 2. * self.a6 * self.a8 * r.a8 - 2. * self.a6 * self.a9 * r.a9 - 2. * self.a6 * self.a10 * r.a10 - 2. * self.a6 * self.a14 * r.a14 + 2. * self.a7 * self.a8 * r.a9 - 2. * self.a7 * self.a9 * r.a8 + self.a8.powi(2) * r.a6 - 2. * self.a8 * self.a9 * r.a7 + 2. * self.a8 * self.a13 * r.a14 - 2. * self.a8 * self.a14 * r.a13 - self.a9.powi(2) * r.a6 - 2. * self.a9 * self.a10 * r.a5 - 2. * self.a9 * self.a15 * r.a0 + self.a10.powi(2) * r.a6 - 2. * self.a10 * self.a11 * r.a14 + 2. * self.a10 * self.a14 * r.a11 - 2. * self.a11 * self.a14 * r.a10 + 2. * self.a13 * self.a14 * r.a8 + self.a14.powi(2) * r.a6 - 2. * self.a14 * self.a15 * r.a3,
-            a7: self.a0.powi(2) * r.a7 - 2. * self.a0 * self.a2 * r.a12 + 2. * self.a0 * self.a3 * r.a13 + 2. * self.a0 * self.a7 * r.a0 - 2. * self.a0 * self.a8 * r.a15 - 2. * self.a0 * self.a12 * r.a2 + 2. * self.a0 * self.a13 * r.a3 - 2. * self.a0 * self.a15 * r.a8 + 2. * self.a1 * self.a2 * r.a9 - 2. * self.a1 * self.a3 * r.a10 - 2. * self.a1 * self.a9 * r.a2 + 2. * self.a1 * self.a10 * r.a3 + self.a2.powi(2) * r.a7 - 2. * self.a2 * self.a4 * r.a5 - 2. * self.a2 * self.a5 * r.a4 + 2. * self.a2 * self.a7 * r.a2 + 2. * self.a2 * self.a9 * r.a1 - 2. * self.a2 * self.a12 * r.a0 + self.a3.powi(2) * r.a7 - 2. * self.a3 * self.a4 * r.a6 - 2. * self.a3 * self.a6 * r.a4 + 2. * self.a3 * self.a7 * r.a3 - 2. * self.a3 * self.a10 * r.a1 + 2. * self.a3 * self.a13 * r.a0 - self.a4.powi(2) * r.a7 + 2. * self.a4 * self.a5 * r.a2 + 2. * self.a4 * self.a6 * r.a3 + 2. * self.a4 * self.a7 * r.a4 + 2. * self.a4 * self.a14 * r.a15 - 2. * self.a4 * self.a15 * r.a14 - 2. * self.a5 * self.a8 * r.a10 + 2. * self.a5 * self.a10 * r.a8 - 2. * self.a6 * self.a8 * r.a9 + 2. * self.a6 * self.a9 * r.a8 - 2. * self.a7 * self.a8 * r.a8 - 2. * self.a7 * self.a9 * r.a9 - 2. * self.a7 * self.a10 * r.a10 - 2. * self.a7 * self.a14 * r.a14 - self.a8.powi(2) * r.a7 - 2. * self.a8 * self.a9 * r.a6 - 2. * self.a8 * self.a10 * r.a5 - 2. * self.a8 * self.a15 * r.a0 + self.a9.powi(2) * r.a7 - 2. * self.a9 * self.a13 * r.a14 + 2. * self.a9 * self.a14 * r.a13 + self.a10.powi(2) * r.a7 + 2. * self.a10 * self.a12 * r.a14 - 2. * self.a10 * self.a14 * r.a12 + 2. * self.a12 * self.a14 * r.a10 - 2. * self.a13 * self.a14 * r.a9 + self.a14.powi(2) * r.a7 - 2. * self.a14 * self.a15 * r.a4,
-            a8: self.a0.powi(2) * r.a8 + 2. * self.a0 * self.a4 * r.a14 + 2. * self.a0 * self.a8 * r.a0 + 2. * self.a0 * self.a14 * r.a4 - self.a2.powi(2) * r.a8 + 2. * self.a2 * self.a4 * r.a10 + 2. * self.a2 * self.a8 * r.a2 - 2. * self.a2 * self.a10 * r.a4 - self.a3.powi(2) * r.a8 + 2. * self.a3 * self.a4 * r.a9 + 2. * self.a3 * self.a8 * r.a3 - 2. * self.a3 * self.a9 * r.a4 + self.a4.powi(2) * r.a8 + 2. * self.a4 * self.a8 * r.a4 + 2. * self.a4 * self.a9 * r.a3 + 2. * self.a4 * self.a10 * r.a2 + 2. * self.a4 * self.a14 * r.a0 - self.a8.powi(2) * r.a8 - 2. * self.a8 * self.a9 * r.a9 - 2. * self.a8 * self.a10 * r.a10 - 2. * self.a8 * self.a14 * r.a14 + self.a9.powi(2) * r.a8 + self.a10.powi(2) * r.a8 - self.a14.powi(2) * r.a8,
-            a9: self.a0.powi(2) * r.a9 + 2. * self.a0 * self.a3 * r.a14 + 2. * self.a0 * self.a9 * r.a0 + 2. * self.a0 * self.a14 * r.a3 - self.a2.powi(2) * r.a9 + 2. * self.a2 * self.a3 * r.a10 + 2. * self.a2 * self.a9 * r.a2 - 2. * self.a2 * self.a10 * r.a3 + self.a3.powi(2) * r.a9 + 2. * self.a3 * self.a4 * r.a8 + 2. * self.a3 * self.a8 * r.a4 + 2. * self.a3 * self.a9 * r.a3 + 2. * self.a3 * self.a10 * r.a2 + 2. * self.a3 * self.a14 * r.a0 - self.a4.powi(2) * r.a9 - 2. * self.a4 * self.a8 * r.a3 + 2. * self.a4 * self.a9 * r.a4 + self.a8.powi(2) * r.a9 - 2. * self.a8 * self.a9 * r.a8 - self.a9.powi(2) * r.a9 - 2. * self.a9 * self.a10 * r.a10 - 2. * self.a9 * self.a14 * r.a14 + self.a10.powi(2) * r.a9 - self.a14.powi(2) * r.a9,
-            a10: self.a0.powi(2) * r.a10 + 2. * self.a0 * self.a2 * r.a14 + 2. * self.a0 * self.a10 * r.a0 + 2. * self.a0 * self.a14 * r.a2 + self.a2.powi(2) * r.a10 + 2. * self.a2 * self.a3 * r.a9 + 2. * self.a2 * self.a4 * r.a8 + 2. * self.a2 * self.a8 * r.a4 + 2. * self.a2 * self.a9 * r.a3 + 2. * self.a2 * self.a10 * r.a2 + 2. * self.a2 * self.a14 * r.a0 - self.a3.powi(2) * r.a10 - 2. * self.a3 * self.a9 * r.a2 + 2. * self.a3 * self.a10 * r.a3 - self.a4.powi(2) * r.a10 - 2. * self.a4 * self.a8 * r.a2 + 2. * self.a4 * self.a10 * r.a4 + self.a8.powi(2) * r.a10 - 2. * self.a8 * self.a10 * r.a8 + self.a9.powi(2) * r.a10 - 2. * self.a9 * self.a10 * r.a9 - self.a10.powi(2) * r.a10 - 2. * self.a10 * self.a14 * r.a14 - self.a14.powi(2) * r.a10,
-            a11: self.a0.powi(2) * r.a11 - 2. * self.a0 * self.a1 * r.a8 + 2. * self.a0 * self.a2 * r.a6 - 2. * self.a0 * self.a3 * r.a5 - 2. * self.a0 * self.a5 * r.a3 + 2. * self.a0 * self.a6 * r.a2 - 2. * self.a0 * self.a8 * r.a1 + 2. * self.a0 * self.a11 * r.a0 - 2. * self.a1 * self.a4 * r.a14 - 2. * self.a1 * self.a8 * r.a0 - 2. * self.a1 * self.a14 * r.a4 + self.a2.powi(2) * r.a11 - 2. * self.a2 * self.a4 * r.a13 + 2. * self.a2 * self.a6 * r.a0 - 2. * self.a2 * self.a9 * r.a15 + 2. * self.a2 * self.a11 * r.a2 - 2. * self.a2 * self.a13 * r.a4 - 2. * self.a2 * self.a15 * r.a9 + self.a3.powi(2) * r.a11 - 2. * self.a3 * self.a4 * r.a12 - 2. * self.a3 * self.a5 * r.a0 + 2. * self.a3 * self.a10 * r.a15 + 2. * self.a3 * self.a11 * r.a3 - 2. * self.a3 * self.a12 * r.a4 + 2. * self.a3 * self.a15 * r.a10 - self.a4.powi(2) * r.a11 + 2. * self.a4 * self.a11 * r.a4 + 2. * self.a4 * self.a12 * r.a3 + 2. * self.a4 * self.a13 * r.a2 + 2. * self.a4 * self.a14 * r.a1 + 2. * self.a5 * self.a9 * r.a14 + 2. * self.a5 * self.a14 * r.a9 - 2. * self.a6 * self.a10 * r.a14 - 2. * self.a6 * self.a14 * r.a10 - self.a8.powi(2) * r.a11 - 2. * self.a8 * self.a9 * r.a12 - 2. * self.a8 * self.a10 * r.a13 - 2. * self.a8 * self.a11 * r.a8 - 2. * self.a8 * self.a12 * r.a9 - 2. * self.a8 * self.a13 * r.a10 + self.a9.powi(2) * r.a11 - 2. * self.a9 * self.a11 * r.a9 + 2. * self.a9 * self.a12 * r.a8 - 2. * self.a9 * self.a14 * r.a5 + 2. * self.a9 * self.a15 * r.a2 + self.a10.powi(2) * r.a11 - 2. * self.a10 * self.a11 * r.a10 + 2. * self.a10 * self.a13 * r.a8 + 2. * self.a10 * self.a14 * r.a6 - 2. * self.a10 * self.a15 * r.a3 - 2. * self.a11 * self.a14 * r.a14 + self.a14.powi(2) * r.a11,
-            a12: self.a0.powi(2) * r.a12 - 2. * self.a0 * self.a1 * r.a9 - 2. * self.a0 * self.a2 * r.a7 + 2. * self.a0 * self.a4 * r.a5 + 2. * self.a0 * self.a5 * r.a4 - 2. * self.a0 * self.a7 * r.a2 - 2. * self.a0 * self.a9 * r.a1 + 2. * self.a0 * self.a12 * r.a0 - 2. * self.a1 * self.a3 * r.a14 - 2. * self.a1 * self.a9 * r.a0 - 2. * self.a1 * self.a14 * r.a3 + self.a2.powi(2) * r.a12 - 2. * self.a2 * self.a3 * r.a13 - 2. * self.a2 * self.a7 * r.a0 + 2. * self.a2 * self.a8 * r.a15 + 2. * self.a2 * self.a12 * r.a2 - 2. * self.a2 * self.a13 * r.a3 + 2. * self.a2 * self.a15 * r.a8 - self.a3.powi(2) * r.a12 - 2. * self.a3 * self.a4 * r.a11 + 2. * self.a3 * self.a11 * r.a4 + 2. * self.a3 * self.a12 * r.a3 + 2. * self.a3 * self.a13 * r.a2 + 2. * self.a3 * self.a14 * r.a1 + self.a4.powi(2) * r.a12 + 2. * self.a4 * self.a5 * r.a0 - 2. * self.a4 * self.a10 * r.a15 - 2. * self.a4 * self.a11 * r.a3 + 2. * self.a4 * self.a12 * r.a4 - 2. * self.a4 * self.a15 * r.a10 - 2. * self.a5 * self.a8 * r.a14 - 2. * self.a5 * self.a14 * r.a8 + 2. * self.a7 * self.a10 * r.a14 + 2. * self.a7 * self.a14 * r.a10 + self.a8.powi(2) * r.a12 - 2. * self.a8 * self.a9 * r.a11 + 2. * self.a8 * self.a11 * r.a9 - 2. * self.a8 * self.a12 * r.a8 + 2. * self.a8 * self.a14 * r.a5 - 2. * self.a8 * self.a15 * r.a2 - self.a9.powi(2) * r.a12 - 2. * self.a9 * self.a10 * r.a13 - 2. * self.a9 * self.a11 * r.a8 - 2. * self.a9 * self.a12 * r.a9 - 2. * self.a9 * self.a13 * r.a10 + self.a10.powi(2) * r.a12 - 2. * self.a10 * self.a12 * r.a10 + 2. * self.a10 * self.a13 * r.a9 - 2. * self.a10 * self.a14 * r.a7 + 2. * self.a10 * self.a15 * r.a4 - 2. * self.a12 * self.a14 * r.a14 + self.a14.powi(2) * r.a12,
-            a13: self.a0.powi(2) * r.a13 - 2. * self.a0 * self.a1 * r.a10 + 2. * self.a0 * self.a3 * r.a7 - 2. * self.a0 * self.a4 * r.a6 - 2. * self.a0 * self.a6 * r.a4 + 2. * self.a0 * self.a7 * r.a3 - 2. * self.a0 * self.a10 * r.a1 + 2. * self.a0 * self.a13 * r.a0 - 2. * self.a1 * self.a2 * r.a14 - 2. * self.a1 * self.a10 * r.a0 - 2. * self.a1 * self.a14 * r.a2 - self.a2.powi(2) * r.a13 - 2. * self.a2 * self.a3 * r.a12 - 2. * self.a2 * self.a4 * r.a11 + 2. * self.a2 * self.a11 * r.a4 + 2. * self.a2 * self.a12 * r.a3 + 2. * self.a2 * self.a13 * r.a2 + 2. * self.a2 * self.a14 * r.a1 + self.a3.powi(2) * r.a13 + 2. * self.a3 * self.a7 * r.a0 - 2. * self.a3 * self.a8 * r.a15 - 2. * self.a3 * self.a12 * r.a2 + 2. * self.a3 * self.a13 * r.a3 - 2. * self.a3 * self.a15 * r.a8 + self.a4.powi(2) * r.a13 - 2. * self.a4 * self.a6 * r.a0 + 2. * self.a4 * self.a9 * r.a15 - 2. * self.a4 * self.a11 * r.a2 + 2. * self.a4 * self.a13 * r.a4 + 2. * self.a4 * self.a15 * r.a9 + 2. * self.a6 * self.a8 * r.a14 + 2. * self.a6 * self.a14 * r.a8 - 2. * self.a7 * self.a9 * r.a14 - 2. * self.a7 * self.a14 * r.a9 + self.a8.powi(2) * r.a13 - 2. * self.a8 * self.a10 * r.a11 + 2. * self.a8 * self.a11 * r.a10 - 2. * self.a8 * self.a13 * r.a8 - 2. * self.a8 * self.a14 * r.a6 + 2. * self.a8 * self.a15 * r.a3 + self.a9.powi(2) * r.a13 - 2. * self.a9 * self.a10 * r.a12 + 2. * self.a9 * self.a12 * r.a10 - 2. * self.a9 * self.a13 * r.a9 + 2. * self.a9 * self.a14 * r.a7 - 2. * self.a9 * self.a15 * r.a4 - self.a10.powi(2) * r.a13 - 2. * self.a10 * self.a11 * r.a8 - 2. * self.a10 * self.a12 * r.a9 - 2. * self.a10 * self.a13 * r.a10 - 2. * self.a13 * self.a14 * r.a14 + self.a14.powi(2) * r.a13,
-            a14: self.a0.powi(2) * r.a14 + 2. * self.a0 * self.a2 * r.a10 + 2. * self.a0 * self.a3 * r.a9 + 2. * self.a0 * self.a4 * r.a8 + 2. * self.a0 * self.a8 * r.a4 + 2. * self.a0 * self.a9 * r.a3 + 2. * self.a0 * self.a10 * r.a2 + 2. * self.a0 * self.a14 * r.a0 + self.a2.powi(2) * r.a14 + 2. * self.a2 * self.a10 * r.a0 + 2. * self.a2 * self.a14 * r.a2 + self.a3.powi(2) * r.a14 + 2. * self.a3 * self.a9 * r.a0 + 2. * self.a3 * self.a14 * r.a3 + self.a4.powi(2) * r.a14 + 2. * self.a4 * self.a8 * r.a0 + 2. * self.a4 * self.a14 * r.a4 - self.a8.powi(2) * r.a14 - 2. * self.a8 * self.a14 * r.a8 - self.a9.powi(2) * r.a14 - 2. * self.a9 * self.a14 * r.a9 - self.a10.powi(2) * r.a14 - 2. * self.a10 * self.a14 * r.a10 - self.a14.powi(2) * r.a14,
-            a15: self.a0.powi(2) * r.a15 + 2. * self.a0 * self.a5 * r.a10 + 2. * self.a0 * self.a6 * r.a9 + 2. * self.a0 * self.a7 * r.a8 + 2. * self.a0 * self.a8 * r.a7 + 2. * self.a0 * self.a9 * r.a6 + 2. * self.a0 * self.a10 * r.a5 + 2. * self.a0 * self.a15 * r.a0 - self.a2.powi(2) * r.a15 + 2. * self.a2 * self.a5 * r.a14 - 2. * self.a2 * self.a8 * r.a12 + 2. * self.a2 * self.a9 * r.a11 - 2. * self.a2 * self.a11 * r.a9 + 2. * self.a2 * self.a12 * r.a8 - 2. * self.a2 * self.a14 * r.a5 + 2. * self.a2 * self.a15 * r.a2 - self.a3.powi(2) * r.a15 + 2. * self.a3 * self.a6 * r.a14 + 2. * self.a3 * self.a8 * r.a13 - 2. * self.a3 * self.a10 * r.a11 + 2. * self.a3 * self.a11 * r.a10 - 2. * self.a3 * self.a13 * r.a8 - 2. * self.a3 * self.a14 * r.a6 + 2. * self.a3 * self.a15 * r.a3 - self.a4.powi(2) * r.a15 + 2. * self.a4 * self.a7 * r.a14 - 2. * self.a4 * self.a9 * r.a13 + 2. * self.a4 * self.a10 * r.a12 - 2. * self.a4 * self.a12 * r.a10 + 2. * self.a4 * self.a13 * r.a9 - 2. * self.a4 * self.a14 * r.a7 + 2. * self.a4 * self.a15 * r.a4 + 2. * self.a5 * self.a10 * r.a0 + 2. * self.a5 * self.a14 * r.a2 + 2. * self.a6 * self.a9 * r.a0 + 2. * self.a6 * self.a14 * r.a3 + 2. * self.a7 * self.a8 * r.a0 + 2. * self.a7 * self.a14 * r.a4 - self.a8.powi(2) * r.a15 - 2. * self.a8 * self.a12 * r.a2 + 2. * self.a8 * self.a13 * r.a3 - 2. * self.a8 * self.a15 * r.a8 - self.a9.powi(2) * r.a15 + 2. * self.a9 * self.a11 * r.a2 - 2. * self.a9 * self.a13 * r.a4 - 2. * self.a9 * self.a15 * r.a9 - self.a10.powi(2) * r.a15 - 2. * self.a10 * self.a11 * r.a3 + 2. * self.a10 * self.a12 * r.a4 - 2. * self.a10 * self.a15 * r.a10 + self.a14.powi(2) * r.a15 - 2. * self.a14 * self.a15 * r.a14,
+            a0: self.a0 * r.a0.powi(2) + self.a0 * r.a2.powi(2) + self.a0 * r.a3.powi(2) + self.a0 * r.a4.powi(2) - self.a0 * r.a8.powi(2) - self.a0 * r.a9.powi(2) - self.a0 * r.a10.powi(2) - self.a0 * r.a14.powi(2) + 2. * self.a2 * r.a0 * r.a2 - 2. * self.a2 * r.a10 * r.a14 + 2. * self.a3 * r.a0 * r.a3 - 2. * self.a3 * r.a9 * r.a14 + 2. * self.a4 * r.a0 * r.a4 - 2. * self.a4 * r.a8 * r.a14 - 2. * self.a8 * r.a0 * r.a8 - 2. * self.a8 * r.a4 * r.a14 - 2. * self.a9 * r.a0 * r.a9 - 2. * self.a9 * r.a3 * r.a14 - 2. * self.a10 * r.a0 * r.a10 - 2. * self.a10 * r.a2 * r.a14 - 2. * self.a14 * r.a0 * r.a14 - 2. * self.a14 * r.a2 * r.a10 - 2. * self.a14 * r.a3 * r.a9 - 2. * self.a14 * r.a4 * r.a8,
+            a1: 2. * self.a0 * r.a0 * r.a1 + 2. * self.a0 * r.a8 * r.a11 + 2. * self.a0 * r.a9 * r.a12 + 2. * self.a0 * r.a10 * r.a13 + self.a1 * r.a0.powi(2) - self.a1 * r.a2.powi(2) - self.a1 * r.a3.powi(2) - self.a1 * r.a4.powi(2) - self.a1 * r.a8.powi(2) - self.a1 * r.a9.powi(2) - self.a1 * r.a10.powi(2) + self.a1 * r.a14.powi(2) + 2. * self.a2 * r.a1 * r.a2 + 2. * self.a2 * r.a6 * r.a8 - 2. * self.a2 * r.a7 * r.a9 + 2. * self.a2 * r.a13 * r.a14 + 2. * self.a3 * r.a1 * r.a3 - 2. * self.a3 * r.a5 * r.a8 + 2. * self.a3 * r.a7 * r.a10 + 2. * self.a3 * r.a12 * r.a14 + 2. * self.a4 * r.a1 * r.a4 + 2. * self.a4 * r.a5 * r.a9 - 2. * self.a4 * r.a6 * r.a10 + 2. * self.a4 * r.a11 * r.a14 - 2. * self.a5 * r.a3 * r.a8 + 2. * self.a5 * r.a4 * r.a9 + 2. * self.a6 * r.a2 * r.a8 - 2. * self.a6 * r.a4 * r.a10 - 2. * self.a7 * r.a2 * r.a9 + 2. * self.a7 * r.a3 * r.a10 + 2. * self.a8 * r.a0 * r.a11 - 2. * self.a8 * r.a1 * r.a8 - 2. * self.a8 * r.a2 * r.a6 + 2. * self.a8 * r.a3 * r.a5 + 2. * self.a9 * r.a0 * r.a12 - 2. * self.a9 * r.a1 * r.a9 + 2. * self.a9 * r.a2 * r.a7 - 2. * self.a9 * r.a4 * r.a5 + 2. * self.a10 * r.a0 * r.a13 - 2. * self.a10 * r.a1 * r.a10 - 2. * self.a10 * r.a3 * r.a7 + 2. * self.a10 * r.a4 * r.a6 + 2. * self.a11 * r.a0 * r.a8 - 2. * self.a11 * r.a4 * r.a14 + 2. * self.a12 * r.a0 * r.a9 - 2. * self.a12 * r.a3 * r.a14 + 2. * self.a13 * r.a0 * r.a10 - 2. * self.a13 * r.a2 * r.a14 - 2. * self.a14 * r.a1 * r.a14 + 2. * self.a14 * r.a2 * r.a13 + 2. * self.a14 * r.a3 * r.a12 + 2. * self.a14 * r.a4 * r.a11,
+            a2: 2. * self.a0 * r.a0 * r.a2 - 2. * self.a0 * r.a10 * r.a14 + self.a2 * r.a0.powi(2) + self.a2 * r.a2.powi(2) - self.a2 * r.a3.powi(2) - self.a2 * r.a4.powi(2) + self.a2 * r.a8.powi(2) + self.a2 * r.a9.powi(2) - self.a2 * r.a10.powi(2) - self.a2 * r.a14.powi(2) + 2. * self.a3 * r.a2 * r.a3 - 2. * self.a3 * r.a9 * r.a10 + 2. * self.a4 * r.a2 * r.a4 - 2. * self.a4 * r.a8 * r.a10 - 2. * self.a8 * r.a2 * r.a8 - 2. * self.a8 * r.a4 * r.a10 - 2. * self.a9 * r.a2 * r.a9 - 2. * self.a9 * r.a3 * r.a10 - 2. * self.a10 * r.a0 * r.a14 - 2. * self.a10 * r.a2 * r.a10 + 2. * self.a10 * r.a3 * r.a9 + 2. * self.a10 * r.a4 * r.a8 - 2. * self.a14 * r.a0 * r.a10 - 2. * self.a14 * r.a2 * r.a14,
+            a3: 2. * self.a0 * r.a0 * r.a3 - 2. * self.a0 * r.a9 * r.a14 + 2. * self.a2 * r.a2 * r.a3 - 2. * self.a2 * r.a9 * r.a10 + self.a3 * r.a0.powi(2) - self.a3 * r.a2.powi(2) + self.a3 * r.a3.powi(2) - self.a3 * r.a4.powi(2) + self.a3 * r.a8.powi(2) - self.a3 * r.a9.powi(2) + self.a3 * r.a10.powi(2) - self.a3 * r.a14.powi(2) + 2. * self.a4 * r.a3 * r.a4 - 2. * self.a4 * r.a8 * r.a9 - 2. * self.a8 * r.a3 * r.a8 - 2. * self.a8 * r.a4 * r.a9 - 2. * self.a9 * r.a0 * r.a14 + 2. * self.a9 * r.a2 * r.a10 - 2. * self.a9 * r.a3 * r.a9 + 2. * self.a9 * r.a4 * r.a8 - 2. * self.a10 * r.a2 * r.a9 - 2. * self.a10 * r.a3 * r.a10 - 2. * self.a14 * r.a0 * r.a9 - 2. * self.a14 * r.a3 * r.a14,
+            a4: 2. * self.a0 * r.a0 * r.a4 - 2. * self.a0 * r.a8 * r.a14 + 2. * self.a2 * r.a2 * r.a4 - 2. * self.a2 * r.a8 * r.a10 + 2. * self.a3 * r.a3 * r.a4 - 2. * self.a3 * r.a8 * r.a9 + self.a4 * r.a0.powi(2) - self.a4 * r.a2.powi(2) - self.a4 * r.a3.powi(2) + self.a4 * r.a4.powi(2) - self.a4 * r.a8.powi(2) + self.a4 * r.a9.powi(2) + self.a4 * r.a10.powi(2) - self.a4 * r.a14.powi(2) - 2. * self.a8 * r.a0 * r.a14 + 2. * self.a8 * r.a2 * r.a10 + 2. * self.a8 * r.a3 * r.a9 - 2. * self.a8 * r.a4 * r.a8 - 2. * self.a9 * r.a3 * r.a8 - 2. * self.a9 * r.a4 * r.a9 - 2. * self.a10 * r.a2 * r.a8 - 2. * self.a10 * r.a4 * r.a10 - 2. * self.a14 * r.a0 * r.a8 - 2. * self.a14 * r.a4 * r.a14,
+            a5: 2. * self.a0 * r.a0 * r.a5 - 2. * self.a0 * r.a3 * r.a11 + 2. * self.a0 * r.a4 * r.a12 - 2. * self.a0 * r.a10 * r.a15 + 2. * self.a1 * r.a3 * r.a8 - 2. * self.a1 * r.a4 * r.a9 + 2. * self.a2 * r.a2 * r.a5 - 2. * self.a2 * r.a3 * r.a6 - 2. * self.a2 * r.a4 * r.a7 - 2. * self.a2 * r.a14 * r.a15 - 2. * self.a3 * r.a0 * r.a11 - 2. * self.a3 * r.a1 * r.a8 + 2. * self.a3 * r.a2 * r.a6 + 2. * self.a3 * r.a3 * r.a5 + 2. * self.a4 * r.a0 * r.a12 + 2. * self.a4 * r.a1 * r.a9 + 2. * self.a4 * r.a2 * r.a7 + 2. * self.a4 * r.a4 * r.a5 + self.a5 * r.a0.powi(2) - self.a5 * r.a2.powi(2) + self.a5 * r.a3.powi(2) + self.a5 * r.a4.powi(2) + self.a5 * r.a8.powi(2) + self.a5 * r.a9.powi(2) - self.a5 * r.a10.powi(2) + self.a5 * r.a14.powi(2) - 2. * self.a6 * r.a2 * r.a3 - 2. * self.a6 * r.a9 * r.a10 - 2. * self.a7 * r.a2 * r.a4 - 2. * self.a7 * r.a8 * r.a10 + 2. * self.a8 * r.a1 * r.a3 - 2. * self.a8 * r.a5 * r.a8 - 2. * self.a8 * r.a7 * r.a10 - 2. * self.a8 * r.a12 * r.a14 - 2. * self.a9 * r.a1 * r.a4 - 2. * self.a9 * r.a5 * r.a9 - 2. * self.a9 * r.a6 * r.a10 + 2. * self.a9 * r.a11 * r.a14 - 2. * self.a10 * r.a0 * r.a15 - 2. * self.a10 * r.a5 * r.a10 + 2. * self.a10 * r.a6 * r.a9 + 2. * self.a10 * r.a7 * r.a8 - 2. * self.a11 * r.a0 * r.a3 - 2. * self.a11 * r.a9 * r.a14 + 2. * self.a12 * r.a0 * r.a4 + 2. * self.a12 * r.a8 * r.a14 - 2. * self.a14 * r.a2 * r.a15 - 2. * self.a14 * r.a5 * r.a14 - 2. * self.a14 * r.a8 * r.a12 + 2. * self.a14 * r.a9 * r.a11 - 2. * self.a15 * r.a0 * r.a10 + 2. * self.a15 * r.a2 * r.a14,
+            a6: 2. * self.a0 * r.a0 * r.a6 + 2. * self.a0 * r.a2 * r.a11 - 2. * self.a0 * r.a4 * r.a13 - 2. * self.a0 * r.a9 * r.a15 - 2. * self.a1 * r.a2 * r.a8 + 2. * self.a1 * r.a4 * r.a10 + 2. * self.a2 * r.a0 * r.a11 + 2. * self.a2 * r.a1 * r.a8 + 2. * self.a2 * r.a2 * r.a6 + 2. * self.a2 * r.a3 * r.a5 - 2. * self.a3 * r.a2 * r.a5 + 2. * self.a3 * r.a3 * r.a6 - 2. * self.a3 * r.a4 * r.a7 - 2. * self.a3 * r.a14 * r.a15 - 2. * self.a4 * r.a0 * r.a13 - 2. * self.a4 * r.a1 * r.a10 + 2. * self.a4 * r.a3 * r.a7 + 2. * self.a4 * r.a4 * r.a6 - 2. * self.a5 * r.a2 * r.a3 - 2. * self.a5 * r.a9 * r.a10 + self.a6 * r.a0.powi(2) + self.a6 * r.a2.powi(2) - self.a6 * r.a3.powi(2) + self.a6 * r.a4.powi(2) + self.a6 * r.a8.powi(2) - self.a6 * r.a9.powi(2) + self.a6 * r.a10.powi(2) + self.a6 * r.a14.powi(2) - 2. * self.a7 * r.a3 * r.a4 - 2. * self.a7 * r.a8 * r.a9 - 2. * self.a8 * r.a1 * r.a2 - 2. * self.a8 * r.a6 * r.a8 - 2. * self.a8 * r.a7 * r.a9 + 2. * self.a8 * r.a13 * r.a14 - 2. * self.a9 * r.a0 * r.a15 + 2. * self.a9 * r.a5 * r.a10 - 2. * self.a9 * r.a6 * r.a9 + 2. * self.a9 * r.a7 * r.a8 + 2. * self.a10 * r.a1 * r.a4 - 2. * self.a10 * r.a5 * r.a9 - 2. * self.a10 * r.a6 * r.a10 - 2. * self.a10 * r.a11 * r.a14 + 2. * self.a11 * r.a0 * r.a2 + 2. * self.a11 * r.a10 * r.a14 - 2. * self.a13 * r.a0 * r.a4 - 2. * self.a13 * r.a8 * r.a14 - 2. * self.a14 * r.a3 * r.a15 - 2. * self.a14 * r.a6 * r.a14 + 2. * self.a14 * r.a8 * r.a13 - 2. * self.a14 * r.a10 * r.a11 - 2. * self.a15 * r.a0 * r.a9 + 2. * self.a15 * r.a3 * r.a14,
+            a7: 2. * self.a0 * r.a0 * r.a7 - 2. * self.a0 * r.a2 * r.a12 + 2. * self.a0 * r.a3 * r.a13 - 2. * self.a0 * r.a8 * r.a15 + 2. * self.a1 * r.a2 * r.a9 - 2. * self.a1 * r.a3 * r.a10 - 2. * self.a2 * r.a0 * r.a12 - 2. * self.a2 * r.a1 * r.a9 + 2. * self.a2 * r.a2 * r.a7 + 2. * self.a2 * r.a4 * r.a5 + 2. * self.a3 * r.a0 * r.a13 + 2. * self.a3 * r.a1 * r.a10 + 2. * self.a3 * r.a3 * r.a7 + 2. * self.a3 * r.a4 * r.a6 - 2. * self.a4 * r.a2 * r.a5 - 2. * self.a4 * r.a3 * r.a6 + 2. * self.a4 * r.a4 * r.a7 - 2. * self.a4 * r.a14 * r.a15 - 2. * self.a5 * r.a2 * r.a4 - 2. * self.a5 * r.a8 * r.a10 - 2. * self.a6 * r.a3 * r.a4 - 2. * self.a6 * r.a8 * r.a9 + self.a7 * r.a0.powi(2) + self.a7 * r.a2.powi(2) + self.a7 * r.a3.powi(2) - self.a7 * r.a4.powi(2) - self.a7 * r.a8.powi(2) + self.a7 * r.a9.powi(2) + self.a7 * r.a10.powi(2) + self.a7 * r.a14.powi(2) - 2. * self.a8 * r.a0 * r.a15 + 2. * self.a8 * r.a5 * r.a10 + 2. * self.a8 * r.a6 * r.a9 - 2. * self.a8 * r.a7 * r.a8 + 2. * self.a9 * r.a1 * r.a2 - 2. * self.a9 * r.a6 * r.a8 - 2. * self.a9 * r.a7 * r.a9 - 2. * self.a9 * r.a13 * r.a14 - 2. * self.a10 * r.a1 * r.a3 - 2. * self.a10 * r.a5 * r.a8 - 2. * self.a10 * r.a7 * r.a10 + 2. * self.a10 * r.a12 * r.a14 - 2. * self.a12 * r.a0 * r.a2 - 2. * self.a12 * r.a10 * r.a14 + 2. * self.a13 * r.a0 * r.a3 + 2. * self.a13 * r.a9 * r.a14 - 2. * self.a14 * r.a4 * r.a15 - 2. * self.a14 * r.a7 * r.a14 - 2. * self.a14 * r.a9 * r.a13 + 2. * self.a14 * r.a10 * r.a12 - 2. * self.a15 * r.a0 * r.a8 + 2. * self.a15 * r.a4 * r.a14,
+            a8: 2. * self.a0 * r.a0 * r.a8 + 2. * self.a0 * r.a4 * r.a14 + 2. * self.a2 * r.a2 * r.a8 + 2. * self.a2 * r.a4 * r.a10 + 2. * self.a3 * r.a3 * r.a8 + 2. * self.a3 * r.a4 * r.a9 + 2. * self.a4 * r.a0 * r.a14 - 2. * self.a4 * r.a2 * r.a10 - 2. * self.a4 * r.a3 * r.a9 + 2. * self.a4 * r.a4 * r.a8 + self.a8 * r.a0.powi(2) - self.a8 * r.a2.powi(2) - self.a8 * r.a3.powi(2) + self.a8 * r.a4.powi(2) - self.a8 * r.a8.powi(2) + self.a8 * r.a9.powi(2) + self.a8 * r.a10.powi(2) - self.a8 * r.a14.powi(2) + 2. * self.a9 * r.a3 * r.a4 - 2. * self.a9 * r.a8 * r.a9 + 2. * self.a10 * r.a2 * r.a4 - 2. * self.a10 * r.a8 * r.a10 + 2. * self.a14 * r.a0 * r.a4 - 2. * self.a14 * r.a8 * r.a14,
+            a9: 2. * self.a0 * r.a0 * r.a9 + 2. * self.a0 * r.a3 * r.a14 + 2. * self.a2 * r.a2 * r.a9 + 2. * self.a2 * r.a3 * r.a10 + 2. * self.a3 * r.a0 * r.a14 - 2. * self.a3 * r.a2 * r.a10 + 2. * self.a3 * r.a3 * r.a9 - 2. * self.a3 * r.a4 * r.a8 + 2. * self.a4 * r.a3 * r.a8 + 2. * self.a4 * r.a4 * r.a9 + 2. * self.a8 * r.a3 * r.a4 - 2. * self.a8 * r.a8 * r.a9 + self.a9 * r.a0.powi(2) - self.a9 * r.a2.powi(2) + self.a9 * r.a3.powi(2) - self.a9 * r.a4.powi(2) + self.a9 * r.a8.powi(2) - self.a9 * r.a9.powi(2) + self.a9 * r.a10.powi(2) - self.a9 * r.a14.powi(2) + 2. * self.a10 * r.a2 * r.a3 - 2. * self.a10 * r.a9 * r.a10 + 2. * self.a14 * r.a0 * r.a3 - 2. * self.a14 * r.a9 * r.a14,
+            a10: 2. * self.a0 * r.a0 * r.a10 + 2. * self.a0 * r.a2 * r.a14 + 2. * self.a2 * r.a0 * r.a14 + 2. * self.a2 * r.a2 * r.a10 - 2. * self.a2 * r.a3 * r.a9 - 2. * self.a2 * r.a4 * r.a8 + 2. * self.a3 * r.a2 * r.a9 + 2. * self.a3 * r.a3 * r.a10 + 2. * self.a4 * r.a2 * r.a8 + 2. * self.a4 * r.a4 * r.a10 + 2. * self.a8 * r.a2 * r.a4 - 2. * self.a8 * r.a8 * r.a10 + 2. * self.a9 * r.a2 * r.a3 - 2. * self.a9 * r.a9 * r.a10 + self.a10 * r.a0.powi(2) + self.a10 * r.a2.powi(2) - self.a10 * r.a3.powi(2) - self.a10 * r.a4.powi(2) + self.a10 * r.a8.powi(2) + self.a10 * r.a9.powi(2) - self.a10 * r.a10.powi(2) - self.a10 * r.a14.powi(2) + 2. * self.a14 * r.a0 * r.a2 - 2. * self.a14 * r.a10 * r.a14,
+            a11: 2. * self.a0 * r.a0 * r.a11 - 2. * self.a0 * r.a1 * r.a8 + 2. * self.a0 * r.a2 * r.a6 - 2. * self.a0 * r.a3 * r.a5 - 2. * self.a1 * r.a0 * r.a8 + 2. * self.a1 * r.a4 * r.a14 + 2. * self.a2 * r.a0 * r.a6 + 2. * self.a2 * r.a2 * r.a11 + 2. * self.a2 * r.a4 * r.a13 + 2. * self.a2 * r.a9 * r.a15 - 2. * self.a3 * r.a0 * r.a5 + 2. * self.a3 * r.a3 * r.a11 + 2. * self.a3 * r.a4 * r.a12 - 2. * self.a3 * r.a10 * r.a15 - 2. * self.a4 * r.a1 * r.a14 - 2. * self.a4 * r.a2 * r.a13 - 2. * self.a4 * r.a3 * r.a12 + 2. * self.a4 * r.a4 * r.a11 - 2. * self.a5 * r.a0 * r.a3 - 2. * self.a5 * r.a9 * r.a14 + 2. * self.a6 * r.a0 * r.a2 + 2. * self.a6 * r.a10 * r.a14 - 2. * self.a8 * r.a0 * r.a1 - 2. * self.a8 * r.a8 * r.a11 + 2. * self.a8 * r.a9 * r.a12 + 2. * self.a8 * r.a10 * r.a13 - 2. * self.a9 * r.a2 * r.a15 + 2. * self.a9 * r.a5 * r.a14 - 2. * self.a9 * r.a8 * r.a12 - 2. * self.a9 * r.a9 * r.a11 + 2. * self.a10 * r.a3 * r.a15 - 2. * self.a10 * r.a6 * r.a14 - 2. * self.a10 * r.a8 * r.a13 - 2. * self.a10 * r.a10 * r.a11 + self.a11 * r.a0.powi(2) + self.a11 * r.a2.powi(2) + self.a11 * r.a3.powi(2) - self.a11 * r.a4.powi(2) - self.a11 * r.a8.powi(2) + self.a11 * r.a9.powi(2) + self.a11 * r.a10.powi(2) + self.a11 * r.a14.powi(2) - 2. * self.a12 * r.a3 * r.a4 - 2. * self.a12 * r.a8 * r.a9 - 2. * self.a13 * r.a2 * r.a4 - 2. * self.a13 * r.a8 * r.a10 - 2. * self.a14 * r.a1 * r.a4 + 2. * self.a14 * r.a5 * r.a9 - 2. * self.a14 * r.a6 * r.a10 - 2. * self.a14 * r.a11 * r.a14 - 2. * self.a15 * r.a2 * r.a9 + 2. * self.a15 * r.a3 * r.a10,
+            a12: 2. * self.a0 * r.a0 * r.a12 - 2. * self.a0 * r.a1 * r.a9 - 2. * self.a0 * r.a2 * r.a7 + 2. * self.a0 * r.a4 * r.a5 - 2. * self.a1 * r.a0 * r.a9 + 2. * self.a1 * r.a3 * r.a14 - 2. * self.a2 * r.a0 * r.a7 + 2. * self.a2 * r.a2 * r.a12 + 2. * self.a2 * r.a3 * r.a13 - 2. * self.a2 * r.a8 * r.a15 - 2. * self.a3 * r.a1 * r.a14 - 2. * self.a3 * r.a2 * r.a13 + 2. * self.a3 * r.a3 * r.a12 - 2. * self.a3 * r.a4 * r.a11 + 2. * self.a4 * r.a0 * r.a5 + 2. * self.a4 * r.a3 * r.a11 + 2. * self.a4 * r.a4 * r.a12 + 2. * self.a4 * r.a10 * r.a15 + 2. * self.a5 * r.a0 * r.a4 + 2. * self.a5 * r.a8 * r.a14 - 2. * self.a7 * r.a0 * r.a2 - 2. * self.a7 * r.a10 * r.a14 + 2. * self.a8 * r.a2 * r.a15 - 2. * self.a8 * r.a5 * r.a14 - 2. * self.a8 * r.a8 * r.a12 - 2. * self.a8 * r.a9 * r.a11 - 2. * self.a9 * r.a0 * r.a1 + 2. * self.a9 * r.a8 * r.a11 - 2. * self.a9 * r.a9 * r.a12 + 2. * self.a9 * r.a10 * r.a13 - 2. * self.a10 * r.a4 * r.a15 + 2. * self.a10 * r.a7 * r.a14 - 2. * self.a10 * r.a9 * r.a13 - 2. * self.a10 * r.a10 * r.a12 - 2. * self.a11 * r.a3 * r.a4 - 2. * self.a11 * r.a8 * r.a9 + self.a12 * r.a0.powi(2) + self.a12 * r.a2.powi(2) - self.a12 * r.a3.powi(2) + self.a12 * r.a4.powi(2) + self.a12 * r.a8.powi(2) - self.a12 * r.a9.powi(2) + self.a12 * r.a10.powi(2) + self.a12 * r.a14.powi(2) - 2. * self.a13 * r.a2 * r.a3 - 2. * self.a13 * r.a9 * r.a10 - 2. * self.a14 * r.a1 * r.a3 - 2. * self.a14 * r.a5 * r.a8 + 2. * self.a14 * r.a7 * r.a10 - 2. * self.a14 * r.a12 * r.a14 + 2. * self.a15 * r.a2 * r.a8 - 2. * self.a15 * r.a4 * r.a10,
+            a13: 2. * self.a0 * r.a0 * r.a13 - 2. * self.a0 * r.a1 * r.a10 + 2. * self.a0 * r.a3 * r.a7 - 2. * self.a0 * r.a4 * r.a6 - 2. * self.a1 * r.a0 * r.a10 + 2. * self.a1 * r.a2 * r.a14 - 2. * self.a2 * r.a1 * r.a14 + 2. * self.a2 * r.a2 * r.a13 - 2. * self.a2 * r.a3 * r.a12 - 2. * self.a2 * r.a4 * r.a11 + 2. * self.a3 * r.a0 * r.a7 + 2. * self.a3 * r.a2 * r.a12 + 2. * self.a3 * r.a3 * r.a13 + 2. * self.a3 * r.a8 * r.a15 - 2. * self.a4 * r.a0 * r.a6 + 2. * self.a4 * r.a2 * r.a11 + 2. * self.a4 * r.a4 * r.a13 - 2. * self.a4 * r.a9 * r.a15 - 2. * self.a6 * r.a0 * r.a4 - 2. * self.a6 * r.a8 * r.a14 + 2. * self.a7 * r.a0 * r.a3 + 2. * self.a7 * r.a9 * r.a14 - 2. * self.a8 * r.a3 * r.a15 + 2. * self.a8 * r.a6 * r.a14 - 2. * self.a8 * r.a8 * r.a13 - 2. * self.a8 * r.a10 * r.a11 + 2. * self.a9 * r.a4 * r.a15 - 2. * self.a9 * r.a7 * r.a14 - 2. * self.a9 * r.a9 * r.a13 - 2. * self.a9 * r.a10 * r.a12 - 2. * self.a10 * r.a0 * r.a1 + 2. * self.a10 * r.a8 * r.a11 + 2. * self.a10 * r.a9 * r.a12 - 2. * self.a10 * r.a10 * r.a13 - 2. * self.a11 * r.a2 * r.a4 - 2. * self.a11 * r.a8 * r.a10 - 2. * self.a12 * r.a2 * r.a3 - 2. * self.a12 * r.a9 * r.a10 + self.a13 * r.a0.powi(2) - self.a13 * r.a2.powi(2) + self.a13 * r.a3.powi(2) + self.a13 * r.a4.powi(2) + self.a13 * r.a8.powi(2) + self.a13 * r.a9.powi(2) - self.a13 * r.a10.powi(2) + self.a13 * r.a14.powi(2) - 2. * self.a14 * r.a1 * r.a2 + 2. * self.a14 * r.a6 * r.a8 - 2. * self.a14 * r.a7 * r.a9 - 2. * self.a14 * r.a13 * r.a14 - 2. * self.a15 * r.a3 * r.a8 + 2. * self.a15 * r.a4 * r.a9,
+            a14: 2. * self.a0 * r.a0 * r.a14 + 2. * self.a0 * r.a2 * r.a10 + 2. * self.a0 * r.a3 * r.a9 + 2. * self.a0 * r.a4 * r.a8 + 2. * self.a2 * r.a0 * r.a10 + 2. * self.a2 * r.a2 * r.a14 + 2. * self.a3 * r.a0 * r.a9 + 2. * self.a3 * r.a3 * r.a14 + 2. * self.a4 * r.a0 * r.a8 + 2. * self.a4 * r.a4 * r.a14 + 2. * self.a8 * r.a0 * r.a4 - 2. * self.a8 * r.a8 * r.a14 + 2. * self.a9 * r.a0 * r.a3 - 2. * self.a9 * r.a9 * r.a14 + 2. * self.a10 * r.a0 * r.a2 - 2. * self.a10 * r.a10 * r.a14 + self.a14 * r.a0.powi(2) + self.a14 * r.a2.powi(2) + self.a14 * r.a3.powi(2) + self.a14 * r.a4.powi(2) - self.a14 * r.a8.powi(2) - self.a14 * r.a9.powi(2) - self.a14 * r.a10.powi(2) - self.a14 * r.a14.powi(2),
+            a15: 2. * self.a0 * r.a0 * r.a15 + 2. * self.a0 * r.a5 * r.a10 + 2. * self.a0 * r.a6 * r.a9 + 2. * self.a0 * r.a7 * r.a8 + 2. * self.a2 * r.a2 * r.a15 + 2. * self.a2 * r.a5 * r.a14 - 2. * self.a2 * r.a8 * r.a12 + 2. * self.a2 * r.a9 * r.a11 + 2. * self.a3 * r.a3 * r.a15 + 2. * self.a3 * r.a6 * r.a14 + 2. * self.a3 * r.a8 * r.a13 - 2. * self.a3 * r.a10 * r.a11 + 2. * self.a4 * r.a4 * r.a15 + 2. * self.a4 * r.a7 * r.a14 - 2. * self.a4 * r.a9 * r.a13 + 2. * self.a4 * r.a10 * r.a12 + 2. * self.a5 * r.a0 * r.a10 - 2. * self.a5 * r.a2 * r.a14 + 2. * self.a6 * r.a0 * r.a9 - 2. * self.a6 * r.a3 * r.a14 + 2. * self.a7 * r.a0 * r.a8 - 2. * self.a7 * r.a4 * r.a14 + 2. * self.a8 * r.a0 * r.a7 + 2. * self.a8 * r.a2 * r.a12 - 2. * self.a8 * r.a3 * r.a13 - 2. * self.a8 * r.a8 * r.a15 + 2. * self.a9 * r.a0 * r.a6 - 2. * self.a9 * r.a2 * r.a11 + 2. * self.a9 * r.a4 * r.a13 - 2. * self.a9 * r.a9 * r.a15 + 2. * self.a10 * r.a0 * r.a5 + 2. * self.a10 * r.a3 * r.a11 - 2. * self.a10 * r.a4 * r.a12 - 2. * self.a10 * r.a10 * r.a15 + 2. * self.a11 * r.a2 * r.a9 - 2. * self.a11 * r.a3 * r.a10 - 2. * self.a12 * r.a2 * r.a8 + 2. * self.a12 * r.a4 * r.a10 + 2. * self.a13 * r.a3 * r.a8 - 2. * self.a13 * r.a4 * r.a9 + 2. * self.a14 * r.a2 * r.a5 + 2. * self.a14 * r.a3 * r.a6 + 2. * self.a14 * r.a4 * r.a7 - 2. * self.a14 * r.a14 * r.a15 + self.a15 * r.a0.powi(2) - self.a15 * r.a2.powi(2) - self.a15 * r.a3.powi(2) - self.a15 * r.a4.powi(2) - self.a15 * r.a8.powi(2) - self.a15 * r.a9.powi(2) - self.a15 * r.a10.powi(2) + self.a15 * r.a14.powi(2),
         }
     }
 }
@@ -6211,4 +7218,7 @@ impl Bivector {
         }
     }
 }
+
+pub const I: Pseudoscalar = Pseudoscalar { a15: 1. };
+
 
