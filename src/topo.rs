@@ -18,7 +18,7 @@ pub enum Direction {
     Reverse,
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Default)]
 pub struct Arena3D {
     // Memory arena representing objects with up to 3 dimensions
     pub vertices: Vec<Trivector>,
@@ -28,6 +28,83 @@ pub struct Arena3D {
 
     pub curves: Vec<Curve>,
     pub surfaces: Vec<Surface>,
+}
+
+impl Arena3D {
+    pub fn new() -> Arena3D {
+        Default::default()
+    }
+
+    pub fn assert_valid_vertex_index(&self, ix: VertexIndex) {
+        assert!(ix < self.vertices.len(), "Invalid vertex index {:?}", ix);
+    }
+
+    pub fn assert_valid_curve_index(&self, ix: VertexIndex) {
+        assert!(ix < self.curves.len(), "Invalid curve index {:?}", ix);
+    }
+
+    pub fn add_vertex(&mut self, vertex: Trivector) -> VertexIndex {
+        let ix = self.vertices.len();
+        self.vertices.push(vertex);
+        ix
+    }
+
+    pub fn add_edge(&mut self, edge: Edge) -> EdgeIndex {
+        let ix = self.edges.len();
+        self.edges.push(edge);
+        ix
+    }
+
+    pub fn add_edge_with_endpoints(&mut self, curve: CurveIndex, start: VertexIndex, end: VertexIndex) -> EdgeIndex {
+        self.assert_valid_curve_index(curve);
+        self.assert_valid_vertex_index(start);
+        self.assert_valid_vertex_index(end);
+
+        let ix = self.edges.len();
+        self.edges.push(Edge {
+            curve,
+            bounds: Some(EdgeEndpoints {
+                start,
+                end,
+            }),
+        });
+        ix
+    }
+
+    pub fn add_periodic_edge(&mut self, curve: CurveIndex) -> EdgeIndex {
+        self.assert_valid_curve_index(curve);
+
+        let ix = self.edges.len();
+        self.edges.push(Edge {
+            curve,
+            bounds: None,
+        });
+        ix
+    }
+
+    pub fn add_face(&mut self, face: Face) -> FaceIndex {
+        let ix = self.faces.len();
+        self.faces.push(face);
+        ix
+    }
+
+    pub fn add_solid(&mut self, solid: Solid) -> SolidIndex {
+        let ix = self.solids.len();
+        self.solids.push(solid);
+        ix
+    }
+
+    pub fn add_curve(&mut self, curve: Curve) -> CurveIndex {
+        let ix = self.curves.len();
+        self.curves.push(curve);
+        ix
+    }
+
+    pub fn add_surface(&mut self, surface: Surface) -> SurfaceIndex {
+        let ix = self.surfaces.len();
+        self.surfaces.push(surface);
+        ix
+    }
 }
 
 #[derive(Debug,Clone)]

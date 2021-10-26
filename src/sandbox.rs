@@ -1,5 +1,5 @@
-use arcade::construct::{point_from_xyz, three_point_arc};
-use arcade::interpolate::interpolate_curve_fixed;
+use arcade::construct::{point_from_xyz, circle_from_three_points, line_from_two_points};
+//use arcade::interpolate::interpolate_curve_fixed;
 
 fn main() {
     //let pt = point_from_xyz(1., 1., 1.);
@@ -15,10 +15,20 @@ fn main() {
     let pt1 = point_from_xyz(2., 2., 1.);
     let pt2 = point_from_xyz(1., 3., 1.);
 
-    let c = three_point_arc(pt0, pt1, pt2);
+    let c = circle_from_three_points(pt0, pt1, pt2);
     println!("c: {:?}", c);
-    let pts = interpolate_curve_fixed(&c, 10);
-    for pt in pts {
-        println!("interp: {:?}", pt);
-    }
+    println!("t at pt0: {:?}", c.t(pt0));
+    println!("t at pt1: {:?}", c.t(pt1));
+    println!("t at pt2: {:?}", c.t(pt2));
+    println!("t at 0,2,1: {:?}", c.t(point_from_xyz(0., 2., 1.)));
+
+    let c = line_from_two_points(pt0, pt2);
+    println!("c: {:?}", c);
+    println!("t at pt0: {:?}", c.t(pt0));
+    println!("t at pt1: {:?}", c.t(pt1));
+    println!("t at pt2: {:?}", c.t(pt2));
+    //let pts = interpolate_curve_fixed(&c, 10);
+    //for pt in pts {
+    //    println!("interp: {:?}", pt);
+    //}
 }

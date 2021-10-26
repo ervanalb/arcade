@@ -5,7 +5,7 @@ use crate::global::*;
 pub enum Curve {
     Line(Line),
     Circle(Circle),
-    TrimmedCurve(TrimmedCurve),
+    //TrimmedCurve(TrimmedCurve),
 }
 
 impl Curve {
@@ -14,7 +14,7 @@ impl Curve {
         match &self {
             Curve::Line(x) => x.d0(t),
             Curve::Circle(x) => x.d0(t),
-            Curve::TrimmedCurve(x) => x.d0(t),
+            //Curve::TrimmedCurve(x) => x.d0(t),
         }
     }
 
@@ -23,7 +23,7 @@ impl Curve {
         match &self {
             Curve::Line(x) => x.closed(),
             Curve::Circle(x) => x.closed(),
-            Curve::TrimmedCurve(x) => x.closed(),
+            //Curve::TrimmedCurve(x) => x.closed(),
         }
     }
 
@@ -33,7 +33,7 @@ impl Curve {
         match &self {
             Curve::Line(x) => x.t_min(),
             Curve::Circle(x) => x.t_min(),
-            Curve::TrimmedCurve(x) => x.t_min(),
+            //Curve::TrimmedCurve(x) => x.t_min(),
         }
     }
 
@@ -43,7 +43,7 @@ impl Curve {
         match &self {
             Curve::Line(x) => x.t_max(),
             Curve::Circle(x) => x.t_max(),
-            Curve::TrimmedCurve(x) => x.t_max(),
+            //Curve::TrimmedCurve(x) => x.t_max(),
         }
     }
 
@@ -53,7 +53,7 @@ impl Curve {
         match &self {
             Curve::Line(x) => Curve::Line(x.reflect(entity)),
             Curve::Circle(x) => Curve::Circle(x.reflect(entity)),
-            Curve::TrimmedCurve(x) => Curve::TrimmedCurve(x.reflect(entity)),
+            //Curve::TrimmedCurve(x) => Curve::TrimmedCurve(x.reflect(entity)),
         }
     }
 
@@ -63,7 +63,15 @@ impl Curve {
         match &self {
             Curve::Line(x) => Curve::Line(x.transform(entity)),
             Curve::Circle(x) => Curve::Circle(x.transform(entity)),
-            Curve::TrimmedCurve(x) => Curve::TrimmedCurve(x.transform(entity)),
+            //Curve::TrimmedCurve(x) => Curve::TrimmedCurve(x.transform(entity)),
+        }
+    }
+
+    // Get the parameter value closest to the given point
+    pub fn t(&self, p: Trivector) -> Float {
+        match &self {
+            Curve::Line(x) => x.t(p),
+            Curve::Circle(x) => x.t(p),
         }
     }
 }
@@ -104,6 +112,14 @@ impl Line {
     where Bivector: Transform<T>, Trivector: Transform<T>, T: Copy {
         Line {p0: self.p0.transform(entity), d: self.d.transform(entity)}
     }
+
+    pub fn t(&self, p: Trivector) -> Float {
+        // Compute a plane through p0 perpendicular to the line
+        let plane = self.d & self.p0;
+
+        // Measure signed distance from plane to projected point
+        p.hat() & plane
+    }
 }
 
 // A circle is parameterized by a (euclidean) point p0 and a euclidean line a.
@@ -142,14 +158,32 @@ impl Circle {
     where Bivector: Transform<T>, Trivector: Transform<T>, T: Copy {
         Circle {p0: self.p0.transform(entity), a: self.a.transform(entity)}
     }
+
+    pub fn t(&self, p: Trivector) -> Float {
+        // Compute plane through l and p0
+        let plane0 = (self.a & self.p0).hat();
+
+        // Compute plane through l and p
+        let plane1 = (self.a & p).hat();
+
+        // Get angle between planes
+        let angle = (plane0 | plane1).acos();
+        // See if angle > 180 by comparing sign of pt0 wrt plane1
+        let lower_quadrants = plane1 & self.p0 < 0.;
+
+        match lower_quadrants {
+            true => 2. * PI - angle,
+            false => angle,
+        }
+    }
 }
 
-#[derive(Debug, Clone)]
-pub struct TrimmedCurve {
-    pub curve: Box<Curve>,
-    pub t_start: Float,
-    pub t_end: Float,
-}
+//#[derive(Debug, Clone)]
+//pub struct TrimmedCurve {
+//    pub curve: Box<Curve>,
+//    pub t_start: Float,
+//    pub t_end: Float,
+//}
 
 //impl Clone for TrimmedCurve {
 //    fn clone(&self) -> TrimmedCurve {
@@ -161,30 +195,30 @@ pub struct TrimmedCurve {
 //    }
 //}
 
-impl TrimmedCurve {
-    pub fn d0(&self, t: Float) -> Trivector {
-        self.curve.d0(t)
-    }
-
-    pub fn closed(&self) -> bool {
-        false
-    }
-
-    pub fn t_min(&self) -> Option<Float> {
-        Some(self.t_start)
-    }
-
-    pub fn t_max(&self) -> Option<Float> {
-        Some(self.t_end)
-    }
-
-    pub fn reflect<T>(&self, entity: T) -> TrimmedCurve
-    where Vector: Reflect<T>, Bivector: Reflect<T>, Trivector: Reflect<T>, FullMultivector: Reflect<T>, T: Copy {
-        TrimmedCurve {curve: Box::new(self.curve.reflect(entity)), t_start: self.t_start, t_end: self.t_end}
-    }
-
-    pub fn transform<T>(&self, entity: T) -> TrimmedCurve
-    where Vector: Transform<T>, Bivector: Transform<T>, Trivector: Transform<T>, FullMultivector: Transform<T>, T: Copy {
-        TrimmedCurve {curve: Box::new(self.curve.transform(entity)), t_start: self.t_start, t_end: self.t_end}
-    }
-}
+//impl TrimmedCurve {
+//    pub fn d0(&self, t: Float) -> Trivector {
+//        self.curve.d0(t)
+//    }
+//
+//    pub fn closed(&self) -> bool {
+//        false
+//    }
+//
+//    pub fn t_min(&self) -> Option<Float> {
+//        Some(self.t_start)
+//    }
+//
+//    pub fn t_max(&self) -> Option<Float> {
+//        Some(self.t_end)
+//    }
+//
+//    pub fn reflect<T>(&self, entity: T) -> TrimmedCurve
+//    where Vector: Reflect<T>, Bivector: Reflect<T>, Trivector: Reflect<T>, FullMultivector: Reflect<T>, T: Copy {
+//        TrimmedCurve {curve: Box::new(self.curve.reflect(entity)), t_start: self.t_start, t_end: self.t_end}
+//    }
+//
+//    pub fn transform<T>(&self, entity: T) -> TrimmedCurve
+//    where Vector: Transform<T>, Bivector: Transform<T>, Trivector: Transform<T>, FullMultivector: Transform<T>, T: Copy {
+//        TrimmedCurve {curve: Box::new(self.curve.transform(entity)), t_start: self.t_start, t_end: self.t_end}
+//    }
+//}
