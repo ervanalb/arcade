@@ -26,6 +26,7 @@ pub struct Topo3D {
     pub faces: Vec<Face>,
     pub solids: Vec<Solid>,
 
+    // Underlying geometry
     pub curves: Vec<Curve>,
     pub surfaces: Vec<Surface>,
 }
@@ -105,6 +106,10 @@ impl Topo3D {
         self.surfaces.push(surface);
         ix
     }
+
+    //pub fn empty_selection(&self) -> Topo3DSelection {
+    //    Topo3DSelection::empty(self)
+    //}
 }
 
 #[derive(Debug,Clone)]
@@ -177,3 +182,62 @@ pub struct Solid {
     // A solid is a region of space bounded by shells.
     pub bounds: Vec<Shell>,
 }
+
+//#[derive(Debug,Clone)]
+//pub struct Topo3DSelection<'a> {
+//    // A subset of the entites within a Topo3D
+//
+//    pub topo: &'a Topo3D,
+//
+//    pub vertices: BTreeSet<VertexIndex>,
+//    pub edges: BTreeSet<EdgeIndex>,
+//    pub faces: BTreeSet<FaceIndex>,
+//    pub solids: BTreeSet<SolidIndex>,
+//}
+//
+//impl Topo3DSelection<'_> {
+//    fn empty(topo: &Topo3D) -> Topo3DSelection {
+//        Topo3DSelection {
+//            topo,
+//            vertices: Default::default(),
+//            edges: Default::default(),
+//            faces: Default::default(),
+//            solids: Default::default(),
+//        }
+//    }
+//
+//    pub fn add_vertex(&mut self, ix: VertexIndex) {
+//        self.topo.vertices[ix]; // Perform bounds check
+//        self.vertices.insert(ix);
+//    }
+//
+//    pub fn add_edge(&mut self, ix: EdgeIndex) {
+//        let edge = &self.topo.edges[ix];
+//        self.edges.insert(ix);
+//        match &edge.bounds {
+//            Some(bounds) => {
+//                self.add_vertex(bounds.start);
+//                self.add_vertex(bounds.end);
+//            },
+//            None => {},
+//        }
+//    }
+//
+//    pub fn add_face(&mut self, ix: FaceIndex) {
+//        let face = &self.topo.faces[ix];
+//        self.faces.insert(ix);
+//        for bound_loop in &face.bounds {
+//            for element in &bound_loop.elements {
+//                self.add_edge(element.edge);
+//            }
+//        }
+//
+//        for &ridge in &face.ridges {
+//            self.add_edge(ridge);
+//        }
+//
+//        for &peak in &face.peaks {
+//            self.add_vertex(peak);
+//        }
+//    }
+//}

@@ -2,6 +2,7 @@ use arcade::pga::{Trivector, Normalize};
 use arcade::construct::{point_from_xyz, circle_from_three_points, line_from_two_points, plane_from_standard_form};
 use arcade::topo::{Topo3D};
 use arcade::interpolate::{interpolate_curve_subset_fixed, interpolate_closed_curve_fixed};
+use arcade::op::reflect;
 
 extern crate kiss3d;
 extern crate nalgebra as na;
@@ -128,8 +129,12 @@ fn main() {
     let e2 = topo.add_edge_with_endpoints(c2, v1, v2);
     let e3 = topo.add_edge_with_endpoints(c3, v4, v5);
 
-    //let mirror = plane_from_standard_form(0., 1., 0., 0.).hat(); // Y = 0 plane
+    // Reflect the geometry
+
+    let mirror = plane_from_standard_form(0., 1., 0., 0.).hat(); // Y = 0 plane
     ////let motor = ((point_from_xyz(0., 0., 0.) & point_from_xyz(0., 0., 1.)) * I).ihat().exp();
+
+    let topo2 = reflect(&topo, mirror);
 
     //let arc2 = arc1.reflect(mirror);
     //let seg3 = seg1.reflect(mirror);
@@ -150,12 +155,7 @@ fn main() {
 
         draw_vertices(&mut window, &topo);
         draw_edges(&mut window, &topo);
-        //draw(&mut window, &arc1_rendered);
-        //draw(&mut window, &arc2_rendered);
-        //draw(&mut window, &seg1_rendered);
-        //draw(&mut window, &seg2_rendered);
-        //draw(&mut window, &seg3_rendered);
-        //draw(&mut window, &seg4_rendered);
-        //draw_pts(&mut window, &vec![pt1, pt2, pt3, pt4, pt5]);
+        draw_vertices(&mut window, &topo2);
+        draw_edges(&mut window, &topo2);
     }
 }
