@@ -1,7 +1,7 @@
 use arcade::pga::{Trivector, Normalize};
 use arcade::construct::{point_from_xyz, circle_from_three_points, line_from_two_points, plane_from_standard_form};
-use arcade::topo::{Arena3D};
-use arcade::interpolate::interpolate_curve_fixed;
+use arcade::topo::{Topo3D};
+use arcade::interpolate::{interpolate_curve_subset_fixed, interpolate_closed_curve_fixed};
 
 extern crate kiss3d;
 extern crate nalgebra as na;
@@ -23,11 +23,46 @@ fn draw_axes(window: &mut Window) {
     window.draw_line(&Point3::origin(), &Point3::new(0., 0., 1.), &Point3::new(0., 0., 1.));
 }
 
-fn draw_pts(window: &mut Window, pts: &Vec<Trivector>) {
-    for pt in pts {
-        let pt3 = pga_to_point3(*pt);
+fn draw_vertices(window: &mut Window, topo: &Topo3D) {
+    for vertex in &topo.vertices {
+        let pt3 = pga_to_point3(*vertex);
         window.set_point_size(6.);
         window.draw_point(&pt3, &Point3::new(1., 1., 1.));
+    }
+}
+
+fn draw_edges(window: &mut Window, topo: &Topo3D) {
+    for edge in &topo.edges {
+        let curve = &topo.curves[edge.curve];
+        let pts = match &edge.bounds {
+            Some(bounds) => {
+                let start_pt = topo.vertices[bounds.start];
+                let end_pt = topo.vertices[bounds.end];
+                let start_t = curve.t(start_pt);
+                let end_t = curve.t(end_pt);
+                let mut pts = interpolate_curve_subset_fixed(&curve, start_t, end_t, 50);
+                // Replace the start and end points with the vertices
+                pts[0] = start_pt;
+                let ix = pts.len() - 1;
+                pts[ix] = end_pt;
+                pts
+            },
+            None => {
+                let mut pts = interpolate_closed_curve_fixed(&curve, 50);
+                // Add a point at the end of the list, equal to the first point,
+                // so that the rendered segments join up and draw a closed curve
+                pts.push(pts[0]);
+                pts
+            }
+        };
+
+        let mut pts_iter = pts.iter();
+        let mut prev = pga_to_point3(*pts_iter.next().unwrap());
+        for pga_pt in pts_iter {
+            let pt = pga_to_point3(*pga_pt);
+            window.draw_line(&prev, &pt, &Point3::new(0.5, 0.5, 0.5));
+            prev = pt;
+        }
     }
 }
 
@@ -71,7 +106,7 @@ fn main() {
     let width = 5.;
     let thickness = 3.;
 
-    let mut arena = Arena3D::new();
+    let mut topo = Topo3D::new();
 
     let pt1 = point_from_xyz(-width / 2., 0., 0.);
     let pt2 = point_from_xyz(-width / 2., -thickness / 4., 0.);
@@ -79,19 +114,19 @@ fn main() {
     let pt4 = point_from_xyz(width / 2., -thickness / 4., 0.);
     let pt5 = point_from_xyz(width / 2., 0., 0.);
 
-    let v1 = arena.add_vertex(pt1);
-    let v2 = arena.add_vertex(pt2);
-    let v3 = arena.add_vertex(pt3);
-    let v4 = arena.add_vertex(pt4);
-    let v5 = arena.add_vertex(pt5);
+    let v1 = topo.add_vertex(pt1);
+    let v2 = topo.add_vertex(pt2);
+    let v3 = topo.add_vertex(pt3);
+    let v4 = topo.add_vertex(pt4);
+    let v5 = topo.add_vertex(pt5);
 
-    let c1 = arena.add_curve(circle_from_three_points(pt2, pt3, pt4));
-    let c2 = arena.add_curve(line_from_two_points(pt1, pt2));
-    let c3 = arena.add_curve(line_from_two_points(pt4, pt5));
+    let c1 = topo.add_curve(circle_from_three_points(pt2, pt3, pt4));
+    let c2 = topo.add_curve(line_from_two_points(pt1, pt2));
+    let c3 = topo.add_curve(line_from_two_points(pt4, pt5));
 
-    let e1 = arena.add_edge_with_endpoints(c1, v2, v4);
-    let e2 = arena.add_edge_with_endpoints(c2, v1, v2);
-    let e3 = arena.add_edge_with_endpoints(c3, v4, v5);
+    let e1 = topo.add_edge_with_endpoints(c1, v2, v4);
+    let e2 = topo.add_edge_with_endpoints(c2, v1, v2);
+    let e3 = topo.add_edge_with_endpoints(c3, v4, v5);
 
     //let mirror = plane_from_standard_form(0., 1., 0., 0.).hat(); // Y = 0 plane
     ////let motor = ((point_from_xyz(0., 0., 0.) & point_from_xyz(0., 0., 1.)) * I).ihat().exp();
@@ -113,7 +148,8 @@ fn main() {
     while window.render_with_camera(&mut arc_ball) {
         draw_axes(&mut window);
 
-        draw_pts(&mut window, &arena.vertices);
+        draw_vertices(&mut window, &topo);
+        draw_edges(&mut window, &topo);
         //draw(&mut window, &arc1_rendered);
         //draw(&mut window, &arc2_rendered);
         //draw(&mut window, &seg1_rendered);

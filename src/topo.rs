@@ -19,7 +19,7 @@ pub enum Direction {
 }
 
 #[derive(Debug,Clone,Default)]
-pub struct Arena3D {
+pub struct Topo3D {
     // Memory arena representing objects with up to 3 dimensions
     pub vertices: Vec<Trivector>,
     pub edges: Vec<Edge>,
@@ -30,8 +30,8 @@ pub struct Arena3D {
     pub surfaces: Vec<Surface>,
 }
 
-impl Arena3D {
-    pub fn new() -> Arena3D {
+impl Topo3D {
+    pub fn new() -> Topo3D {
         Default::default()
     }
 
