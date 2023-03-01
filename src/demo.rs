@@ -2,7 +2,7 @@ use arcade::pga::{Trivector, Normalize};
 use arcade::construct::{point_from_xyz, circle_from_three_points, line_from_two_points, plane_from_standard_form};
 use arcade::topo::{Topo3D};
 use arcade::interpolate::{interpolate_curve_subset_fixed, interpolate_closed_curve_fixed};
-use arcade::op::reflect;
+use arcade::op::{reflect, combine, simplify};
 
 extern crate kiss3d;
 extern crate nalgebra as na;
@@ -117,7 +117,7 @@ fn main() {
 
     let v1 = topo.add_vertex(pt1);
     let v2 = topo.add_vertex(pt2);
-    let v3 = topo.add_vertex(pt3);
+    let _v3 = topo.add_vertex(pt3);
     let v4 = topo.add_vertex(pt4);
     let v5 = topo.add_vertex(pt5);
 
@@ -125,9 +125,9 @@ fn main() {
     let c2 = topo.add_curve(line_from_two_points(pt1, pt2));
     let c3 = topo.add_curve(line_from_two_points(pt4, pt5));
 
-    let e1 = topo.add_edge_with_endpoints(c1, v2, v4);
-    let e2 = topo.add_edge_with_endpoints(c2, v1, v2);
-    let e3 = topo.add_edge_with_endpoints(c3, v4, v5);
+    let _e1 = topo.add_edge_with_endpoints(c1, v2, v4);
+    let _e2 = topo.add_edge_with_endpoints(c2, v1, v2);
+    let _e3 = topo.add_edge_with_endpoints(c3, v4, v5);
 
     // Reflect the geometry
 
@@ -135,6 +135,9 @@ fn main() {
     ////let motor = ((point_from_xyz(0., 0., 0.) & point_from_xyz(0., 0., 1.)) * I).ihat().exp();
 
     let topo2 = reflect(&topo, mirror);
+    //println!("each half has {:?} vertices", topo.vertices.len());
+    let topo = simplify(combine(&[topo, topo2]));
+    //println!("combined simplified has {:?} vertices", topo.vertices.len());
 
     //let arc2 = arc1.reflect(mirror);
     //let seg3 = seg1.reflect(mirror);
@@ -155,7 +158,7 @@ fn main() {
 
         draw_vertices(&mut window, &topo);
         draw_edges(&mut window, &topo);
-        draw_vertices(&mut window, &topo2);
-        draw_edges(&mut window, &topo2);
+        //draw_vertices(&mut window, &topo2);
+        //draw_edges(&mut window, &topo2);
     }
 }

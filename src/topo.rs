@@ -1,4 +1,5 @@
 use crate::pga::*;
+use crate::vertex::*;
 use crate::curve::*;
 use crate::surface::*;
 //use crate::global::*;
@@ -127,6 +128,21 @@ pub struct Edge {
     // If bounds.start == bounds.end, then the curve is closed via one point (e.g. a teardrop.)
     pub curve: CurveIndex,
     pub bounds: Option<EdgeEndpoints>,
+}
+
+impl Edge {
+    pub fn remap(&self, vertex_remap: &[VertexIndex], curve_remap: &[CurveIndex]) -> Edge {
+        Edge {
+            curve: curve_remap[self.curve],
+            bounds: match &self.bounds {
+                None => None,
+                Some(endpoints) => Some(EdgeEndpoints {
+                    start: vertex_remap[endpoints.start],
+                    end: vertex_remap[endpoints.end],
+                }),
+            }
+        }
+    }
 }
 
 #[derive(Debug,Clone)]
