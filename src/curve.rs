@@ -1,3 +1,11 @@
+/// A curve defines a path through space.
+/// Curves may be bounded, infinite or periodic.
+/// Typically, a subset of a curve will be used
+/// when building up topology inside a Topo.
+///
+/// Curves as defined by this module may exist outside the context of a Topo
+/// and are at a lower level of abstraction.
+
 use crate::pga::*;
 use crate::global::*;
 use std::ops::BitXor;

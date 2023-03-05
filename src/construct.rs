@@ -1,3 +1,11 @@
+/// Construct geometric primitives such as:
+/// Points / Trivectors, Lines / Bivectors, Planes / Vectors,
+/// curves, and surfaces.
+///
+/// All of these primitives may exist outside the context of a Topo
+/// and are at a lower level of abstraction
+/// (i.e. this module does not deal with topological connectivity)
+
 use crate::pga::*;
 use crate::global::*;
 use crate::curve::*;

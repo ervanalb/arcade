@@ -3,9 +3,8 @@ use crate::pga::*;
 //use crate::curve::*;
 use crate::topo::*;
 
+/// Returns a new Topo containing everything in the old one, reflected across a mirror plane
 pub fn reflect(mut topo: Topo, plane: Vector) -> Topo {
-    // Returns a new Topo containing a reflected copy of the given one
-
     // Since we just reflect everything,
     // we won't need to re-index
 

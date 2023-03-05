@@ -24,7 +24,7 @@ fn draw_axes(window: &mut Window) {
 }
 
 fn draw_vertices(window: &mut Window, topo: &Topo) {
-    for vertex in &topo.vertices {
+    for vertex in topo.vertices() {
         let pt3 = pga_to_point3(*vertex);
         window.set_point_size(6.);
         window.draw_point(&pt3, &Point3::new(1., 1., 1.));
@@ -32,12 +32,12 @@ fn draw_vertices(window: &mut Window, topo: &Topo) {
 }
 
 fn draw_edges(window: &mut Window, topo: &Topo) {
-    for edge in &topo.edges {
-        let curve = &topo.curves[edge.curve];
+    for edge in topo.edges() {
+        let curve = &topo.curves()[edge.curve];
         let pts = match &edge.bounds {
             Some(bounds) => {
-                let start_pt = topo.vertices[bounds.start];
-                let end_pt = topo.vertices[bounds.end];
+                let start_pt = topo.vertices()[bounds.start];
+                let end_pt = topo.vertices()[bounds.end];
                 let start_t = curve.t(start_pt);
                 let end_t = curve.t(end_pt);
                 let mut pts = interpolate_curve_subset_fixed(&curve, start_t, end_t, 50);
@@ -66,16 +66,6 @@ fn draw_edges(window: &mut Window, topo: &Topo) {
     }
 }
 
-fn draw(window: &mut Window, pts: &Vec<Trivector>) {
-    let mut pts_iter = pts.iter();
-    let mut prev = pga_to_point3(*pts_iter.next().unwrap());
-    for pga_pt in pts_iter {
-        let pt = pga_to_point3(*pga_pt);
-        window.draw_line(&prev, &pt, &Point3::new(0.5, 0.5, 0.5));
-        prev = pt;
-    }
-}
-
 fn main() {
     let mut window = Window::new("Arcade demo");
 
@@ -83,24 +73,6 @@ fn main() {
 
     let mut arc_ball = ArcBall::new(Point3::new(3., -10., 3.), Point3::origin());
     arc_ball.set_up_axis(Vector3::new(0., 0., 1.));
-
-    
-    //let nurbs_points = vec![
-    //    Point::from_xyz(0., 0., 0.),
-    //    Point::from_xyz(1., 0., 0.),
-    //    Point::from_xyz(0., 1., 1.) * 1.,
-    //    Point::from_xyz(1., 1., 1.) * 1.,
-    //    Point::from_xyz(1., 1., 1.),
-    //    Point::from_xyz(2., 1., 1.),
-    //    Point::from_xyz(0., 2., 2.) * 1.,
-    //    Point::from_xyz(2., 2., 2.) * 1.,
-    //];
-
-    //let nurbs_knots = vec![0., 0., 0., 0., 1., 2., 3., 4., 5., 5., 5., 5.];
-    //let nurbs1 = Curve {
-    //    points: nurbs_points,
-    //    knots: nurbs_knots
-    //};
 
     // Build a flask!
     let width = 5.;
@@ -118,43 +90,14 @@ fn main() {
 
     let topo = combine(&[e1, e2, e3]).unwrap();
 
-    //let v1 = topo.add_vertex(pt1);
-    //let v2 = topo.add_vertex(pt2);
-    //let _v3 = topo.add_vertex(pt3);
-    //let v4 = topo.add_vertex(pt4);
-    //let v5 = topo.add_vertex(pt5);
-
-    //let c1 = topo.add_curve(circle_from_three_points(pt2, pt3, pt4));
-    //let c2 = topo.add_curve(line_from_two_points(pt1, pt2));
-    //let c3 = topo.add_curve(line_from_two_points(pt4, pt5));
-
-    //let _e1 = topo.add_edge_with_endpoints(c1, v2, v4);
-    //let _e2 = topo.add_edge_with_endpoints(c2, v1, v2);
-    //let _e3 = topo.add_edge_with_endpoints(c3, v4, v5);
-
     // Reflect the geometry
 
     let mirror = plane_from_standard_form(0., 1., 0., 0.).hat(); // Y = 0 plane
-    ////let motor = ((point_from_xyz(0., 0., 0.) & point_from_xyz(0., 0., 1.)) * I).ihat().exp();
-
     let mirrored = reflect(topo.clone(), mirror);
     let topo = combine(&[topo, mirrored]).unwrap();
 
+    // Next step:
     //let f1 = topo.add_face(planar_face_from_edges(&topo.edges));
-
-    //let arc2 = arc1.reflect(mirror);
-    //let seg3 = seg1.reflect(mirror);
-    //let seg4 = seg2.reflect(mirror);
-    ////let arc2 = arc1.transform(motor);
-    ////let seg3 = seg1.transform(motor);
-    ////let seg4 = seg2.transform(motor);
-
-    //let arc1_rendered = interpolate_curve_fixed(&arc1, 50);
-    //let arc2_rendered = interpolate_curve_fixed(&arc2, 50);
-    //let seg1_rendered = interpolate_curve_fixed(&seg1, 5);
-    //let seg2_rendered = interpolate_curve_fixed(&seg2, 5);
-    //let seg3_rendered = interpolate_curve_fixed(&seg3, 5);
-    //let seg4_rendered = interpolate_curve_fixed(&seg4, 5);
 
     while window.render_with_camera(&mut arc_ball) {
         draw_axes(&mut window);

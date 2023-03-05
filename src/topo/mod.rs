@@ -1,3 +1,6 @@
+/// This module deals with how various geometrc primitives
+/// are assembled together, topologically.
+
 use crate::pga::*;
 use crate::vertex::*;
 use crate::curve::*;
@@ -15,17 +18,28 @@ pub type SurfaceIndex = usize;
 
 pub type TopoResult<T> = Result<T, TopoError>;
 
+/// This is a memory arena representing objects with up to 3 dimensions.
+/// It includes:
+/// * A set of vertices
+/// * A set of edges, which may connect vertices via subsets of curves
+/// * Faces, which may connect edges via subsets of surfaces
+/// * Solids, which are built up from faces that may share edges
+///
+/// It is meant to be lightweight and immutable.
+/// One example use is to construct two Topo objects
+/// each containing just a single edge,
+/// and combine them together.
 #[derive(Debug,Clone,Default)]
 pub struct Topo {
-    // Memory arena representing objects with up to 3 dimensions
-    pub vertices: Vec<Trivector>,
-    pub edges: Vec<Edge>,
-    pub faces: Vec<Face>,
-    pub solids: Vec<Solid>,
+    // Underlying reference geometry
+    vertices: Vec<Trivector>,
+    curves: Vec<Curve>,
+    surfaces: Vec<Surface>,
 
-    // Underlying geometry
-    pub curves: Vec<Curve>,
-    pub surfaces: Vec<Surface>,
+    // Connectivity information
+    edges: Vec<Edge>,
+    faces: Vec<Face>,
+    solids: Vec<Solid>,
 }
 
 #[derive(Debug,Clone)]
@@ -33,16 +47,33 @@ pub enum TopoError {
 }
 
 impl Topo {
+    pub fn vertices(&self) -> &[Trivector] {
+        &self.vertices
+    }
+
+    pub fn curves(&self) -> &[Curve] {
+        &self.curves
+    }
+
+    pub fn surfaces(&self) -> &[Surface] {
+        &self.surfaces
+    }
+
+    pub fn edges(&self) -> &[Edge] {
+        &self.edges
+    }
+
+    pub fn faces(&self) -> &[Face] {
+        &self.faces
+    }
+
+    pub fn solids(&self) -> &[Solid] {
+        &self.solids
+    }
+
+    /// Empty topology, containing no geometry
     pub fn empty() -> Self {
         Default::default()
-    }
-
-    pub fn assert_valid_vertex_index(&self, ix: VertexIndex) {
-        assert!(ix < self.vertices.len(), "Invalid vertex index {:?}", ix);
-    }
-
-    pub fn assert_valid_curve_index(&self, ix: VertexIndex) {
-        assert!(ix < self.curves.len(), "Invalid curve index {:?}", ix);
     }
 
     fn push_vertex(&mut self, vertex: Trivector) -> TopoResult<VertexIndex> {
@@ -147,49 +178,12 @@ impl Topo {
     pub fn circular_arc_from_three_points(start: Trivector, middle: Trivector, end: Trivector) -> TopoResult<Self> {
         Self::edge(circle_from_three_points(start, middle, end), Some((start, end)))
     }
-
-    //pub fn with_reflection(mut self, selection: &TopoSelection, plane: Vector) -> TopoResult<(Self, TopoSelection>) {
-    //    // Adds a reflected copy of the given selection
-
-    //    let reflected_vertices: Vec<Vertices> = selection.vertices.iter().map(|&i| {
-    //        self.assert_valid_vertex_index(i);
-    //        self.vertices[i].reflect(plane)
-    //    }).collect();
-
-    //    let reflected_edges: Vec<Edges> = selection.edges.iter().map(|&i| {
-    //        let Edge {
-    //            curve,
-    //            bounds,
-    //        } = self.edges[i];
-
-    //        let curve = curve.reflect(plane);
-    //        let bounds = bounds.map(|EdgeEndpoints {start, end}| {
-    //            self.assert_valid_vertex_index(start);
-    //            self.assert_valid_vertex_index(end);
-    //            let start = self.vertices[start].reflect(plane)
-    //            let end = self.vertices[end].reflect(plane)
-    //            EdgeEndpoints {start, end};
-    //        });
-
-    //        // To reflect an edge, we must also reflect its vertices and cuves
-    //    }).collect();
-
-    //    // TODO implement reflection for faces and surfaces
-
-    //    TopoSelection {
-    //        vertices: reflected_vertices,
-    //        edges: reflected_edges,
-    //        ..Default::default(),
-    //    }
-
-    //    Ok((topo, selection))
-    //}
 }
 
+/// Inner struct for Edge.
+/// Contains the indices of the start & end points
 #[derive(Debug,Clone,PartialEq,Eq)]
 pub struct EdgeEndpoints {
-    // Inner struct for Edge.
-    // Contains the indices of the start & end points
     pub start: VertexIndex,
     pub end: VertexIndex,
 }
@@ -203,11 +197,11 @@ impl EdgeEndpoints {
     }
 }
 
+/// An edge is a section of a curve.
+/// If bounds is None, then the curve must be closed / periodic (e.g. a circle.)
+/// If bounds.start == bounds.end, then the curve is closed via one point (e.g. a teardrop.)
 #[derive(Debug,Clone,PartialEq,Eq)]
 pub struct Edge {
-    // An edge is a section of a curve.
-    // If bounds is None, then the curve must be closed / periodic (e.g. a circle.)
-    // If bounds.start == bounds.end, then the curve is closed via one point (e.g. a teardrop.)
     pub curve: CurveIndex,
     pub bounds: Option<EdgeEndpoints>,
 }
@@ -228,118 +222,61 @@ impl Edge {
     }
 }
 
+/// Inner struct for Loop.
+/// Includes the edge index, and the direction it is being used in.
 #[derive(Debug,Clone)]
 pub struct DirectedEdge {
-    // Inner struct for Loop.
-    // Includes the edge index, and the direction it is being used in.
     pub edge: EdgeIndex,
     pub direction: Direction,
 }
 
+/// Inner struct for Face.
+/// A loop is a closed set of edges, to be used as a boundary for a face.
+/// The edges are listed in-order and with a consistent winding direction
+/// such that the face lies to the right of the loop.
 #[derive(Debug,Clone)]
 pub struct Loop {
-    // Inner struct for Face.
-    // A loop is a closed set of edges, to be used as a boundary for a face.
-    // The edges are listed in-order and with a consistent winding direction
-    // such that the face lies to the right of the loop.
     pub elements: Vec<DirectedEdge>,
 }
 
+/// A face is a section of a surface.
+/// If the bounds are empty, then the surface must be closed / periodic (e.g. a sphere.)
+/// Otherwise, these loops should bound the surface
+/// (e.g. trace a perimeter around the outside, along with any holes.)
+/// "Ridges" contains a list of edges that trace any 1D discontinuities in the surface normals.
+/// "Peaks" contains a list of points that mark any 0D discontinuities in the surface normals.
 #[derive(Debug,Clone)]
 pub struct Face {
-    // A face is a section of a surface.
-    // If the bounds are empty, then the surface must be closed / periodic (e.g. a sphere.)
-    // Otherwise, these loops should bound the surface
-    // (e.g. trace a perimeter around the outside, along with any holes.)
-    // "Ridges" contains a list of edges that trace any 1D discontinuities in the surface normals.
-    // "Peaks" contains a list of points that mark any 0D discontinuities in the surface normals.
     pub surface: SurfaceIndex,
     pub bounds: Vec<Loop>,
     pub ridges: Vec<EdgeIndex>,
     pub peaks: Vec<VertexIndex>,
 }
 
+/// Inner struct for Shell.
+/// Includes the face index, and the direction it is being used in.
 #[derive(Debug,Clone)]
 pub struct DirectedFace {
-    // Inner struct for Shell.
-    // Includes the face index, and the direction it is being used in.
     pub face: FaceIndex,
     pub direction: Direction,
 }
 
+/// Inner struct for Solid
+/// A shell is a closed (manifold) set of faces, to be used as the boundary for a solid.
+/// The faces must be oriented with a consistent winding direction
+/// such that the solid always lies on the positive side of the surface.
 #[derive(Debug,Clone)]
 pub struct Shell {
-    // Inner struct for Solid
-    // A shell is a closed (manifold) set of faces, to be used as the boundary for a solid.
-    // The faces must be oriented with a consistent winding direction
-    // such that the solid always lies on the positive side of the surface.
     pub elements: Vec<DirectedFace>,
 }
 
+/// A solid is a region of space bounded by shells.
+/// A non-hollow solid will contain just a single shell.
+/// A solid with one or more internal voids will have two or more shells.
 #[derive(Debug,Clone)]
 pub struct Solid {
-    // A solid is a region of space bounded by shells.
     pub bounds: Vec<Shell>,
 }
-
-//#[derive(Debug,Clone)]
-//pub struct TopoSelection<'a> {
-//    // A subset of the entites within a Topo
-//
-//    pub topo: &'a Topo,
-//
-//    pub vertices: BTreeSet<VertexIndex>,
-//    pub edges: BTreeSet<EdgeIndex>,
-//    pub faces: BTreeSet<FaceIndex>,
-//    pub solids: BTreeSet<SolidIndex>,
-//}
-//
-//impl TopoSelection<'_> {
-//    fn empty(topo: &Topo) -> TopoSelection {
-//        TopoSelection {
-//            topo,
-//            vertices: Default::default(),
-//            edges: Default::default(),
-//            faces: Default::default(),
-//            solids: Default::default(),
-//        }
-//    }
-//
-//    pub fn add_vertex(&mut self, ix: VertexIndex) {
-//        self.topo.vertices[ix]; // Perform bounds check
-//        self.vertices.insert(ix);
-//    }
-//
-//    pub fn add_edge(&mut self, ix: EdgeIndex) {
-//        let edge = &self.topo.edges[ix];
-//        self.edges.insert(ix);
-//        match &edge.bounds {
-//            Some(bounds) => {
-//                self.add_vertex(bounds.start);
-//                self.add_vertex(bounds.end);
-//            },
-//            None => {},
-//        }
-//    }
-//
-//    pub fn add_face(&mut self, ix: FaceIndex) {
-//        let face = &self.topo.faces[ix];
-//        self.faces.insert(ix);
-//        for bound_loop in &face.bounds {
-//            for element in &bound_loop.elements {
-//                self.add_edge(element.edge);
-//            }
-//        }
-//
-//        for &ridge in &face.ridges {
-//            self.add_edge(ridge);
-//        }
-//
-//        for &peak in &face.peaks {
-//            self.add_vertex(peak);
-//        }
-//    }
-//}
 
 mod op;
 pub use op::*;
