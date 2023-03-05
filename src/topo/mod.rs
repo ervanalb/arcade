@@ -6,7 +6,7 @@ use crate::vertex::*;
 use crate::curve::*;
 use crate::surface::*;
 use crate::construct::*;
-//use crate::global::*;
+use crate::global::*;
 
 pub type VertexIndex = usize;
 pub type EdgeIndex = usize;
@@ -389,5 +389,27 @@ pub struct Solid {
     pub bounds: Vec<Shell>,
 }
 
+/// Given an Edge, returns the t_min and t_max of its underlying curve
+fn curve_bounds_for_edge(topo: &Topo, edge: EdgeIndex) -> (Float, Float) {
+    let Edge { curve, bounds } = &topo.edges[edge];
+    let c = &topo.curves[*curve];
+    match bounds {
+        Some(endpoints) => {
+            let start_pt = topo.vertices()[endpoints.start];
+            let end_pt = topo.vertices()[endpoints.end];
+            let start_t = c.t_first(start_pt);
+            let end_t = c.t_last(end_pt);
+            (start_t, end_t)
+        },
+        None => {
+            assert!(c.closed(), "The curve must be closed");
+            let start_t = c.t_min().unwrap();
+            let end_t = c.t_max().unwrap();
+            (start_t, end_t)
+        }
+    }
+}
+
+// High-level operations
 mod op;
 pub use op::*;

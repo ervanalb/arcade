@@ -1,5 +1,5 @@
 use crate::pga::*;
-//use crate::global::*;
+use crate::global::*;
 //use crate::curve::*;
 use crate::topo::*;
 
@@ -54,13 +54,82 @@ pub fn combine(topos: &[Topo]) -> TopoResult<Topo> {
 /// Any closed loop of planar edges will be turned into a face.
 /// This function will 
 pub fn planar_face(topo: Topo) -> TopoResult<Topo> {
-    // 1. Find edge loops
-    // 2. Filter edge loops based on planarity
-    // 3. Construct & push planes
-    // 4. Return faces
 
+    // 1. Find edge loops
     let loops = topo.possible_loops();
     println!("Found loops: {:?}", loops);
 
+    // 2. See which loops are planar
+    let loop_planes: Vec<Option<Vector>> = loops.iter().map(|l| {
+        let mut loop_vertices: Vec<usize> = l.elements.iter().map(|DirectedEdge {edge, direction: _}| {
+            match topo.edges[*edge].bounds {
+                Some(EdgeEndpoints {start, end}) => vec![start, end],
+                None => vec![],
+            }
+        }).flatten().collect();
+        loop_vertices.sort();
+        loop_vertices.dedup();
+
+        // First, try to define a plane from a set of 3 vertices
+        let mut plane: Option<Vector> = None;
+        if loop_vertices.len() >= 3 {
+            for i in 0..loop_vertices.len() - 3 {
+                let pt0 = topo.vertices[loop_vertices[i + 0]];
+                let pt1 = topo.vertices[loop_vertices[i + 1]];
+                let pt2 = topo.vertices[loop_vertices[i + 2]];
+                let test_plane = plane_from_three_points(pt0, pt1, pt2);
+                if test_plane.is_finite() {
+                    plane = Some(test_plane);
+                    break;
+                }
+            }
+        }
+
+        // If that didn't work, then the plane is defined by a curve.
+        if plane.is_none() {
+            for DirectedEdge {edge, direction: _} in l.elements.iter() {
+                let curve = &topo.curves[topo.edges[*edge].curve];
+                let (t_start, t_end) = curve_bounds_for_edge(&topo, *edge);
+                // Look at a curve's bounding hull to determine if it is planar
+                // If a curve has 2 or fewer hull points, then it is a line and doesn't define a plane
+                // If a curve has 3 or more hull points, then they must all be planar for the curve to be planar.
+                let hull_pts = curve.hull(t_start, t_end);
+                for i in 0..hull_pts.len() - 3 {
+                    let pt0 = hull_pts[i + 0];
+                    let pt1 = hull_pts[i + 1];
+                    let pt2 = hull_pts[i + 2];
+                    let test_plane = plane_from_three_points(pt0, pt1, pt2);
+                    if test_plane.is_finite() {
+                        plane = Some(test_plane);
+                        break;
+                    }
+                }
+            }
+        }
+        let plane = plane.expect("Loop is degenerate (0D or 1D)");
+
+        // Now, ensure that all edges lie within the plane.
+        for DirectedEdge {edge, direction: _} in l.elements.iter() {
+            let curve = &topo.curves[topo.edges[*edge].curve];
+            let (t_start, t_end) = curve_bounds_for_edge(&topo, *edge);
+            // Look at a curve's bounding hull points to determine if it lies in the plane
+            let hull_pts = curve.hull(t_start, t_end);
+            for &pt in hull_pts.iter() {
+                let distance = (plane & pt).norm();
+                if distance > EPSILON_COINCIDENT_DISTANCE {
+                    return None; // This loop contains a curve that lies outside the test plane
+                }
+            }
+        }
+
+        // All edges passed the test, so this loop is planar
+        Some(plane)
+    }).collect();
+
+    println!("planes for loops: {:?}", loop_planes);
+
+    // TODO:
+    // 3. Construct & push planes
+    // 4. Return faces
     Ok(Topo::empty()) // XXX
 }

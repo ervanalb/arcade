@@ -18,10 +18,15 @@ pub fn inf_point_from_xyz(x: Float, y: Float, z: Float) -> Trivector {
     Trivector::new(x, y, z, 0.)
 }
 
+/// Returns a plane from the standard-form coefficients.
+/// Standard form equation is ax + by + cz + d = 0
 pub fn plane_from_standard_form(a: Float, b: Float, c: Float, d: Float) -> Vector {
-    // Returns a plane from the standard-form coefficients.
-    // Standard form equation is ax + by + cz + d = 0
     Vector::new(d, a, b, c)
+}
+
+/// Returns a plane that intersects the three given points.
+pub fn plane_from_three_points(p0: Trivector, p1: Trivector, p2: Trivector) -> Vector {
+    p0 & p1 & p2
 }
 
 pub fn line_from_two_points(p0: Trivector, p1: Trivector) -> Curve {

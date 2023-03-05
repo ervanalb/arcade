@@ -118,6 +118,9 @@ def select_object(obj):
         return elem_mul(objects[obj], a)
     return _select
 
+def project(a, b):
+    return geometric_product(dot_product(a, b), b)
+
 def reflect(a, b):
     return geometric_product(geometric_product(b, a), b)
 
@@ -146,8 +149,9 @@ binary_operations = {
     "bitxor": wedge_product,
     "bitand": vee_product,
     "bitor": dot_product,
-    "transform": transform,
+    "project": project,
     "reflect": reflect,
+    "transform": transform,
 }
 
 # Code gen helper functions
@@ -607,8 +611,9 @@ def gen_special_binary_operators(obj_name):
     """ Generates special binary operators for the given type. """
 
     ops = [
-        ("transform", "Transform"),
+        ("project", "Project"),
         ("reflect", "Reflect"),
+        ("transform", "Transform"),
     ]
 
     blocks = []
@@ -728,12 +733,16 @@ pub trait NormalizeInfinite {{
     }}
 }}
 
-pub trait Transform<Entity> {{
-    fn transform(self, r: Entity) -> Self;
+pub trait Project<Entity> {{
+    fn project(self, r: Entity) -> Self;
 }}
 
 pub trait Reflect<Entity> {{
     fn reflect(self, r: Entity) -> Self;
+}}
+
+pub trait Transform<Entity> {{
+    fn transform(self, r: Entity) -> Self;
 }}
 
 {generated_code}
