@@ -1,8 +1,7 @@
 use arcade::pga::{Trivector, Normalize};
-use arcade::construct::{point_from_xyz, circle_from_three_points, line_from_two_points, plane_from_standard_form};
-use arcade::topo::{Topo3D};
+use arcade::construct::{point_from_xyz, plane_from_standard_form};
+use arcade::topo::{Topo, reflect, combine};
 use arcade::interpolate::{interpolate_curve_subset_fixed, interpolate_closed_curve_fixed};
-use arcade::op::{reflect, combine, simplify};
 
 extern crate kiss3d;
 extern crate nalgebra as na;
@@ -24,7 +23,7 @@ fn draw_axes(window: &mut Window) {
     window.draw_line(&Point3::origin(), &Point3::new(0., 0., 1.), &Point3::new(0., 0., 1.));
 }
 
-fn draw_vertices(window: &mut Window, topo: &Topo3D) {
+fn draw_vertices(window: &mut Window, topo: &Topo) {
     for vertex in &topo.vertices {
         let pt3 = pga_to_point3(*vertex);
         window.set_point_size(6.);
@@ -32,7 +31,7 @@ fn draw_vertices(window: &mut Window, topo: &Topo3D) {
     }
 }
 
-fn draw_edges(window: &mut Window, topo: &Topo3D) {
+fn draw_edges(window: &mut Window, topo: &Topo) {
     for edge in &topo.edges {
         let curve = &topo.curves[edge.curve];
         let pts = match &edge.bounds {
@@ -107,37 +106,41 @@ fn main() {
     let width = 5.;
     let thickness = 3.;
 
-    let mut topo = Topo3D::new();
-
     let pt1 = point_from_xyz(-width / 2., 0., 0.);
     let pt2 = point_from_xyz(-width / 2., -thickness / 4., 0.);
     let pt3 = point_from_xyz(0., -thickness / 2., 0.);
     let pt4 = point_from_xyz(width / 2., -thickness / 4., 0.);
     let pt5 = point_from_xyz(width / 2., 0., 0.);
 
-    let v1 = topo.add_vertex(pt1);
-    let v2 = topo.add_vertex(pt2);
-    let _v3 = topo.add_vertex(pt3);
-    let v4 = topo.add_vertex(pt4);
-    let v5 = topo.add_vertex(pt5);
+    let e1 = Topo::line_segment_from_two_points(pt1, pt2).unwrap();
+    let e2 = Topo::circular_arc_from_three_points(pt2, pt3, pt4).unwrap();
+    let e3 = Topo::line_segment_from_two_points(pt4, pt5).unwrap();
 
-    let c1 = topo.add_curve(circle_from_three_points(pt2, pt3, pt4));
-    let c2 = topo.add_curve(line_from_two_points(pt1, pt2));
-    let c3 = topo.add_curve(line_from_two_points(pt4, pt5));
+    let topo = combine(&[e1, e2, e3]).unwrap();
 
-    let _e1 = topo.add_edge_with_endpoints(c1, v2, v4);
-    let _e2 = topo.add_edge_with_endpoints(c2, v1, v2);
-    let _e3 = topo.add_edge_with_endpoints(c3, v4, v5);
+    //let v1 = topo.add_vertex(pt1);
+    //let v2 = topo.add_vertex(pt2);
+    //let _v3 = topo.add_vertex(pt3);
+    //let v4 = topo.add_vertex(pt4);
+    //let v5 = topo.add_vertex(pt5);
+
+    //let c1 = topo.add_curve(circle_from_three_points(pt2, pt3, pt4));
+    //let c2 = topo.add_curve(line_from_two_points(pt1, pt2));
+    //let c3 = topo.add_curve(line_from_two_points(pt4, pt5));
+
+    //let _e1 = topo.add_edge_with_endpoints(c1, v2, v4);
+    //let _e2 = topo.add_edge_with_endpoints(c2, v1, v2);
+    //let _e3 = topo.add_edge_with_endpoints(c3, v4, v5);
 
     // Reflect the geometry
 
     let mirror = plane_from_standard_form(0., 1., 0., 0.).hat(); // Y = 0 plane
     ////let motor = ((point_from_xyz(0., 0., 0.) & point_from_xyz(0., 0., 1.)) * I).ihat().exp();
 
-    let topo2 = reflect(&topo, mirror);
-    //println!("each half has {:?} vertices", topo.vertices.len());
-    let topo = simplify(combine(&[topo, topo2]));
-    //println!("combined simplified has {:?} vertices", topo.vertices.len());
+    let mirrored = reflect(topo.clone(), mirror);
+    let topo = combine(&[topo, mirrored]).unwrap();
+
+    //let f1 = topo.add_face(planar_face_from_edges(&topo.edges));
 
     //let arc2 = arc1.reflect(mirror);
     //let seg3 = seg1.reflect(mirror);

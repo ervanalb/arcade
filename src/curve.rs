@@ -1,5 +1,25 @@
 use crate::pga::*;
 use crate::global::*;
+use std::ops::BitXor;
+
+#[derive(Debug, Clone, Copy)]
+pub enum Direction {
+    Forward,
+    Reverse,
+}
+
+impl BitXor for Direction {
+    type Output = Self;
+
+    fn bitxor(self, rhs: Self) -> Self {
+        match (self, rhs) {
+            (Self::Forward, Self::Forward) => Self::Forward,
+            (Self::Forward, Self::Reverse) => Self::Reverse,
+            (Self::Reverse, Self::Forward) => Self::Reverse,
+            (Self::Reverse, Self::Reverse) => Self::Forward,
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum Curve {
@@ -222,3 +242,12 @@ impl Circle {
 //        TrimmedCurve {curve: Box::new(self.curve.transform(entity)), t_start: self.t_start, t_end: self.t_end}
 //    }
 //}
+
+pub fn curves_coincident(c0: &Curve, c1: &Curve) -> Option<Direction> {
+    // Some(Forward) => Curves are coincident and have the same travel direction
+    // Some(Reverse) => Curves are coincident but have opposing travel directions
+    // None => Curves are not coincident
+
+    // TODO implement this
+    None
+}
