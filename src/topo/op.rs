@@ -49,3 +49,18 @@ pub fn combine(topos: &[Topo]) -> TopoResult<Topo> {
 
     Ok(result_topo)
 }
+
+/// Returns a Topo representing planar faces constructed from the input topo's edges.
+/// Any closed loop of planar edges will be turned into a face.
+/// This function will 
+pub fn planar_face(topo: Topo) -> TopoResult<Topo> {
+    // 1. Find edge loops
+    // 2. Filter edge loops based on planarity
+    // 3. Construct & push planes
+    // 4. Return faces
+
+    let loops = topo.possible_loops();
+    println!("Found loops: {:?}", loops);
+
+    Ok(Topo::empty()) // XXX
+}

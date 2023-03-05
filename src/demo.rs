@@ -1,6 +1,6 @@
 use arcade::pga::{Trivector, Normalize};
 use arcade::construct::{point_from_xyz, plane_from_standard_form};
-use arcade::topo::{Topo, reflect, combine};
+use arcade::topo::{Topo, reflect, combine, planar_face};
 use arcade::interpolate::{interpolate_curve_subset_fixed, interpolate_closed_curve_fixed};
 
 extern crate kiss3d;
@@ -97,6 +97,7 @@ fn main() {
     let topo = combine(&[topo, mirrored]).unwrap();
 
     // Next step:
+    let topo2 = planar_face(topo.clone());
     //let f1 = topo.add_face(planar_face_from_edges(&topo.edges));
 
     while window.render_with_camera(&mut arc_ball) {

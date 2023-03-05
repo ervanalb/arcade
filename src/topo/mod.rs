@@ -178,6 +178,103 @@ impl Topo {
     pub fn circular_arc_from_three_points(start: Trivector, middle: Trivector, end: Trivector) -> TopoResult<Self> {
         Self::edge(circle_from_three_points(start, middle, end), Some((start, end)))
     }
+
+    /// Find and return all possible loops
+    fn possible_loops(&self) -> Vec<Loop> {
+        // Build up a map of edge connectivity
+        let mut directed_edges = Vec::<DirectedEdge>::new();
+        // First, push all edges to this map, in both directions
+        for edge in 0..self.edges.len() {
+            for direction in [Direction::Forward, Direction::Reverse] {
+                directed_edges.push(DirectedEdge {
+                    edge,
+                    direction,
+                });
+            }
+        }
+        // Second, for each directed edge, see what other directed edges are possible "next steps"
+        // Store this adjacency information in a parallel array
+        let connectivity: Vec<Vec<usize>> = directed_edges.iter().map(|directed_edge| {
+            if let Some(end_vertex_index) = self.edges[directed_edge.edge].bounds.as_ref().map(|endpoints| endpoints.end_with_direction(directed_edge.direction)) {
+                let next_edges: Vec<usize> = directed_edges.iter().enumerate().filter_map(|(i, next_directed_edge)| {
+                    let next_start_vertex_index = self.edges[next_directed_edge.edge].bounds.as_ref().map(|endpoints| endpoints.start_with_direction(next_directed_edge.direction))?;
+                    if directed_edge.edge != next_directed_edge.edge && end_vertex_index == next_start_vertex_index {
+                        Some(i)
+                    } else {
+                        None
+                    }
+                }).collect();
+                next_edges
+            } else {
+                // Closed periodic edges don't connect to other edges
+                Vec::<usize>::new()
+            }
+        }).collect();
+
+        // Now that we have this map, find cycles in the graph using DFS
+        // and a white-grey-black node coloring approach.
+        // https://stackoverflow.com/a/62971341
+
+        #[derive(Debug,Clone,Copy)]
+        enum Color {
+            White, // Node is not visited
+            Grey,  // Node is on the path that is being explored
+            Black, // Node is visited
+        }
+
+        // Push all nodes onto the stack for DFS
+        let mut stack: Vec<usize> = (0..directed_edges.len()).collect();
+        let mut color: Vec<Color> = vec![Color::White; directed_edges.len()];
+
+        let mut cycles = Vec::<Vec<usize>>::new();
+
+        while let Some(&n) = stack.last() {
+            match color[n] {
+                Color::White => {
+                    color[n] = Color::Grey;
+                    for &m in connectivity[n].iter() {
+                        match color[m] {
+                            Color::White => {
+                                stack.push(m);
+                            }
+                            Color::Grey => {
+                                // This edge creates a cycle.
+
+                                // We will find every cycle twice (forwards and backwards.)
+                                // We can safely discard the redundant half of the cycles
+                                // by only keeping ones that start with an edge
+                                // in the forward direction.
+                                match directed_edges[m].direction {
+                                    Direction::Forward => {
+                                        let cycle_start = stack.len() - 1 - stack.iter().rev().position(|&i| i == m).unwrap();
+                                        let cycle: Vec<usize> = stack[cycle_start..].to_vec();
+                                        cycles.push(cycle);
+                                    }
+                                    Direction::Reverse => {}
+                                }
+                            }
+                            Color::Black => {
+                                // Already visited; no action necessary
+                            }
+                        }
+                    }
+                }
+                Color::Grey => {
+                    color[n] = Color::Black;
+                    stack.pop();
+                }
+                Color::Black => {
+                    // Some of the original nodes that were pushed will become colored black,
+                    // so we can ignore them as they have been explored already
+                    stack.pop();
+                }
+            }
+        }
+
+        cycles.iter().map(|cycle| Loop {
+            elements: cycle.iter().map(|&i| directed_edges[i].clone()).collect()
+        }).collect()
+    }
 }
 
 /// Inner struct for Edge.
@@ -193,6 +290,20 @@ impl EdgeEndpoints {
         match direction {
             Direction::Forward => EdgeEndpoints {start, end},
             Direction::Reverse => EdgeEndpoints {start: end, end: start},
+        }
+    }
+
+    pub fn start_with_direction(&self, direction: Direction) -> VertexIndex {
+        match direction {
+            Direction::Forward => self.start,
+            Direction::Reverse => self.end,
+        }
+    }
+
+    pub fn end_with_direction(&self, direction: Direction) -> VertexIndex {
+        match direction {
+            Direction::Forward => self.end,
+            Direction::Reverse => self.start,
         }
     }
 }
