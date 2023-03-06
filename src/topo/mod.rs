@@ -96,6 +96,10 @@ impl Topo {
         Ok(vertex_index)
     }
 
+    fn push_other_vertex(&mut self, other: &Topo, vertex: VertexIndex) -> TopoResult<VertexIndex> {
+        self.push_vertex(other.vertices[vertex])
+    }
+
     // Returns the CurveIndex and a direction
     // indicating whether the returned curve has a reversed travel direction
     // from the provided one
@@ -110,6 +114,29 @@ impl Topo {
         let ix = self.curves.len();
         self.curves.push(curve);
         (ix, Direction::Forward)
+    }
+
+    fn push_other_curve(&mut self, other: &Topo, curve: CurveIndex) -> TopoResult<(CurveIndex, Direction)> {
+        self.push_curve(other.curves[curve])
+    }
+
+    // Returns the CurveIndex and a direction
+    // indicating whether the returned curve has a reversed "sense"
+    // (i.e. either U or V was flipped, but not both, since that would amount to a 180 degree rotation)
+    fn push_surface(&mut self, surface: Surface) -> TopoResult<(SurfaceIndex, Direction)> {
+        for (i, existing_surface) in self.curves.iter().enumerate() {
+            if let Some(direction) = surfaces_coincident(&surface, existing_surface) {
+                return (i, direction);
+            }
+        };
+
+        let ix = self.surfaces.len();
+        self.surfaces.push(surface);
+        (ix, Direction::Forward)
+    }
+
+    fn push_other_surface(&mut self, other: &Topo, surface: SurfaceIndex) -> TopoResult<(SurfaceIndex, Direction)> {
+        self.push_surface(other.surfaces[surface])
     }
 
     fn push_edge(&mut self, edge: Edge) -> EdgeIndex {
@@ -134,6 +161,48 @@ impl Topo {
         });
 
         edge_index
+    }
+
+    // Push an edge from another topo to this topo, along with any dependent geometry like curves and vertices
+    fn push_other_edge(&mut self, other: &Topo, edge: EdgeIndex) -> TopoResult<(EdgeIndex, Direction)> {
+        let Edge { curve, bounds } = other.edges[edge];
+        let (curve, direction) = self.push_other_curve(curve)?;
+        let bounds = bounds.map(|EdgeEndpoints { start, end }| EdgeEndpoints::new_with_direction(
+            self.push_other_vertex(start),
+            self.push_other_vertex(end),
+            direction
+        ));
+        let edge = self.push_edge(Edge { curve, bounds });
+        Ok((edge, direction))
+    }
+
+    fn push_face(&mut self, face: Face) -> FaceIndex {
+        // This function probably doesn't need to return a Direction
+        // because surface consolidation will have already happened,
+        // (which means there won't be a coincident but reversed surface)
+        // so it's not possible for a coincident Face to be pushed
+        // with the opposite direction of an existing Face.
+
+        let existing_face_index = self.faces.iter().enumerate().find_map(|(i, existing_face)| {
+            if &face == existing_face {
+                Some(i)
+            } else {
+                None
+            }
+        });
+
+        let face_index = existing_face_index.unwrap_or_else(|| {
+            let ix = self.faces.len();
+            self.faces.push(face);
+            ix
+        });
+
+        face_index
+    }
+
+    // Push a face from another topo to this topo, along with any dependent geometry like edges, curves, surfaces, and vertices
+    fn push_other_face(&mut self, face: Face) -> FaceIndex {
+        todo!();
     }
 
     /// Topology representing just a single vertex
@@ -171,12 +240,12 @@ impl Topo {
 
     /// Convenience function for making edges that are line segments
     pub fn line_segment_from_two_points(start: Trivector, end: Trivector) -> TopoResult<Self> {
-        Self::edge(line_from_two_points(start, end), Some((start, end)))
+        Self::edge(Curve::line_from_two_points(start, end), Some((start, end)))
     }
 
     /// Convenience function for making edges that are circular arcs defined by 3 points
     pub fn circular_arc_from_three_points(start: Trivector, middle: Trivector, end: Trivector) -> TopoResult<Self> {
-        Self::edge(circle_from_three_points(start, middle, end), Some((start, end)))
+        Self::edge(Curve::circle_from_three_points(start, middle, end), Some((start, end)))
     }
 
     /// Find and return all possible loops
@@ -335,7 +404,7 @@ impl Edge {
 
 /// Inner struct for Loop.
 /// Includes the edge index, and the direction it is being used in.
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DirectedEdge {
     pub edge: EdgeIndex,
     pub direction: Direction,
@@ -345,9 +414,15 @@ pub struct DirectedEdge {
 /// A loop is a closed set of edges, to be used as a boundary for a face.
 /// The edges are listed in-order and with a consistent winding direction
 /// such that the face lies to the right of the loop.
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone, Eq)]
 pub struct Loop {
     pub elements: Vec<DirectedEdge>,
+}
+
+impl PartialEq for Loop {
+    fn eq(&self, other: &Self) -> bool {
+        false // XXX TODO
+    }
 }
 
 /// A face is a section of a surface.
@@ -356,12 +431,18 @@ pub struct Loop {
 /// (e.g. trace a perimeter around the outside, along with any holes.)
 /// "Ridges" contains a list of edges that trace any 1D discontinuities in the surface normals.
 /// "Peaks" contains a list of points that mark any 0D discontinuities in the surface normals.
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone, Eq)]
 pub struct Face {
     pub surface: SurfaceIndex,
     pub bounds: Vec<Loop>,
-    pub ridges: Vec<EdgeIndex>,
-    pub peaks: Vec<VertexIndex>,
+    //pub ridges: Vec<EdgeIndex>,
+    //pub peaks: Vec<VertexIndex>,
+}
+
+impl PartialEq for Face {
+    fn eq(&self, other: &Self) -> bool {
+        false // XXX TODO
+    }
 }
 
 /// Inner struct for Shell.

@@ -60,7 +60,7 @@ pub fn planar_face(topo: Topo) -> TopoResult<Topo> {
     println!("Found loops: {:?}", loops);
 
     // 2. See which loops are planar
-    let loop_planes: Vec<Option<Vector>> = loops.iter().map(|l| {
+    let loop_planes = loops.iter().map(|l| {
         let mut loop_vertices: Vec<usize> = l.elements.iter().map(|DirectedEdge {edge, direction: _}| {
             match topo.edges[*edge].bounds {
                 Some(EdgeEndpoints {start, end}) => vec![start, end],
@@ -124,12 +124,14 @@ pub fn planar_face(topo: Topo) -> TopoResult<Topo> {
 
         // All edges passed the test, so this loop is planar
         Some(plane)
-    }).collect();
+    });
 
-    println!("planes for loops: {:?}", loop_planes);
+    // Remove any loops that are not planar, and construct Plane surfaces for those that are.
+    let faces = loops.iter().zip(loop_planes).filter_map(|(l, pl)| Some((l, Surface::plane(pl?))));
+
+    println!("faces: {:?}", faces.collect::<Vec<_>>());
 
     // TODO:
-    // 3. Construct & push planes
-    // 4. Return faces
+    // return these faces
     Ok(Topo::empty()) // XXX
 }
