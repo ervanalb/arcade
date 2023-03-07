@@ -44,6 +44,7 @@ pub struct Topo {
 
 #[derive(Debug,Clone)]
 pub enum TopoError {
+    CurveEndpointsCoincident,
 }
 
 impl Topo {
@@ -201,8 +202,18 @@ impl Topo {
     }
 
     // Push a face from another topo to this topo, along with any dependent geometry like edges, curves, surfaces, and vertices
-    fn push_other_face(&mut self, face: Face) -> FaceIndex {
-        todo!();
+    fn push_other_face(&mut self, other: &Topo, face: FaceIndex) -> TopoResult<(FaceIndex, Direction)> {
+        let Face { surface, bounds } = &other.faces[face];
+        let (surface, surface_direction) = self.push_other_surface(other, *surface);
+        let bounds = bounds.iter().map(|Loop { elements }| {
+            Ok(Loop { elements: elements.iter().map(|DirectedEdge { edge, direction: loop_edge_direction }| {
+                let (edge, curve_edge_direction) = self.push_other_edge(other, *edge)?;
+                let direction = surface_direction ^ *loop_edge_direction ^ curve_edge_direction;
+                Ok(DirectedEdge { edge, direction })
+            }).collect::<TopoResult<Vec<DirectedEdge>>>()?})
+        }).collect::<TopoResult<Vec<Loop>>>()?;
+        let face = self.push_face(Face { surface, bounds });
+        Ok((face, surface_direction))
     }
 
     /// Topology representing just a single vertex
@@ -222,13 +233,16 @@ impl Topo {
 
         let (curve_index, direction) = topo.push_curve(curve);
 
-        let bounds = bounds.map(|(start_pt, end_pt)|
+        let bounds = bounds.map(|(start_pt, end_pt)| {
+            if vertices_coincident(start_pt, end_pt) {
+                return Err(TopoError::CurveEndpointsCoincident);
+            }
             Ok(EdgeEndpoints::new_with_direction(
                 topo.push_vertex(start_pt)?,
                 topo.push_vertex(end_pt)?,
                 direction,
             ))
-        ).transpose()?;
+        }).transpose()?;
 
         topo.push_edge(Edge {
             curve: curve_index,
@@ -246,6 +260,25 @@ impl Topo {
     /// Convenience function for making edges that are circular arcs defined by 3 points
     pub fn circular_arc_from_three_points(start: Trivector, middle: Trivector, end: Trivector) -> TopoResult<Self> {
         Self::edge(Curve::circle_from_three_points(start, middle, end), Some((start, end)))
+    }
+
+    /// Keep only specific entities from the topo
+    pub fn select(self, _solids: &[SolidIndex], faces: &[FaceIndex], edges: &[EdgeIndex], vertices: &[VertexIndex]) -> Self {
+        let mut result = Self::empty();
+        // TODO:
+        //for &solid in solids {
+        //    result.push_other_solid(&self, solid).unwrap();
+        //}
+        for &face in faces {
+            result.push_other_face(&self, face).unwrap();
+        }
+        for &edge in edges {
+            result.push_other_edge(&self, edge).unwrap();
+        }
+        for &vertex in vertices {
+            result.push_other_vertex(&self, vertex).unwrap();
+        }
+        result
     }
 
     /// Find and return all possible loops
@@ -422,7 +455,27 @@ pub struct Loop {
 
 impl PartialEq for Loop {
     fn eq(&self, other: &Self) -> bool {
-        false // XXX TODO
+        let n_edges = self.elements.len();
+
+        if n_edges != other.elements.len() {
+            return false;
+        }
+
+        assert!(n_edges != 0, "Empty loop--no edges");
+
+        let my_first_de = &self.elements[0];
+        if let Some(offset) = other.elements.iter().position(|de| de == my_first_de) {
+            // Walk both loops in a circle to confirm that all edges appear in the same order
+            for i in 1..n_edges {
+                let j = (i + offset) % n_edges;
+                if self.elements[i] != other.elements[j] {
+                    return false;
+                }
+            }
+        } else {
+            return false; // First directed edge not found in other loop
+        }
+        true
     }
 }
 
@@ -442,7 +495,19 @@ pub struct Face {
 
 impl PartialEq for Face {
     fn eq(&self, other: &Self) -> bool {
-        false // XXX TODO
+        if self.surface != other.surface {
+            return false;
+        }
+        if self.bounds.len() != other.bounds.len() {
+            return false;
+        }
+
+        for my_loop in self.bounds.iter() {
+            if !other.bounds.contains(my_loop) {
+                return false;
+            }
+        }
+        true
     }
 }
 

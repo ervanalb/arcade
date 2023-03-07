@@ -105,10 +105,7 @@ impl Surface {
         let p = projected_origin & primary & secondary;
 
         let lu = (projected_origin & primary).hat();
-        println!("lu: {:?}", lu);
-
         let lv = (p ^ (lu | projected_origin)).hat();
-        println!("lv: {:?}", lv);
 
         Surface::Plane(Plane {
             p0: projected_origin,

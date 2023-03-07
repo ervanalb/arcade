@@ -53,11 +53,10 @@ pub fn combine(topos: &[Topo]) -> TopoResult<Topo> {
 /// Returns a Topo representing planar faces constructed from the input topo's edges.
 /// Any closed loop of planar edges will be turned into a face.
 /// This function will 
-pub fn planar_face(topo: Topo) -> TopoResult<Topo> {
+pub fn planar_face(mut topo: Topo) -> TopoResult<Topo> {
 
     // 1. Find edge loops
     let loops = topo.possible_loops();
-    println!("Found loops: {:?}", loops);
 
     // 2. See which loops are planar
     let loop_planes = loops.iter().map(|l| {
@@ -126,12 +125,16 @@ pub fn planar_face(topo: Topo) -> TopoResult<Topo> {
         Some(plane)
     });
 
+    let loops_and_planes: Vec<(Loop, Vector)> = loops.iter().zip(loop_planes.into_iter()).filter_map(|(l, pl)| Some((l.clone(), pl?))).collect();
+
     // Remove any loops that are not planar, and construct Plane surfaces for those that are.
-    let faces = loops.iter().zip(loop_planes).filter_map(|(l, pl)| Some((l, Surface::plane(pl?))));
+    let faces: Vec<FaceIndex> = loops_and_planes.into_iter().map(|(l, pl)| {
+        let (surface, _direction) = topo.push_surface(Surface::plane(pl));
+        topo.push_face(Face {
+            surface,
+            bounds: vec![l.clone()],
+        })
+    }).collect();
 
-    println!("faces: {:?}", faces.collect::<Vec<_>>());
-
-    // TODO:
-    // return these faces
-    Ok(Topo::empty()) // XXX
+    Ok(topo.select(&[], &faces, &[], &[]))
 }

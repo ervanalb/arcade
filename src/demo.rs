@@ -97,7 +97,8 @@ fn main() {
     let topo = combine(&[topo, mirrored]).unwrap();
 
     // Next step:
-    let topo2 = planar_face(topo.clone());
+    let topo = planar_face(topo.clone()).unwrap();
+    println!("with face: {:?}", topo);
     //let f1 = topo.add_face(planar_face_from_edges(&topo.edges));
 
     while window.render_with_camera(&mut arc_ball) {
