@@ -8,26 +8,6 @@
 
 use crate::pga::*;
 use crate::global::*;
-use std::ops::BitXor;
-
-#[derive(Debug, Clone, Copy)]
-pub enum Direction {
-    Forward,
-    Reverse,
-}
-
-impl BitXor for Direction {
-    type Output = Self;
-
-    fn bitxor(self, rhs: Self) -> Self {
-        match (self, rhs) {
-            (Self::Forward, Self::Forward) => Self::Forward,
-            (Self::Forward, Self::Reverse) => Self::Reverse,
-            (Self::Reverse, Self::Forward) => Self::Reverse,
-            (Self::Reverse, Self::Reverse) => Self::Forward,
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub enum Curve {

@@ -116,15 +116,15 @@ impl Topo {
         (ix, Direction::Forward)
     }
 
-    fn push_other_curve(&mut self, other: &Topo, curve: CurveIndex) -> TopoResult<(CurveIndex, Direction)> {
-        self.push_curve(other.curves[curve])
+    fn push_other_curve(&mut self, other: &Topo, curve: CurveIndex) -> (CurveIndex, Direction) {
+        self.push_curve(other.curves[curve].clone())
     }
 
     // Returns the CurveIndex and a direction
     // indicating whether the returned curve has a reversed "sense"
     // (i.e. either U or V was flipped, but not both, since that would amount to a 180 degree rotation)
-    fn push_surface(&mut self, surface: Surface) -> TopoResult<(SurfaceIndex, Direction)> {
-        for (i, existing_surface) in self.curves.iter().enumerate() {
+    fn push_surface(&mut self, surface: Surface) -> (SurfaceIndex, Direction) {
+        for (i, existing_surface) in self.surfaces.iter().enumerate() {
             if let Some(direction) = surfaces_coincident(&surface, existing_surface) {
                 return (i, direction);
             }
@@ -135,8 +135,8 @@ impl Topo {
         (ix, Direction::Forward)
     }
 
-    fn push_other_surface(&mut self, other: &Topo, surface: SurfaceIndex) -> TopoResult<(SurfaceIndex, Direction)> {
-        self.push_surface(other.surfaces[surface])
+    fn push_other_surface(&mut self, other: &Topo, surface: SurfaceIndex) -> (SurfaceIndex, Direction) {
+        self.push_surface(other.surfaces[surface].clone())
     }
 
     fn push_edge(&mut self, edge: Edge) -> EdgeIndex {
@@ -165,13 +165,13 @@ impl Topo {
 
     // Push an edge from another topo to this topo, along with any dependent geometry like curves and vertices
     fn push_other_edge(&mut self, other: &Topo, edge: EdgeIndex) -> TopoResult<(EdgeIndex, Direction)> {
-        let Edge { curve, bounds } = other.edges[edge];
-        let (curve, direction) = self.push_other_curve(curve)?;
-        let bounds = bounds.map(|EdgeEndpoints { start, end }| EdgeEndpoints::new_with_direction(
-            self.push_other_vertex(start),
-            self.push_other_vertex(end),
+        let Edge { curve, bounds } = &other.edges[edge];
+        let (curve, direction) = self.push_other_curve(other, *curve);
+        let bounds = bounds.as_ref().map(|EdgeEndpoints { start, end }| Ok(EdgeEndpoints::new_with_direction(
+            self.push_other_vertex(other, *start)?,
+            self.push_other_vertex(other, *end)?,
             direction
-        ));
+        ))).transpose()?;
         let edge = self.push_edge(Edge { curve, bounds });
         Ok((edge, direction))
     }
