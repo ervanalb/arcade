@@ -378,12 +378,13 @@ impl EdgeEndpoints {
 }
 
 /// An edge is a section of a curve.
-/// If bounds is None, then the curve must be closed / periodic (e.g. a circle.)
-/// If bounds.start == bounds.end, then the curve is closed via one point (e.g. a teardrop.)
+/// If bounds is None, then the curve must be closed & periodic (e.g. a circle.)
+/// If bounds is Some, bounds.start must not be coincident with bounds.end.
 #[derive(Debug,Clone,PartialEq,Eq)]
 pub struct Edge {
     pub curve: CurveIndex,
     pub bounds: Option<EdgeEndpoints>,
+    //pub cusps: Vec<VertexIndex>,
 }
 
 impl Edge {
@@ -478,8 +479,8 @@ fn curve_bounds_for_edge(topo: &Topo, edge: EdgeIndex) -> (Float, Float) {
         Some(endpoints) => {
             let start_pt = topo.vertices()[endpoints.start];
             let end_pt = topo.vertices()[endpoints.end];
-            let start_t = c.t_first(start_pt);
-            let end_t = c.t_last(end_pt);
+            let start_t = c.t(start_pt);
+            let end_t = c.t(end_pt);
             (start_t, end_t)
         },
         None => {

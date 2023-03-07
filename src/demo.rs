@@ -38,8 +38,8 @@ fn draw_edges(window: &mut Window, topo: &Topo) {
             Some(bounds) => {
                 let start_pt = topo.vertices()[bounds.start];
                 let end_pt = topo.vertices()[bounds.end];
-                let start_t = curve.t_first(start_pt);
-                let end_t = curve.t_last(end_pt);
+                let start_t = curve.t(start_pt);
+                let end_t = curve.t(end_pt);
                 let mut pts = interpolate_curve_subset_fixed(&curve, start_t, end_t, 50);
                 // Replace the start and end points with the vertices
                 pts[0] = start_pt;

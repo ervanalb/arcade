@@ -75,21 +75,11 @@ impl Curve {
         }
     }
 
-    /// Get the smallest parameter value corresponding to the given point
-    /// This will return the same as t_last if the given point is not a self-intersection
-    pub fn t_first(&self, p: Trivector) -> Float {
+    /// Get the parameter value corresponding to the given point
+    pub fn t(&self, p: Trivector) -> Float {
         match &self {
-            Curve::Line(x) => x.t_first(p),
-            Curve::Circle(x) => x.t_first(p),
-        }
-    }
-
-    /// Get the largest parameter value corresponding to the given point
-    /// This will return the same as t_first if the given point is not a self-intersection
-    pub fn t_last(&self, p: Trivector) -> Float {
-        match &self {
-            Curve::Line(x) => x.t_last(p),
-            Curve::Circle(x) => x.t_last(p),
+            Curve::Line(x) => x.t(p),
+            Curve::Circle(x) => x.t(p),
         }
     }
 
@@ -139,16 +129,12 @@ impl Line {
         Line {p0: self.p0.transform(entity), d: self.d.transform(entity)}
     }
 
-    pub fn t_first(&self, p: Trivector) -> Float {
+    pub fn t(&self, p: Trivector) -> Float {
         // Compute a plane through p0 perpendicular to the line
         let plane = self.d & self.p0;
 
         // Measure signed distance from plane to projected point
         p.hat() & plane
-    }
-
-    pub fn t_last(&self, p: Trivector) -> Float {
-        self.t_first(p)
     }
 
     pub fn hull(&self, start_t: Float, end_t: Float) -> Vec<Trivector> {
@@ -194,7 +180,7 @@ impl Circle {
         Circle {p0: self.p0.transform(entity), a: self.a.transform(entity)}
     }
 
-    pub fn t_first(&self, p: Trivector) -> Float {
+    pub fn t(&self, p: Trivector) -> Float {
         // Compute plane through l and p0
         let plane0 = (self.a & self.p0).hat();
 
@@ -210,10 +196,6 @@ impl Circle {
             true => 2. * PI - angle,
             false => angle,
         }
-    }
-
-    pub fn t_last(&self, p: Trivector) -> Float {
-        self.t_first(p)
     }
 
     pub fn hull(&self, start_t: Float, end_t: Float) -> Vec<Trivector> {
